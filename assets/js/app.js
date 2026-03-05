@@ -185,10 +185,11 @@
         if (typeof data.deduped === "boolean") u.searchParams.set("deduped", String(data.deduped));
         u.searchParams.set("phone", phone);
         location.href = u.toString();
-      }catch(err){
-        console.error(err);
-        setStatus("Não foi possível conectar agora. Tente novamente em instantes.", "danger");
-      }finally{
+}catch(err){
+  console.error(err);
+  const msg = (err && err.message) ? err.message : String(err);
+  setStatus("Falha ao conectar: " + msg, "danger");
+}finally{
         setLoading(false);
       }
     });
