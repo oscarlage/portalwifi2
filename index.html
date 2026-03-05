@@ -1,12 +1,118 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Portal WiFi</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wi‑Fi — Sítio Coisa Nossa</title>
+  <meta name="description" content="Conecte no Wi‑Fi do Sítio Coisa Nossa e receba novidades e promoções." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css" />
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 </head>
 <body>
-  <h1>Portal WiFi</h1>
-  <p><a href="/login.html">Entrar</a> • <a href="/dashboard.html">Dashboard</a></p>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <header class="brand">
+      <div class="logo" aria-hidden="true">
+        <span class="logo-wifi">⌁</span>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">Sítio Coisa Nossa</div>
+        <div class="brand-sub">Wi‑Fi do Restaurante • Conexão rápida e segura</div>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="card-head">
+        <h1>Bem‑vindo(a)!</h1>
+        <p>Preencha para liberar o acesso e receber ofertas, eventos e novidades.</p>
+      </div>
+
+      <form id="leadForm" class="form" novalidate>
+        <div class="grid">
+          <label class="field">
+            <span>Seu nome</span>
+            <input id="full_name" name="full_name" type="text" autocomplete="name" placeholder="Ex.: Maria Silva" required minlength="2" />
+            <small class="hint">Como podemos te chamar.</small>
+          </label>
+
+          <label class="field">
+            <span>WhatsApp</span>
+            <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+                   placeholder="(31) 9xxxx‑xxxx" required />
+            <small class="hint">Usamos apenas para comunicação do restaurante.</small>
+          </label>
+
+          <label class="field">
+            <span>Cidade</span>
+            <input id="city" name="city" type="text" autocomplete="address-level2" placeholder="Ex.: Mateus Leme" />
+            <small class="hint">Opcional.</small>
+          </label>
+        </div>
+
+        <label class="check">
+          <input id="marketing_optin" name="marketing_optin" type="checkbox" checked />
+          <span>Quero receber promoções e novidades (marketing).</span>
+        </label>
+
+        <label class="check lgpd">
+          <input id="lgpd" name="lgpd" type="checkbox" required />
+          <span>Li e aceito os <a href="/termos.html" target="_blank" rel="noopener">Termos e Política de Privacidade (LGPD)</a>.</span>
+        </label>
+
+        <div class="actions">
+          <button id="submitBtn" class="btn" type="submit">
+            <span class="btn-text">Conectar</span>
+            <span class="btn-spin" aria-hidden="true"></span>
+          </button>
+
+          <div class="meta">
+            <div class="pill" id="devicePill" title="Identificador do dispositivo (local)">
+              <span class="dot"></span>
+              <span id="deviceLabel">dispositivo…</span>
+            </div>
+            <div class="tiny" id="statusLine" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <input type="hidden" id="campaign_id" name="campaign_id" value="" />
+        <input type="hidden" id="tenant_slug" name="tenant_slug" value="" />
+        <input type="hidden" id="source" name="source" value="portal" />
+        <input type="hidden" id="mac_address" name="mac_address" value="" />
+        <input type="hidden" id="device_name" name="device_name" value="" />
+      </form>
+    </section>
+
+    <section class="card mini">
+      <div class="mini-grid">
+        <div>
+          <h2>Depois de conectar</h2>
+          <ul class="bullets">
+            <li>Veja nossas promoções do dia</li>
+            <li>Receba novidades no WhatsApp</li>
+            <li>Siga nosso Instagram</li>
+          </ul>
+        </div>
+        <div class="qr">
+          <div class="qr-box">
+            <img src="/assets/img/qr_portal.png" alt="QR Code do Portal Wi‑Fi" />
+          </div>
+          <div class="qr-cap">Aponte a câmera para abrir</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div>© <span id="year"></span> Sítio Coisa Nossa</div>
+      <div class="sep">•</div>
+      <a class="muted" href="/success.html">Página de sucesso</a>
+    </footer>
+  </main>
+
+  <script src="/assets/js/settings.js"></script>
+  <script src="/assets/js/app.js" defer></script>
 </body>
 </html>
