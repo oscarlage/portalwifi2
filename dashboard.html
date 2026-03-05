@@ -50,6 +50,7 @@
     code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
   </style>
 
+  <!-- Supabase JS (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -134,181 +135,188 @@
   </div>
 
   <script>
-    // ======= CONFIG (mesmas credenciais do login.html) =======
+    // Guard anti-execução duplicada (evita "already been declared")
+    if (window.__PORTALWIFI_DASH_INIT__) {
+      console.warn("Dashboard já inicializado — ignorando execução duplicada.");
+    } else {
+      window.__PORTALWIFI_DASH_INIT__ = true;
 
+      // ======= CONFIG (mesmas credenciais do login.html) =======
       const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
-    // ======= helpers =======
-    const $ = (id) => document.getElementById(id);
-    const log = (obj) => {
-      const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-      $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
-    };
-    const setSess = (ok, text) => {
-      $("sessDot").className = "dot " + (ok ? "ok" : "bad");
-      $("sessText").textContent = text;
-    };
 
-    // ======= init =======
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // ======= helpers =======
+      const $ = (id) => document.getElementById(id);
+      const log = (obj) => {
+        const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+        $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
+      };
+      const setSess = (ok, text) => {
+        $("sessDot").className = "dot " + (ok ? "ok" : "bad");
+        $("sessText").textContent = text;
+      };
 
-    function badge(role){
-      if (role === "tenant_admin") return `<span class="badge admin">ADMIN</span>`;
-      if (role === "tenant_marketing") return `<span class="badge marketing">MARKETING</span>`;
-      return `<span class="badge viewer">VIEWER</span>`;
-    }
+      const okUrl = typeof SUPABASE_URL === "string" && SUPABASE_URL.startsWith("https://") && SUPABASE_URL.includes(".supabase.co");
+      const okKey = typeof SUPABASE_ANON_KEY === "string" && SUPABASE_ANON_KEY.startsWith("sb_");
 
-    function setActiveTenant(tenant){
-      localStorage.setItem("portalwifi.activeTenantId", tenant.id);
-      localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
-      localStorage.setItem("portalwifi.activeTenantRole", tenant.role || "");
-      renderActiveFromStorage();
-    }
-
-    function renderActiveFromStorage(){
-      const tid = localStorage.getItem("portalwifi.activeTenantId") || "";
-      const tname = localStorage.getItem("portalwifi.activeTenantName") || "—";
-      const role = localStorage.getItem("portalwifi.activeTenantRole") || "—";
-
-      $("activeTenantName").textContent = tname || "—";
-      $("activeTenantId").textContent = tid ? tid : "—";
-      $("activeRole").textContent = role;
-    }
-
-    async function requireSession(){
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        log({ getSession_error: error });
-        setSess(false, "Sessão: erro");
-        return null;
-      }
-      const session = data.session;
-      if (!session) {
-        setSess(false, "Sessão: deslogado (redirecionando)");
-        // volta pro login
-        location.href = "/login.html";
-        return null;
-      }
-      setSess(true, "Sessão: logado");
-      return session;
-    }
-
-    async function loadMe(session){
-      $("userEmail").textContent = session.user?.email || "—";
-      $("userId").textContent = session.user?.id || "—";
-    }
-
-    async function loadTenantsForUser(){
-      // 1) pega memberships do usuário logado
-      const { data: tms, error: e1 } = await supabase
-        .from("tenant_members")
-        .select("tenant_id, role, is_active")
-        .eq("is_active", true);
-
-      if (e1) {
-        log({ tenant_members_error: e1 });
-        $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="danger">Erro ao carregar memberships: ${e1.message}</td></tr>`;
-        return [];
-      }
-
-      // 2) pega dados básicos dos tenants (precisa da policy tenants_select_members)
-      const tenantIds = (tms || []).map(x => x.tenant_id);
-      if (!tenantIds.length) {
-        $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="muted">Você ainda não está em nenhum tenant.</td></tr>`;
-        return [];
-      }
-
-      const { data: ts, error: e2 } = await supabase
-        .from("tenants")
-        .select("id, name, slug, status")
-        .in("id", tenantIds);
-
-      if (e2) {
-        log({ tenants_error: e2, hint: "Aplique a policy tenants_select_members que eu te mandei." });
-        // fallback: mostra só IDs
-        $("tenantsTbody").innerHTML = (tms || []).map(m => `
-          <tr>
-            <td><code>${m.tenant_id}</code></td>
-            <td class="muted">—</td>
-            <td>${badge(m.role)}</td>
-            <td><button class="ghost" data-tenant="${m.tenant_id}" data-name="" data-role="${m.role}">Selecionar</button></td>
-          </tr>
-        `).join("");
-        bindTenantButtons();
-        return (tms || []).map(m => ({ id: m.tenant_id, name: "", slug: "", role: m.role }));
-      }
-
-      // 3) combina tenant + role
-      const mapRole = new Map((tms || []).map(m => [m.tenant_id, m.role]));
-      const tenants = (ts || [])
-        .filter(t => t.status === "active")
-        .map(t => ({ ...t, role: mapRole.get(t.id) || "tenant_viewer" }))
-        .sort((a,b) => (a.name||"").localeCompare(b.name||""));
-
-      $("tenantsTbody").innerHTML = tenants.map(t => `
-        <tr>
-          <td><b>${t.name || "-"}</b><div class="muted" style="font-size:12px"><code>${t.id}</code></div></td>
-          <td>${t.slug || "-"}</td>
-          <td>${badge(t.role)}</td>
-          <td><button class="ghost" data-tenant="${t.id}" data-name="${(t.name||"").replace(/"/g,'&quot;')}" data-role="${t.role}">Selecionar</button></td>
-        </tr>
-      `).join("");
-
-      bindTenantButtons();
-
-      // se não tiver tenant ativo, define o primeiro
-      const active = localStorage.getItem("portalwifi.activeTenantId");
-      if (!active && tenants.length) {
-        setActiveTenant(tenants[0]);
+      if (!okUrl || !okKey || !window.supabase?.createClient) {
+        setSess(false, "Sessão: erro (config)");
+        log({ okUrl, okKey, hasSupabaseLib: !!window.supabase, hint: "Verifique SUPABASE_URL/KEY e carregamento do CDN." });
       } else {
-        // se já tinha, tenta atualizar name/role para refletir
-        const found = tenants.find(x => x.id === active);
-        if (found) setActiveTenant(found);
-      }
+        // ======= init (use 'sb' para evitar conflito com qualquer outra variável) =======
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      return tenants;
-    }
+        function badge(role){
+          if (role === "tenant_admin") return `<span class="badge admin">ADMIN</span>`;
+          if (role === "tenant_marketing") return `<span class="badge marketing">MARKETING</span>`;
+          return `<span class="badge viewer">VIEWER</span>`;
+        }
 
-    function bindTenantButtons(){
-      document.querySelectorAll("button[data-tenant]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-tenant");
-          const name = btn.getAttribute("data-name") || "";
-          const role = btn.getAttribute("data-role") || "";
-          setActiveTenant({ id, name, role });
-          log({ activeTenantSet: { id, name, role }});
+        function setActiveTenant(tenant){
+          localStorage.setItem("portalwifi.activeTenantId", tenant.id);
+          localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
+          localStorage.setItem("portalwifi.activeTenantRole", tenant.role || "");
+          renderActiveFromStorage();
+        }
+
+        function renderActiveFromStorage(){
+          const tid = localStorage.getItem("portalwifi.activeTenantId") || "";
+          const tname = localStorage.getItem("portalwifi.activeTenantName") || "—";
+          const role = localStorage.getItem("portalwifi.activeTenantRole") || "—";
+
+          $("activeTenantName").textContent = tname || "—";
+          $("activeTenantId").textContent = tid ? tid : "—";
+          $("activeRole").textContent = role;
+        }
+
+        async function requireSession(){
+          const { data, error } = await sb.auth.getSession();
+          if (error) {
+            log({ getSession_error: error });
+            setSess(false, "Sessão: erro");
+            return null;
+          }
+          const session = data.session;
+          if (!session) {
+            setSess(false, "Sessão: deslogado (redirecionando)");
+            location.href = "/login.html";
+            return null;
+          }
+          setSess(true, "Sessão: logado");
+          return session;
+        }
+
+        async function loadMe(session){
+          $("userEmail").textContent = session.user?.email || "—";
+          $("userId").textContent = session.user?.id || "—";
+        }
+
+        async function loadTenantsForUser(){
+          const { data: tms, error: e1 } = await sb
+            .from("tenant_members")
+            .select("tenant_id, role, is_active")
+            .eq("is_active", true);
+
+          if (e1) {
+            log({ tenant_members_error: e1 });
+            $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="danger">Erro ao carregar memberships: ${e1.message}</td></tr>`;
+            return [];
+          }
+
+          const tenantIds = (tms || []).map(x => x.tenant_id);
+          if (!tenantIds.length) {
+            $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="muted">Você ainda não está em nenhum tenant.</td></tr>`;
+            return [];
+          }
+
+          const { data: ts, error: e2 } = await sb
+            .from("tenants")
+            .select("id, name, slug, status")
+            .in("id", tenantIds);
+
+          if (e2) {
+            log({ tenants_error: e2, hint: "Se tenants estiver bloqueado, aplique a policy tenants_select_members." });
+            $("tenantsTbody").innerHTML = (tms || []).map(m => `
+              <tr>
+                <td><code>${m.tenant_id}</code></td>
+                <td class="muted">—</td>
+                <td>${badge(m.role)}</td>
+                <td><button class="ghost" data-tenant="${m.tenant_id}" data-name="" data-role="${m.role}">Selecionar</button></td>
+              </tr>
+            `).join("");
+            bindTenantButtons();
+            return (tms || []).map(m => ({ id: m.tenant_id, name: "", slug: "", role: m.role }));
+          }
+
+          const mapRole = new Map((tms || []).map(m => [m.tenant_id, m.role]));
+          const tenants = (ts || [])
+            .filter(t => t.status === "active")
+            .map(t => ({ ...t, role: mapRole.get(t.id) || "tenant_viewer" }))
+            .sort((a,b) => (a.name||"").localeCompare(b.name||""));
+
+          $("tenantsTbody").innerHTML = tenants.map(t => `
+            <tr>
+              <td><b>${t.name || "-"}</b><div class="muted" style="font-size:12px"><code>${t.id}</code></div></td>
+              <td>${t.slug || "-"}</td>
+              <td>${badge(t.role)}</td>
+              <td><button class="ghost" data-tenant="${t.id}" data-name="${(t.name||"").replace(/"/g,'&quot;')}" data-role="${t.role}">Selecionar</button></td>
+            </tr>
+          `).join("");
+
+          bindTenantButtons();
+
+          const active = localStorage.getItem("portalwifi.activeTenantId");
+          if (!active && tenants.length) {
+            setActiveTenant(tenants[0]);
+          } else {
+            const found = tenants.find(x => x.id === active);
+            if (found) setActiveTenant(found);
+          }
+
+          return tenants;
+        }
+
+        function bindTenantButtons(){
+          document.querySelectorAll("button[data-tenant]").forEach(btn => {
+            btn.addEventListener("click", () => {
+              const id = btn.getAttribute("data-tenant");
+              const name = btn.getAttribute("data-name") || "";
+              const role = btn.getAttribute("data-role") || "";
+              setActiveTenant({ id, name, role });
+              log({ activeTenantSet: { id, name, role }});
+            });
+          });
+        }
+
+        async function logout(){
+          const { error } = await sb.auth.signOut();
+          if (error) log({ signOut_error: error });
+          location.href = "/login.html";
+        }
+
+        async function boot(){
+          renderActiveFromStorage();
+
+          const session = await requireSession();
+          if (!session) return;
+
+          await loadMe(session);
+
+          log({ auth_event: "INITIAL_SESSION", email: session.user?.email });
+          await loadTenantsForUser();
+        }
+
+        $("btnLogout").onclick = logout;
+        $("btnRefresh").onclick = () => location.reload();
+
+        sb.auth.onAuthStateChange((event, session) => {
+          log({ auth_event: event, hasSession: !!session });
+          if (!session) location.href = "/login.html";
         });
-      });
+
+        boot();
+      }
     }
-
-    async function logout(){
-      const { error } = await supabase.auth.signOut();
-      if (error) log({ signOut_error: error });
-      location.href = "/login.html";
-    }
-
-    async function boot(){
-      renderActiveFromStorage();
-
-      const session = await requireSession();
-      if (!session) return;
-
-      await loadMe(session);
-
-      log({ auth_event: "INITIAL_SESSION", email: session.user?.email });
-      await loadTenantsForUser();
-    }
-
-    $("btnLogout").onclick = logout;
-    $("btnRefresh").onclick = () => location.reload();
-
-    // Se sessão mudar em outra aba
-    supabase.auth.onAuthStateChange((event, session) => {
-      log({ auth_event: event, hasSession: !!session });
-      if (!session) location.href = "/login.html";
-    });
-
-    boot();
   </script>
 </body>
 </html>
