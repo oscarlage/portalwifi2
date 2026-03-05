@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portal WiFi — Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#fff; --text:#0f172a; --muted:#475569; --line:rgba(15,23,42,.12);
+      --pri:#4f46e5; --ok:#16a34a; --warn:#d97706; --danger:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{font-size:20px;margin:0}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+    @media (min-width: 980px){ .grid{grid-template-columns: 1.1fr .9fr;} }
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 24px rgba(15,23,42,.06)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{
+      appearance:none;border:0;border-radius:12px;padding:10px 14px;font-weight:800;
+      background:var(--pri);color:#fff;cursor:pointer
+    }
+    button.secondary{background:#0f172a}
+    button.ghost{background:transparent;color:var(--pri);border:1px solid rgba(79,70,229,.35)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    .dot{width:8px;height:8px;border-radius:99px;background:#94a3b8}
+    .dot.ok{background:var(--ok)} .dot.bad{background:var(--danger)}
+    table{width:100%;border-collapse:separate;border-spacing:0;margin-top:10px}
+    th,td{padding:10px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+    th{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+    tr:hover td{background:rgba(79,70,229,.04)}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+    .badge.admin{border-color:rgba(22,163,74,.25);color:var(--ok)}
+    .badge.marketing{border-color:rgba(217,119,6,.25);color:var(--warn)}
+    .badge.viewer{border-color:rgba(79,70,229,.25);color:var(--pri)}
+    .danger{color:var(--danger);font-weight:800}
+    pre{white-space:pre-wrap;word-break:break-word;background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,.08);font-size:12px;max-height:260px;overflow:auto}
+    a{color:var(--pri);text-decoration:none}
+    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    .kpi .box{border:1px solid var(--line);border-radius:14px;padding:12px}
+    .kpi .label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+    .kpi .val{font-size:16px;font-weight:900;margin-top:6px}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Portal WiFi — Dashboard</h1>
+        <div class="muted">Multi-tenant • Admin / Marketing / Viewer</div>
+      </div>
+
+      <div class="row">
+        <span class="pill">
+          <span class="dot" id="sessDot"></span>
+          <span id="sessText">Sessão: carregando…</span>
+        </span>
+        <button class="ghost" id="btnRefresh">Atualizar</button>
+        <button class="secondary" id="btnLogout">Sair</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12px">Usuário</div>
+            <div style="font-size:16px;font-weight:900;margin-top:6px" id="userEmail">—</div>
+            <div class="muted" style="margin-top:4px" id="userId">—</div>
+          </div>
+          <div style="text-align:right">
+            <div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12px">Tenant ativo</div>
+            <div style="font-size:16px;font-weight:900;margin-top:6px" id="activeTenantName">—</div>
+            <div class="muted" style="margin-top:4px" id="activeTenantId">—</div>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="box">
+            <div class="label">Role no tenant</div>
+            <div class="val" id="activeRole">—</div>
+          </div>
+          <div class="box">
+            <div class="label">Modo</div>
+            <div class="val" id="mode">Portal</div>
+          </div>
+        </div>
+
+        <h3 style="margin:14px 0 6px;font-size:14px">Seus tenants</h3>
+        <div class="muted">Selecione um tenant para abrir os módulos (hotspot, marketing, gráficos).</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Tenant</th>
+              <th>Slug</th>
+              <th>Role</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tenantsTbody">
+            <tr><td colspan="4" class="muted">Carregando…</td></tr>
+          </tbody>
+        </table>
+
+        <div class="row" style="margin-top:12px">
+          <a href="/login.html">Voltar ao login</a>
+          <span class="muted">•</span>
+          <a href="/index.html">Home</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px;font-size:14px">Debug</h3>
+        <div class="muted">Se algo falhar, copie o log abaixo e me mande.</div>
+        <pre id="log"></pre>
+
+        <div style="margin-top:12px" class="muted">
+          <b>Observação:</b> o tenant ativo fica salvo em <code>localStorage.portalwifi.activeTenantId</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ======= CONFIG (mesmas credenciais do login.html) =======
+    const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+
+    // ======= helpers =======
+    const $ = (id) => document.getElementById(id);
+    const log = (obj) => {
+      const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+      $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
+    };
+    const setSess = (ok, text) => {
+      $("sessDot").className = "dot " + (ok ? "ok" : "bad");
+      $("sessText").textContent = text;
+    };
+
+    // ======= init =======
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function badge(role){
+      if (role === "tenant_admin") return `<span class="badge admin">ADMIN</span>`;
+      if (role === "tenant_marketing") return `<span class="badge marketing">MARKETING</span>`;
+      return `<span class="badge viewer">VIEWER</span>`;
+    }
+
+    function setActiveTenant(tenant){
+      localStorage.setItem("portalwifi.activeTenantId", tenant.id);
+      localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
+      localStorage.setItem("portalwifi.activeTenantRole", tenant.role || "");
+      renderActiveFromStorage();
+    }
+
+    function renderActiveFromStorage(){
+      const tid = localStorage.getItem("portalwifi.activeTenantId") || "";
+      const tname = localStorage.getItem("portalwifi.activeTenantName") || "—";
+      const role = localStorage.getItem("portalwifi.activeTenantRole") || "—";
+
+      $("activeTenantName").textContent = tname || "—";
+      $("activeTenantId").textContent = tid ? tid : "—";
+      $("activeRole").textContent = role;
+    }
+
+    async function requireSession(){
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        log({ getSession_error: error });
+        setSess(false, "Sessão: erro");
+        return null;
+      }
+      const session = data.session;
+      if (!session) {
+        setSess(false, "Sessão: deslogado (redirecionando)");
+        // volta pro login
+        location.href = "/login.html";
+        return null;
+      }
+      setSess(true, "Sessão: logado");
+      return session;
+    }
+
+    async function loadMe(session){
+      $("userEmail").textContent = session.user?.email || "—";
+      $("userId").textContent = session.user?.id || "—";
+    }
+
+    async function loadTenantsForUser(){
+      // 1) pega memberships do usuário logado
+      const { data: tms, error: e1 } = await supabase
+        .from("tenant_members")
+        .select("tenant_id, role, is_active")
+        .eq("is_active", true);
+
+      if (e1) {
+        log({ tenant_members_error: e1 });
+        $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="danger">Erro ao carregar memberships: ${e1.message}</td></tr>`;
+        return [];
+      }
+
+      // 2) pega dados básicos dos tenants (precisa da policy tenants_select_members)
+      const tenantIds = (tms || []).map(x => x.tenant_id);
+      if (!tenantIds.length) {
+        $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="muted">Você ainda não está em nenhum tenant.</td></tr>`;
+        return [];
+      }
+
+      const { data: ts, error: e2 } = await supabase
+        .from("tenants")
+        .select("id, name, slug, status")
+        .in("id", tenantIds);
+
+      if (e2) {
+        log({ tenants_error: e2, hint: "Aplique a policy tenants_select_members que eu te mandei." });
+        // fallback: mostra só IDs
+        $("tenantsTbody").innerHTML = (tms || []).map(m => `
+          <tr>
+            <td><code>${m.tenant_id}</code></td>
+            <td class="muted">—</td>
+            <td>${badge(m.role)}</td>
+            <td><button class="ghost" data-tenant="${m.tenant_id}" data-name="" data-role="${m.role}">Selecionar</button></td>
+          </tr>
+        `).join("");
+        bindTenantButtons();
+        return (tms || []).map(m => ({ id: m.tenant_id, name: "", slug: "", role: m.role }));
+      }
+
+      // 3) combina tenant + role
+      const mapRole = new Map((tms || []).map(m => [m.tenant_id, m.role]));
+      const tenants = (ts || [])
+        .filter(t => t.status === "active")
+        .map(t => ({ ...t, role: mapRole.get(t.id) || "tenant_viewer" }))
+        .sort((a,b) => (a.name||"").localeCompare(b.name||""));
+
+      $("tenantsTbody").innerHTML = tenants.map(t => `
+        <tr>
+          <td><b>${t.name || "-"}</b><div class="muted" style="font-size:12px"><code>${t.id}</code></div></td>
+          <td>${t.slug || "-"}</td>
+          <td>${badge(t.role)}</td>
+          <td><button class="ghost" data-tenant="${t.id}" data-name="${(t.name||"").replace(/"/g,'&quot;')}" data-role="${t.role}">Selecionar</button></td>
+        </tr>
+      `).join("");
+
+      bindTenantButtons();
+
+      // se não tiver tenant ativo, define o primeiro
+      const active = localStorage.getItem("portalwifi.activeTenantId");
+      if (!active && tenants.length) {
+        setActiveTenant(tenants[0]);
+      } else {
+        // se já tinha, tenta atualizar name/role para refletir
+        const found = tenants.find(x => x.id === active);
+        if (found) setActiveTenant(found);
+      }
+
+      return tenants;
+    }
+
+    function bindTenantButtons(){
+      document.querySelectorAll("button[data-tenant]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-tenant");
+          const name = btn.getAttribute("data-name") || "";
+          const role = btn.getAttribute("data-role") || "";
+          setActiveTenant({ id, name, role });
+          log({ activeTenantSet: { id, name, role }});
+        });
+      });
+    }
+
+    async function logout(){
+      const { error } = await supabase.auth.signOut();
+      if (error) log({ signOut_error: error });
+      location.href = "/login.html";
+    }
+
+    async function boot(){
+      renderActiveFromStorage();
+
+      const session = await requireSession();
+      if (!session) return;
+
+      await loadMe(session);
+
+      log({ auth_event: "INITIAL_SESSION", email: session.user?.email });
+      await loadTenantsForUser();
+    }
+
+    $("btnLogout").onclick = logout;
+    $("btnRefresh").onclick = () => location.reload();
+
+    // Se sessão mudar em outra aba
+    supabase.auth.onAuthStateChange((event, session) => {
+      log({ auth_event: event, hasSession: !!session });
+      if (!session) location.href = "/login.html";
+    });
+
+    boot();
+  </script>
+</body>
+</html>
