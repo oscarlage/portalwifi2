@@ -1,1 +1,13 @@
-console.log("clientes module loaded");
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Configurações</title>
+<link rel="stylesheet" href="/assets/css/estabelecimento.css">
+</head>
+<body>
+<h1>Configurações do Portal</h1>
+<p>Personalize cores, textos e campos do portal Wi‑Fi.</p>
+<script src="/assets/js/configuracoes.js"></script>
+</body>
+</html>
