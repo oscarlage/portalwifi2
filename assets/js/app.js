@@ -91,30 +91,34 @@
     };
   }
 
-  function hotspotLogin(linkLogin, dst){
-    // autentica no hotspot para liberar internet
-    const safeDst = dst || "http://neverssl.com/";
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = linkLogin;
+function hotspotLogin(linkLogin){
+  const successUrl = "https://portalwifi2.pages.dev/success.html";
 
-    const u = document.createElement("input");
-    u.type = "hidden"; u.name = "username"; u.value = "portal";
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = linkLogin;
+  form.style.display = "none";
 
-    const p = document.createElement("input");
-    p.type = "hidden"; p.name = "password"; p.value = "portal";
+  const fields = [
+    ["username", "portal"],
+    ["password", "portal"],
+    ["dst", successUrl],
+    ["popup", "true"]
+  ];
 
-    const d = document.createElement("input");
-    d.type = "hidden"; d.name = "dst"; d.value = safeDst;
-
-    form.appendChild(u);
-    form.appendChild(p);
-    form.appendChild(d);
-    document.body.appendChild(form);
-
-    setStatus("Liberando internet…", "ok");
-    form.submit();
+  for (const [name, value] of fields) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
   }
+
+  document.body.appendChild(form);
+
+  setStatus("Liberando internet…", "ok");
+  form.submit();
+}
 
   function init(){
     const yearEl = $("year");
@@ -220,11 +224,11 @@
         }
 
         // ✅ Se veio do MikroTik Hotspot, autentica para liberar internet
-        const loginUrl = qp.link_login_only || qp.link_login;
-        if (loginUrl) {
-          hotspotLogin(loginUrl, qp.dst || qp.link_orig || "http://neverssl.com/");
-          return; // não executa o redirect para success
-        }
+const loginUrl = qp.link_login_only || qp.link_login;
+if (loginUrl) {
+  hotspotLogin(loginUrl);
+  return;
+}
 
         // fallback: sem hotspot (testes), vai para success
         const u = new URL("/success.html", location.origin);
