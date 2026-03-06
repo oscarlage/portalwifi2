@@ -1,0 +1,1 @@
+console.log("relatorios module loaded");

@@ -1,0 +1,1 @@
+console.log("configuracoes module loaded");
