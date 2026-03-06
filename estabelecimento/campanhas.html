@@ -2,12 +2,49 @@
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Campanhas</title>
+
 <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-<body>
-<h1>Campanhas</h1>
-<p>Aqui você poderá criar campanhas de marketing.</p>
+
+<body class="frame-page">
+
+<section class="panel-card">
+
+  <header style="margin-bottom:20px;">
+    <h1>Campanhas</h1>
+    <p>Crie campanhas de marketing para seus clientes do Wi-Fi.</p>
+  </header>
+
+  <div style="display:flex;gap:10px;margin-bottom:20px;">
+    <button class="btn-secondary">Nova campanha</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>Status</th>
+        <th>Clientes</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+
+    <tbody id="campaignTable">
+      <tr>
+        <td colspan="5" style="color:#9aa6c5;">
+          Nenhuma campanha criada ainda.
+        </td>
+      </tr>
+    </tbody>
+
+  </table>
+
+</section>
+
 <script src="/assets/js/campanhas.js"></script>
+
 </body>
 </html>
