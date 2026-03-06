@@ -14,11 +14,25 @@
     </div>
 
     <nav class="side-nav">
-      <button class="nav-item active" data-page="/estabelecimento/home.html" type="button">Dashboard</button>
-      <button class="nav-item" data-page="/estabelecimento/clientes.html" type="button">Clientes</button>
-      <button class="nav-item" data-page="/estabelecimento/campanhas.html" type="button">Campanhas</button>
-      <button class="nav-item" data-page="/estabelecimento/configuracoes.html" type="button">Configurações</button>
-      <button class="nav-item" data-page="/estabelecimento/relatorios.html" type="button">Relatórios</button>
+      <button class="nav-item" data-route="/painel" data-page="/estabelecimento/home.html" type="button">
+        Dashboard
+      </button>
+
+      <button class="nav-item" data-route="/painel/clientes" data-page="/estabelecimento/clientes.html" type="button">
+        Clientes
+      </button>
+
+      <button class="nav-item" data-route="/painel/campanhas" data-page="/estabelecimento/campanhas.html" type="button">
+        Campanhas
+      </button>
+
+      <button class="nav-item" data-route="/painel/configuracoes" data-page="/estabelecimento/configuracoes.html" type="button">
+        Configurações
+      </button>
+
+      <button class="nav-item" data-route="/painel/relatorios" data-page="/estabelecimento/relatorios.html" type="button">
+        Relatórios
+      </button>
     </nav>
 
     <div class="side-footer">
