@@ -75,11 +75,44 @@
   function readQueryParams(){
     const p = new URLSearchParams(location.search);
     return {
-      // Para o futuro (MikroTik): pode passar mac via query string (?mac=AA:BB:CC:...)
+      // MikroTik hotspot redirect params
+      dst: p.get("dst") || "",
+      ip: p.get("ip") || "",
+      link_login: p.get("link-login") || "",
+      link_orig: p.get("link-orig") || "",
+
+      // mac pode vir do hotspot redirect
       mac: p.get("mac") || p.get("mac_address") || "",
-      // Campanha por QR específico (?campaign_id=UUID)
+
+      // campanha por QR específico (?campaign_id=UUID)
       campaign_id: p.get("campaign_id") || ""
     };
+  }
+
+  function hotspotLogin(linkLogin, dst){
+    // autentica no hotspot para liberar internet
+    // OBS: este POST vai redirecionar a navegação (normal)
+    const safeDst = dst || "http://neverssl.com/";
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = linkLogin;
+
+    const u = document.createElement("input");
+    u.type = "hidden"; u.name = "username"; u.value = "portal";
+
+    const p = document.createElement("input");
+    p.type = "hidden"; p.name = "password"; p.value = "portal";
+
+    const d = document.createElement("input");
+    d.type = "hidden"; d.name = "dst"; d.value = safeDst;
+
+    form.appendChild(u);
+    form.appendChild(p);
+    form.appendChild(d);
+    document.body.appendChild(form);
+
+    setStatus("Liberando internet…", "ok");
+    form.submit();
   }
 
   function init(){
@@ -106,7 +139,6 @@
     const phoneEl = $("phone");
     if (phoneEl){
       phoneEl.addEventListener("input", () => {
-        // só formata quando já tem tamanho razoável, para não atrapalhar
         const d = digitsOnly(phoneEl.value);
         if (d.length >= 10) phoneEl.value = formatBRPhone(phoneEl.value);
       });
@@ -153,7 +185,10 @@
 
         // device info
         mac_address: $("mac_address").value || null,
-        device_name: $("device_name").value || null
+        device_name: $("device_name").value || null,
+
+        // hotspot hints (opcional; ajuda debug/telemetria)
+        hotspot_ip: qp.ip || null
       };
 
       setLoading(true);
@@ -162,7 +197,6 @@
           method: "POST",
           headers: { "Content-Type":"application/json" },
           body: JSON.stringify(payload),
-          // no-cors não serve porque precisamos ler resposta
           credentials: "omit"
         });
 
@@ -178,18 +212,25 @@
           throw new Error("Resposta inválida da API.");
         }
 
-        // redireciona para success
+        // ✅ Se veio do MikroTik Hotspot, autentica para liberar internet
+        if (qp.link_login) {
+          hotspotLogin(qp.link_login, qp.dst || qp.link_orig);
+          return; // não executa o redirect para success
+        }
+
+        // fallback: sem hotspot (testes), vai para success
         const u = new URL("/success.html", location.origin);
         if (data.lead_id) u.searchParams.set("lead_id", data.lead_id);
         if (typeof data.inserted === "boolean") u.searchParams.set("inserted", String(data.inserted));
         if (typeof data.deduped === "boolean") u.searchParams.set("deduped", String(data.deduped));
         u.searchParams.set("phone", phone);
         location.href = u.toString();
-}catch(err){
-  console.error(err);
-  const msg = (err && err.message) ? err.message : String(err);
-  setStatus("Falha ao conectar: " + msg, "danger");
-}finally{
+
+      }catch(err){
+        console.error(err);
+        const msg = (err && err.message) ? err.message : String(err);
+        setStatus("Falha ao conectar: " + msg, "danger");
+      }finally{
         setLoading(false);
       }
     });
