@@ -4,60 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clientes</title>
-
 <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-
 <body class="frame-page">
 
 <section class="panel-card">
+  <header style="margin-bottom:20px;">
+    <h1>Clientes</h1>
+    <p>Clientes captados através do Wi-Fi do estabelecimento.</p>
+  </header>
 
-<header style="margin-bottom:20px;">
-<h1>Clientes</h1>
-<p>Clientes captados através do Wi-Fi do estabelecimento.</p>
-</header>
+  <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <input
+      type="text"
+      id="buscaCliente"
+      placeholder="Buscar por nome, telefone ou cidade..."
+      style="padding:10px;border-radius:8px;border:1px solid #2b3c66;background:#0f1e3d;color:#fff;width:280px;"
+    >
+  </div>
 
-<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-
-<input
-type="text"
-id="buscaCliente"
-placeholder="Buscar por nome ou telefone..."
-style="padding:10px;border-radius:8px;border:1px solid #2b3c66;background:#0f1e3d;color:#fff;width:280px;"
->
-
-<button class="btn-secondary">
-Atualizar
-</button>
-
-</div>
-
-<table>
-
-<thead>
-<tr>
-<th>Nome</th>
-<th>Telefone</th>
-<th>Cidade</th>
-<th>Data de cadastro</th>
-</tr>
-</thead>
-
-<tbody id="clientesTable">
-
-<tr>
-<td colspan="4" style="opacity:.7;">
-Carregando clientes...
-</td>
-</tr>
-
-</tbody>
-
-</table>
-
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Cidade</th>
+        <th>Data de cadastro</th>
+      </tr>
+    </thead>
+    <tbody id="clientesTable">
+      <tr>
+        <td colspan="4" style="opacity:.7;">Carregando clientes...</td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
 <script src="/assets/js/clientes.js"></script>
-
 </body>
 </html>
