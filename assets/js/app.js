@@ -5,6 +5,8 @@
   const apiBase = (SETTINGS.apiBase || "").replace(/\/$/, "");
   const endpoint = apiBase + "/lead";
 
+  let __submitted = false; // evita duplo submit
+
   // yyyy-mm-dd in local time
   function todayStr(){
     const d = new Date();
@@ -45,7 +47,6 @@
 
   function formatBRPhone(raw){
     const d = digitsOnly(raw);
-    // tenta manter DDD + 9 dígitos
     if (d.length === 11){
       return `(${d.slice(0,2)}) ${d.slice(2,3)}${d.slice(3,7)}-${d.slice(7,11)}`;
     }
@@ -79,6 +80,7 @@
       dst: p.get("dst") || "",
       ip: p.get("ip") || "",
       link_login: p.get("link-login") || "",
+      link_login_only: p.get("link-login-only") || "", // ✅ preferir este
       link_orig: p.get("link-orig") || "",
 
       // mac pode vir do hotspot redirect
@@ -91,7 +93,6 @@
 
   function hotspotLogin(linkLogin, dst){
     // autentica no hotspot para liberar internet
-    // OBS: este POST vai redirecionar a navegação (normal)
     const safeDst = dst || "http://neverssl.com/";
     const form = document.createElement("form");
     form.method = "POST";
@@ -151,6 +152,9 @@
       ev.preventDefault();
       setStatus("", "");
 
+      if (__submitted) return;
+      __submitted = true;
+
       // validação mínima
       const full_name = $("full_name").value.trim();
       const phone = digitsOnly($("phone").value);
@@ -161,16 +165,19 @@
       if (full_name.length < 2){
         setStatus("Informe seu nome.", "warn");
         $("full_name").focus();
+        __submitted = false;
         return;
       }
       if (phone.length < 10){
         setStatus("Informe um WhatsApp válido (com DDD).", "warn");
         $("phone").focus();
+        __submitted = false;
         return;
       }
       if (!lgpd){
         setStatus("Para continuar, aceite os termos (LGPD).", "warn");
         $("lgpd").focus();
+        __submitted = false;
         return;
       }
 
@@ -213,8 +220,9 @@
         }
 
         // ✅ Se veio do MikroTik Hotspot, autentica para liberar internet
-        if (qp.link_login) {
-          hotspotLogin(qp.link_login, qp.dst || qp.link_orig);
+        const loginUrl = qp.link_login_only || qp.link_login;
+        if (loginUrl) {
+          hotspotLogin(loginUrl, qp.dst || qp.link_orig || "http://neverssl.com/");
           return; // não executa o redirect para success
         }
 
@@ -230,6 +238,7 @@
         console.error(err);
         const msg = (err && err.message) ? err.message : String(err);
         setStatus("Falha ao conectar: " + msg, "danger");
+        __submitted = false;
       }finally{
         setLoading(false);
       }
