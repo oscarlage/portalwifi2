@@ -1,50 +1,74 @@
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
-</head>
-<body class="frame-page">
-  <section class="dashboard-grid">
-    <div class="metric-card">
-      <div class="metric-label">Conectados hoje</div>
-      <div class="metric-value" id="connectedToday">0</div>
-    </div>
+(function () {
+  const frame = document.getElementById("contentFrame");
+  const buttons = Array.from(document.querySelectorAll(".nav-item"));
+  const title = document.getElementById("pageTitle");
+  const subtitle = document.getElementById("pageSubtitle");
+  const reloadBtn = document.getElementById("reloadFrameBtn");
 
-    <div class="metric-card">
-      <div class="metric-label">Novos clientes</div>
-      <div class="metric-value" id="newCustomers">0</div>
-    </div>
+  const pageMeta = {
+    "/estabelecimento/home.html": {
+      title: "Dashboard",
+      subtitle: "Visão geral do movimento do Wi-Fi."
+    },
+    "/estabelecimento/clientes.html": {
+      title: "Clientes",
+      subtitle: "Base de clientes captados pelo Wi-Fi."
+    },
+    "/estabelecimento/campanhas.html": {
+      title: "Campanhas",
+      subtitle: "Campanhas e ações de relacionamento."
+    },
+    "/estabelecimento/configuracoes.html": {
+      title: "Configurações",
+      subtitle: "Personalização do portal e parâmetros do estabelecimento."
+    },
+    "/estabelecimento/relatorios.html": {
+      title: "Relatórios",
+      subtitle: "Análises e visão consolidada dos acessos."
+    }
+  };
 
-    <div class="metric-card">
-      <div class="metric-label">Recorrentes</div>
-      <div class="metric-value" id="returningCustomers">0</div>
-    </div>
-  </section>
+  function setActive(page) {
+    buttons.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.page === page);
+    });
 
-  <section class="panel-card">
-    <h2>Dicas para seu negócio</h2>
-    <p>Em breve aqui aparecerão insights automáticos sobre movimento, retorno e oportunidades.</p>
-  </section>
+    const meta = pageMeta[page];
+    if (meta) {
+      if (title) title.textContent = meta.title;
+      if (subtitle) subtitle.textContent = meta.subtitle;
+    }
+  }
 
-  <script>
-    (async function () {
-      const API = "https://portalwifi-api.oscar-lage.workers.dev/api/admin/dashboard/summary";
+  function loadPage(page) {
+    if (!frame) return;
+    frame.src = page;
+    setActive(page);
+    localStorage.setItem("portalwifi.estabelecimento.page", page);
+  }
 
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const page = btn.dataset.page;
+      if (!page) return;
+      loadPage(page);
+    });
+  });
+
+  if (reloadBtn && frame) {
+    reloadBtn.addEventListener("click", () => {
       try {
-        const res = await fetch(API);
-        const data = await res.json();
-        if (!data.ok) return;
-
-        document.getElementById("connectedToday").textContent = data.summary.connected ?? 0;
-        document.getElementById("newCustomers").textContent = data.summary.new_customers ?? 0;
-        document.getElementById("returningCustomers").textContent = data.summary.returning_customers ?? 0;
+        frame.contentWindow.location.reload();
       } catch (err) {
-        console.error("Erro ao carregar dashboard:", err);
+        frame.src = frame.src;
       }
-    })();
-  </script>
-</body>
-</html>
+    });
+  }
+
+  const savedPage =
+    localStorage.getItem("portalwifi.estabelecimento.page") ||
+    "/estabelecimento/home.html";
+
+  loadPage(savedPage);
+})();
