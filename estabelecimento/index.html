@@ -1,21 +1,53 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard do Estabelecimento</title>
-<link rel="stylesheet" href="/assets/css/estabelecimento.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel do Estabelecimento</title>
+  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-<body>
-<h1>Dashboard do Estabelecimento</h1>
-<p>Visão geral do movimento do Wi‑Fi.</p>
+<body class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-title">Sítio Coisa Nossa</div>
+      <div class="brand-sub">Painel do Estabelecimento</div>
+    </div>
 
-<div class="cards">
-  <div class="card">Conectados hoje: <span id="connectedToday">--</span></div>
-  <div class="card">Novos clientes: <span id="newCustomers">--</span></div>
-  <div class="card">Recorrentes: <span id="returningCustomers">--</span></div>
-</div>
+    <nav class="side-nav">
+      <button class="nav-item active" data-page="/estabelecimento/home.html">Dashboard</button>
+      <button class="nav-item" data-page="/estabelecimento/clientes.html">Clientes</button>
+      <button class="nav-item" data-page="/estabelecimento/campanhas.html">Campanhas</button>
+      <button class="nav-item" data-page="/estabelecimento/configuracoes.html">Configurações</button>
+      <button class="nav-item" data-page="/estabelecimento/relatorios.html">Relatórios</button>
+    </nav>
 
-<script src="/assets/js/estabelecimento.js"></script>
+    <div class="side-footer">
+      <a href="/dashboard.html">Voltar ao painel de tenants</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle">Visão geral do movimento do Wi-Fi.</p>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="reloadFrameBtn" class="btn-secondary" type="button">Atualizar</button>
+      </div>
+    </header>
+
+    <section class="frame-wrap">
+      <iframe
+        id="contentFrame"
+        title="Conteúdo do painel"
+        src="/estabelecimento/home.html"
+        loading="eager">
+      </iframe>
+    </section>
+  </main>
+
+  <script src="/assets/js/estabelecimento.js"></script>
 </body>
 </html>
