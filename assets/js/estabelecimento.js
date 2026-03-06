@@ -1,28 +1,50 @@
-(async function () {
-  const API = "https://portalwifi-api.oscar-lage.workers.dev/api/admin/dashboard/summary";
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
+</head>
+<body class="frame-page">
+  <section class="dashboard-grid">
+    <div class="metric-card">
+      <div class="metric-label">Conectados hoje</div>
+      <div class="metric-value" id="connectedToday">0</div>
+    </div>
 
-  try {
-    const res = await fetch(API);
-    const data = await res.json();
+    <div class="metric-card">
+      <div class="metric-label">Novos clientes</div>
+      <div class="metric-value" id="newCustomers">0</div>
+    </div>
 
-    if (!data.ok) {
-      console.error("Erro ao carregar summary:", data);
-      return;
-    }
+    <div class="metric-card">
+      <div class="metric-label">Recorrentes</div>
+      <div class="metric-value" id="returningCustomers">0</div>
+    </div>
+  </section>
 
-    const summary = data.summary || {};
+  <section class="panel-card">
+    <h2>Dicas para seu negócio</h2>
+    <p>Em breve aqui aparecerão insights automáticos sobre movimento, retorno e oportunidades.</p>
+  </section>
 
-    const connectedEl = document.getElementById("connectedToday");
-    const newEl = document.getElementById("newCustomers");
-    const returningEl = document.getElementById("returningCustomers");
+  <script>
+    (async function () {
+      const API = "https://portalwifi-api.oscar-lage.workers.dev/api/admin/dashboard/summary";
 
-    if (connectedEl) connectedEl.textContent = summary.connected ?? 0;
-    if (newEl) newEl.textContent = summary.new_customers ?? 0;
-    if (returningEl) returningEl.textContent = summary.returning_customers ?? 0;
+      try {
+        const res = await fetch(API);
+        const data = await res.json();
+        if (!data.ok) return;
 
-    console.log("Dashboard summary carregado:", data);
-
-  } catch (err) {
-    console.error("Falha ao carregar dashboard:", err);
-  }
-})();
+        document.getElementById("connectedToday").textContent = data.summary.connected ?? 0;
+        document.getElementById("newCustomers").textContent = data.summary.new_customers ?? 0;
+        document.getElementById("returningCustomers").textContent = data.summary.returning_customers ?? 0;
+      } catch (err) {
+        console.error("Erro ao carregar dashboard:", err);
+      }
+    })();
+  </script>
+</body>
+</html>
