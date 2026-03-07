@@ -6,7 +6,9 @@ const TENANT_ID_KEY = "portalwifi.activeTenantId";
 const TENANT_NAME_KEY = "portalwifi.activeTenantName";
 const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
 
-const tenantId = localStorage.getItem(TENANT_ID_KEY);
+const tenantId = localStorage.getItem("portalwifi.activeTenantId");
+
+fetch(`https://portalwifi-api.oscar-lage.workers.dev/api/admin/dashboard/summary?tenant_id=${tenantId}`)
 const tenantName = localStorage.getItem(TENANT_NAME_KEY);
 const tenantSlug = localStorage.getItem(TENANT_SLUG_KEY);
 
