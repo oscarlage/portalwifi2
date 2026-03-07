@@ -1,322 +1,356 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portal WiFi — Dashboard</title>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Platform 2.0 • Portal WiFi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-  <style>
-    :root{
-      --bg:#f6f7fb; --card:#fff; --text:#0f172a; --muted:#475569; --line:rgba(15,23,42,.12);
-      --pri:#4f46e5; --ok:#16a34a; --warn:#d97706; --danger:#dc2626;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1100px;margin:0 auto;padding:24px}
-    .top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    h1{font-size:20px;margin:0}
-    .muted{color:var(--muted)}
-    .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
-    @media (min-width: 980px){ .grid{grid-template-columns: 1.1fr .9fr;} }
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 24px rgba(15,23,42,.06)}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    button{
-      appearance:none;border:0;border-radius:12px;padding:10px 14px;font-weight:800;
-      background:var(--pri);color:#fff;cursor:pointer
-    }
-    button.secondary{background:#0f172a}
-    button.ghost{background:transparent;color:var(--pri);border:1px solid rgba(79,70,229,.35)}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
-    .dot{width:8px;height:8px;border-radius:99px;background:#94a3b8}
-    .dot.ok{background:var(--ok)} .dot.bad{background:var(--danger)}
-    table{width:100%;border-collapse:separate;border-spacing:0;margin-top:10px}
-    th,td{padding:10px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
-    th{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-    tr:hover td{background:rgba(79,70,229,.04)}
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
-    .badge.admin{border-color:rgba(22,163,74,.25);color:var(--ok)}
-    .badge.marketing{border-color:rgba(217,119,6,.25);color:var(--warn)}
-    .badge.viewer{border-color:rgba(79,70,229,.25);color:var(--pri)}
-    .danger{color:var(--danger);font-weight:800}
-    pre{white-space:pre-wrap;word-break:break-word;background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,.08);font-size:12px;max-height:260px;overflow:auto}
-    a{color:var(--pri);text-decoration:none}
-    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-    .kpi .box{border:1px solid var(--line);border-radius:14px;padding:12px}
-    .kpi .label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-    .kpi .val{font-size:16px;font-weight:900;margin-top:6px}
-    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-  </style>
-
-  <!-- Supabase JS (UMD) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/platform.css">
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <h1>Portal WiFi — Dashboard</h1>
-        <div class="muted">Multi-tenant • Admin / Marketing / Viewer</div>
-      </div>
-
-      <div class="row">
-        <span class="pill">
-          <span class="dot" id="sessDot"></span>
-          <span id="sessText">Sessão: carregando…</span>
-        </span>
-        <button class="ghost" id="btnRefresh">Atualizar</button>
-        <button class="secondary" id="btnLogout">Sair</button>
-      </div>
+  <header class="platform-topbar">
+    <div class="topbar-left">
+      <div class="platform-title">Portal WiFi — Plataforma</div>
+      <div class="platform-subtitle">Gestão de tenants, acessos e operação SaaS</div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <div class="row" style="justify-content:space-between">
+    <div class="topbar-right">
+      <div class="session-pill">
+        <span class="dot"></span>
+        <span>Sessão: logado</span>
+      </div>
+      <button class="btn btn-light" id="btnRefreshPlatform" type="button">Atualizar</button>
+      <button class="btn btn-dark" id="btnLogout" type="button">Sair</button>
+    </div>
+  </header>
+
+  <div class="platform-shell">
+    <aside class="platform-sidebar">
+      <nav class="platform-nav">
+        <button class="nav-link active" data-section="overview" type="button">Visão geral</button>
+        <button class="nav-link" data-section="tenants" type="button">Tenants</button>
+        <button class="nav-link" data-section="users" type="button">Usuários</button>
+        <button class="nav-link" data-section="logs" type="button">Logs</button>
+        <button class="nav-link" data-section="settings" type="button">Configurações</button>
+      </nav>
+
+      <div class="platform-sidebox">
+        <div class="sidebox-title">Ações rápidas</div>
+        <button class="btn btn-primary full" id="btnOpenCreateTenant" type="button">Novo tenant</button>
+        <button class="btn btn-light full" id="btnReloadTenants" type="button">Recarregar lista</button>
+      </div>
+    </aside>
+
+    <main class="platform-main">
+      <section class="section active" id="section-overview">
+        <div class="section-head">
           <div>
-            <div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12px">Usuário</div>
-            <div style="font-size:16px;font-weight:900;margin-top:6px" id="userEmail">—</div>
-            <div class="muted" style="margin-top:4px" id="userId">—</div>
-          </div>
-          <div style="text-align:right">
-            <div class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12px">Tenant ativo</div>
-            <div style="font-size:16px;font-weight:900;margin-top:6px" id="activeTenantName">—</div>
-            <div class="muted" style="margin-top:4px" id="activeTenantId">—</div>
+            <h1>Visão geral</h1>
+            <p>Resumo operacional da plataforma multitenant.</p>
           </div>
         </div>
 
-        <div class="kpi">
-          <div class="box">
-            <div class="label">Role no tenant</div>
-            <div class="val" id="activeRole">—</div>
+        <div class="cards-grid">
+          <article class="metric-card">
+            <div class="metric-label">Total de tenants</div>
+            <div class="metric-value" id="metricTotalTenants">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Tenants ativos</div>
+            <div class="metric-value" id="metricActiveTenants">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Tenants desabilitados</div>
+            <div class="metric-value" id="metricDisabledTenants">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Admins principais</div>
+            <div class="metric-value" id="metricAdmins">0</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section active" id="section-tenants">
+        <div class="section-head">
+          <div>
+            <h2>Tenants</h2>
+            <p>Gerencie tenants, administradores e acessos da plataforma.</p>
           </div>
-          <div class="box">
-            <div class="label">Modo</div>
-            <div class="val" id="mode">Portal</div>
+
+          <div class="section-actions">
+            <button class="btn btn-primary" id="btnOpenCreateTenant2" type="button">Novo tenant</button>
           </div>
         </div>
 
-        <h3 style="margin:14px 0 6px;font-size:14px">Seus tenants</h3>
-        <div class="muted">Selecione um tenant para abrir os módulos (hotspot, marketing, gráficos).</div>
+        <div class="panel-card">
+          <div class="toolbar">
+            <input
+              type="text"
+              id="tenantSearch"
+              class="input"
+              placeholder="Buscar por nome, slug ou admin..."
+            >
 
-        <table>
-          <thead>
-            <tr>
-              <th>Tenant</th>
-              <th>Slug</th>
-              <th>Role</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="tenantsTbody">
-            <tr><td colspan="4" class="muted">Carregando…</td></tr>
-          </tbody>
-        </table>
+            <select id="tenantStatusFilter" class="input select">
+              <option value="">Todos os status</option>
+              <option value="active">Ativos</option>
+              <option value="disabled">Desabilitados</option>
+              <option value="pending">Pendentes</option>
+            </select>
+          </div>
 
-        <div class="row" style="margin-top:12px">
-          <a href="/login.html">Voltar ao login</a>
-          <span class="muted">•</span>
-          <a href="/index.html">Home</a>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Slug</th>
+                  <th>Status</th>
+                  <th>Admin principal</th>
+                  <th>E-mail</th>
+                  <th>Criado em</th>
+                  <th style="width:280px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tenantsTableBody">
+                <tr>
+                  <td colspan="7" class="empty-row">Carregando tenants...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="section-users">
+        <div class="section-head">
+          <div>
+            <h2>Usuários</h2>
+            <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <p class="muted">Módulo em preparação.</p>
+        </div>
+      </section>
+
+      <section class="section" id="section-logs">
+        <div class="section-head">
+          <div>
+            <h2>Logs</h2>
+            <p>Auditoria e eventos da plataforma.</p>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <p class="muted">Módulo em preparação.</p>
+        </div>
+      </section>
+
+      <section class="section" id="section-settings">
+        <div class="section-head">
+          <div>
+            <h2>Configurações da plataforma</h2>
+            <p>Parâmetros gerais do ambiente SaaS.</p>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <p class="muted">Módulo em preparação.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: NOVO TENANT -->
+  <div class="modal-backdrop hidden" id="modalCreateTenant">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Novo tenant</h3>
+        <button class="icon-btn" type="button" data-close="modalCreateTenant">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Dados do tenant</h4>
+
+            <label class="field">
+              <span>Nome do tenant</span>
+              <input type="text" id="tenantName" class="input" placeholder="Ex.: Sítio Coisa Nossa">
+            </label>
+
+            <label class="field">
+              <span>Slug</span>
+              <input type="text" id="tenantSlug" class="input" placeholder="Ex.: sitio-coisa-nossa">
+            </label>
+
+            <label class="field">
+              <span>Status inicial</span>
+              <select id="tenantStatus" class="input select">
+                <option value="active">Ativo</option>
+                <option value="pending">Pendente</option>
+                <option value="disabled">Desabilitado</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Observação interna</span>
+              <textarea id="tenantNotes" class="input textarea" placeholder="Observações operacionais internas"></textarea>
+            </label>
+          </div>
+
+          <div class="form-section">
+            <h4>Administrador obrigatório</h4>
+
+            <label class="field">
+              <span>Nome do administrador</span>
+              <input type="text" id="adminName" class="input" placeholder="Ex.: Oscar Lage">
+            </label>
+
+            <label class="field">
+              <span>E-mail do administrador</span>
+              <input type="email" id="adminEmail" class="input" placeholder="Ex.: admin@tenant.com">
+            </label>
+
+            <label class="field">
+              <span>Telefone</span>
+              <input type="text" id="adminPhone" class="input" placeholder="Opcional">
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Entrega de acesso</h4>
+
+          <div class="checks-grid">
+            <label class="check">
+              <input type="checkbox" id="sendAccessEmail" checked>
+              <span>Enviar acesso por e-mail automaticamente</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="generateTempPassword" checked>
+              <span>Gerar senha provisória</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="forcePasswordChange" checked>
+              <span>Forçar troca de senha no primeiro acesso</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="showAccessMessage" checked>
+              <span>Exibir mensagem pronta para copiar</span>
+            </label>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <h3 style="margin:0 0 8px;font-size:14px">Debug</h3>
-        <div class="muted">Se algo falhar, copie o log abaixo e me mande.</div>
-        <pre id="log"></pre>
-
-        <div style="margin-top:12px" class="muted">
-          <b>Observação:</b> o tenant ativo fica salvo em <code>localStorage.portalwifi.activeTenantId</code>.
-        </div>
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalCreateTenant">Cancelar</button>
+        <button class="btn btn-primary" id="btnCreateTenantConfirm" type="button">Criar tenant</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // Guard anti-execução duplicada (evita "already been declared")
-    if (window.__PORTALWIFI_DASH_INIT__) {
-      console.warn("Dashboard já inicializado — ignorando execução duplicada.");
-    } else {
-      window.__PORTALWIFI_DASH_INIT__ = true;
+  <!-- MODAL: ALTERAR ADMIN -->
+  <div class="modal-backdrop hidden" id="modalChangeAdmin">
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <h3>Alterar admin principal</h3>
+        <button class="icon-btn" type="button" data-close="modalChangeAdmin">×</button>
+      </div>
 
-      // ======= CONFIG (mesmas credenciais do login.html) =======
-      const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
-      const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+      <div class="modal-body">
+        <input type="hidden" id="changeAdminTenantId">
 
-      // ======= helpers =======
-      const $ = (id) => document.getElementById(id);
-      const log = (obj) => {
-        const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-        $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
-      };
-      const setSess = (ok, text) => {
-        $("sessDot").className = "dot " + (ok ? "ok" : "bad");
-        $("sessText").textContent = text;
-      };
+        <label class="field">
+          <span>Tenant</span>
+          <input type="text" id="changeAdminTenantName" class="input" disabled>
+        </label>
 
-      const okUrl = typeof SUPABASE_URL === "string" && SUPABASE_URL.startsWith("https://") && SUPABASE_URL.includes(".supabase.co");
-      const okKey = typeof SUPABASE_ANON_KEY === "string" && SUPABASE_ANON_KEY.startsWith("sb_");
+        <label class="field">
+          <span>Novo nome do admin</span>
+          <input type="text" id="newAdminName" class="input" placeholder="Nome do novo administrador">
+        </label>
 
-      if (!okUrl || !okKey || !window.supabase?.createClient) {
-        setSess(false, "Sessão: erro (config)");
-        log({ okUrl, okKey, hasSupabaseLib: !!window.supabase, hint: "Verifique SUPABASE_URL/KEY e carregamento do CDN." });
-      } else {
-        // ======= init (use 'sb' para evitar conflito com qualquer outra variável) =======
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        <label class="field">
+          <span>Novo e-mail do admin</span>
+          <input type="email" id="newAdminEmail" class="input" placeholder="E-mail do novo administrador">
+        </label>
 
-        function badge(role){
-          if (role === "tenant_admin") return `<span class="badge admin">ADMIN</span>`;
-          if (role === "tenant_marketing") return `<span class="badge marketing">MARKETING</span>`;
-          return `<span class="badge viewer">VIEWER</span>`;
-        }
+        <label class="field">
+          <span>Ação para admin atual</span>
+          <select id="previousAdminAction" class="input select">
+            <option value="read">Manter como read</option>
+            <option value="remove">Remover acesso do tenant</option>
+          </select>
+        </label>
+      </div>
 
-        function setActiveTenant(tenant){
-          localStorage.setItem("portalwifi.activeTenantId", tenant.id);
-          localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
-          localStorage.setItem("portalwifi.activeTenantRole", tenant.role || "");
-          renderActiveFromStorage();
-        }
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalChangeAdmin">Cancelar</button>
+        <button class="btn btn-primary" id="btnChangeAdminConfirm" type="button">Salvar alteração</button>
+      </div>
+    </div>
+  </div>
 
-        function renderActiveFromStorage(){
-          const tid = localStorage.getItem("portalwifi.activeTenantId") || "";
-          const tname = localStorage.getItem("portalwifi.activeTenantName") || "—";
-          const role = localStorage.getItem("portalwifi.activeTenantRole") || "—";
+  <!-- MODAL: DESABILITAR TENANT -->
+  <div class="modal-backdrop hidden" id="modalDisableTenant">
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <h3>Desabilitar tenant</h3>
+        <button class="icon-btn" type="button" data-close="modalDisableTenant">×</button>
+      </div>
 
-          $("activeTenantName").textContent = tname || "—";
-          $("activeTenantId").textContent = tid ? tid : "—";
-          $("activeRole").textContent = role;
-        }
+      <div class="modal-body">
+        <input type="hidden" id="disableTenantId">
 
-        async function requireSession(){
-          const { data, error } = await sb.auth.getSession();
-          if (error) {
-            log({ getSession_error: error });
-            setSess(false, "Sessão: erro");
-            return null;
-          }
-          const session = data.session;
-          if (!session) {
-            setSess(false, "Sessão: deslogado (redirecionando)");
-            location.href = "/login.html";
-            return null;
-          }
-          setSess(true, "Sessão: logado");
-          return session;
-        }
+        <p class="danger-text">
+          Você está prestes a desabilitar o tenant:
+          <strong id="disableTenantName">-</strong>
+        </p>
 
-        async function loadMe(session){
-          $("userEmail").textContent = session.user?.email || "—";
-          $("userId").textContent = session.user?.id || "—";
-        }
+        <label class="field">
+          <span>Motivo (opcional)</span>
+          <textarea id="disableReason" class="input textarea" placeholder="Motivo da desabilitação"></textarea>
+        </label>
+      </div>
 
-        async function loadTenantsForUser(){
-          const { data: tms, error: e1 } = await sb
-            .from("tenant_members")
-            .select("tenant_id, role, is_active")
-            .eq("is_active", true);
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalDisableTenant">Cancelar</button>
+        <button class="btn btn-danger" id="btnDisableTenantConfirm" type="button">Confirmar desabilitação</button>
+      </div>
+    </div>
+  </div>
 
-          if (e1) {
-            log({ tenant_members_error: e1 });
-            $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="danger">Erro ao carregar memberships: ${e1.message}</td></tr>`;
-            return [];
-          }
+  <!-- MODAL: ACESSO GERADO -->
+  <div class="modal-backdrop hidden" id="modalAccessResult">
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <h3>Acesso do tenant</h3>
+        <button class="icon-btn" type="button" data-close="modalAccessResult">×</button>
+      </div>
 
-          const tenantIds = (tms || []).map(x => x.tenant_id);
-          if (!tenantIds.length) {
-            $("tenantsTbody").innerHTML = `<tr><td colspan="4" class="muted">Você ainda não está em nenhum tenant.</td></tr>`;
-            return [];
-          }
+      <div class="modal-body">
+        <div class="result-box" id="accessResultText">
+          A mensagem de acesso será exibida aqui.
+        </div>
+      </div>
 
-          const { data: ts, error: e2 } = await sb
-            .from("tenants")
-            .select("id, name, slug, status")
-            .in("id", tenantIds);
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalAccessResult">Fechar</button>
+        <button class="btn btn-primary" id="btnCopyAccessMessage" type="button">Copiar mensagem</button>
+      </div>
+    </div>
+  </div>
 
-          if (e2) {
-            log({ tenants_error: e2, hint: "Se tenants estiver bloqueado, aplique a policy tenants_select_members." });
-            $("tenantsTbody").innerHTML = (tms || []).map(m => `
-              <tr>
-                <td><code>${m.tenant_id}</code></td>
-                <td class="muted">—</td>
-                <td>${badge(m.role)}</td>
-                <td><button class="ghost" data-tenant="${m.tenant_id}" data-name="" data-role="${m.role}">Selecionar</button></td>
-              </tr>
-            `).join("");
-            bindTenantButtons();
-            return (tms || []).map(m => ({ id: m.tenant_id, name: "", slug: "", role: m.role }));
-          }
-
-          const mapRole = new Map((tms || []).map(m => [m.tenant_id, m.role]));
-          const tenants = (ts || [])
-            .filter(t => t.status === "active")
-            .map(t => ({ ...t, role: mapRole.get(t.id) || "tenant_viewer" }))
-            .sort((a,b) => (a.name||"").localeCompare(b.name||""));
-
-          $("tenantsTbody").innerHTML = tenants.map(t => `
-            <tr>
-              <td><b>${t.name || "-"}</b><div class="muted" style="font-size:12px"><code>${t.id}</code></div></td>
-              <td>${t.slug || "-"}</td>
-              <td>${badge(t.role)}</td>
-              <td><button class="ghost" data-tenant="${t.id}" data-name="${(t.name||"").replace(/"/g,'&quot;')}" data-role="${t.role}">Selecionar</button></td>
-            </tr>
-          `).join("");
-
-          bindTenantButtons();
-
-          const active = localStorage.getItem("portalwifi.activeTenantId");
-          if (!active && tenants.length) {
-            setActiveTenant(tenants[0]);
-          } else {
-            const found = tenants.find(x => x.id === active);
-            if (found) setActiveTenant(found);
-          }
-
-          return tenants;
-        }
-
-        function bindTenantButtons(){
-          document.querySelectorAll("button[data-tenant]").forEach(btn => {
-            btn.addEventListener("click", () => {
-              const id = btn.getAttribute("data-tenant");
-              const name = btn.getAttribute("data-name") || "";
-              const role = btn.getAttribute("data-role") || "";
-              setActiveTenant({ id, name, role });
-              log({ activeTenantSet: { id, name, role }});
-            });
-          });
-        }
-
-        async function logout(){
-          const { error } = await sb.auth.signOut();
-          if (error) log({ signOut_error: error });
-          location.href = "/login.html";
-        }
-
-        async function boot(){
-          renderActiveFromStorage();
-
-          const session = await requireSession();
-          if (!session) return;
-
-          await loadMe(session);
-
-          log({ auth_event: "INITIAL_SESSION", email: session.user?.email });
-          await loadTenantsForUser();
-        }
-
-        $("btnLogout").onclick = logout;
-        $("btnRefresh").onclick = () => location.reload();
-
-        sb.auth.onAuthStateChange((event, session) => {
-          log({ auth_event: event, hasSession: !!session });
-          if (!session) location.href = "/login.html";
-        });
-
-        boot();
-      }
-    }
-  </script>
+  <script src="/assets/js/platform.js"></script>
 </body>
 </html>
