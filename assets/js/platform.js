@@ -3,6 +3,7 @@
   const sections = document.querySelectorAll(".section");
 
   const modalCreateTenant = document.getElementById("modalCreateTenant");
+  const modalCreateUser = document.getElementById("modalCreateUser");
   const modalChangeAdmin = document.getElementById("modalChangeAdmin");
   const modalDisableTenant = document.getElementById("modalDisableTenant");
   const modalAccessResult = document.getElementById("modalAccessResult");
@@ -11,10 +12,17 @@
   const tenantSearch = document.getElementById("tenantSearch");
   const tenantStatusFilter = document.getElementById("tenantStatusFilter");
 
+  const usersTableBody = document.getElementById("usersTableBody");
+  const userSearch = document.getElementById("userSearch");
+  const userStatusFilter = document.getElementById("userStatusFilter");
+  const userTypeFilter = document.getElementById("userTypeFilter");
+
   const btnOpenCreateTenant = document.getElementById("btnOpenCreateTenant");
   const btnOpenCreateTenant2 = document.getElementById("btnOpenCreateTenant2");
+  const btnOpenCreateUser = document.getElementById("btnOpenCreateUser");
   const btnReloadTenants = document.getElementById("btnReloadTenants");
   const btnRefreshPlatform = document.getElementById("btnRefreshPlatform");
+  const btnLogout = document.getElementById("btnLogout");
 
   const accessResultText = document.getElementById("accessResultText");
   const btnCopyAccessMessage = document.getElementById("btnCopyAccessMessage");
@@ -35,14 +43,29 @@
     }
   ];
 
+  let allUsers = [
+    {
+      id: "u-001",
+      name: "Oscar Lage",
+      email: "oscar@teste.com",
+      phone: "",
+      type: "tenant_admin",
+      status: "active",
+      tenant_id: "8814c725-ff72-41f2-be86-e9671bcc6c7b",
+      tenant_name: "Sítio Coisa Nossa",
+      last_login_at: "2026-03-07T13:20:00Z",
+      created_at: "2026-03-06T10:10:00Z"
+    }
+  ];
+
   function getActiveTenantId() {
     return localStorage.getItem(ACTIVE_TENANT_ID_KEY) || "";
   }
 
   function setActiveTenant(tenant) {
-    localStorage.setItem(ACTIVE_TENANT_ID_KEY, tenant.id);
-    localStorage.setItem(ACTIVE_TENANT_NAME_KEY, tenant.name);
-    localStorage.setItem(ACTIVE_TENANT_SLUG_KEY, tenant.slug);
+    localStorage.setItem(ACTIVE_TENANT_ID_KEY, tenant.id || "");
+    localStorage.setItem(ACTIVE_TENANT_NAME_KEY, tenant.name || "");
+    localStorage.setItem(ACTIVE_TENANT_SLUG_KEY, tenant.slug || "");
   }
 
   function setSection(name) {
@@ -71,6 +94,15 @@
     return d.toLocaleDateString("pt-BR");
   }
 
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   function statusBadge(status) {
     const cls = status || "pending";
     const label =
@@ -79,6 +111,27 @@
       "Pendente";
 
     return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function userStatusBadge(status) {
+    const cls = status || "pending";
+    const label =
+      cls === "active" ? "Ativo" :
+      cls === "blocked" ? "Bloqueado" :
+      cls === "disabled" ? "Desabilitado" :
+      "Pendente";
+
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function userTypeLabel(type) {
+    return (
+      type === "platform_admin" ? "Platform admin" :
+      type === "tenant_admin" ? "Tenant admin" :
+      type === "tenant_manager" ? "Tenant manager" :
+      type === "tenant_viewer" ? "Tenant viewer" :
+      type || "-"
+    );
   }
 
   function activeBadge(isActive) {
@@ -103,6 +156,36 @@
       const okStatus = !status || row.status === status;
       return okSearch && okStatus;
     });
+  }
+
+  function filteredUsers() {
+    const q = (userSearch?.value || "").trim().toLowerCase();
+    const status = userStatusFilter?.value || "";
+    const type = userTypeFilter?.value || "";
+
+    return allUsers.filter(row => {
+      const text = `${row.name} ${row.email} ${row.tenant_name || ""}`.toLowerCase();
+      const okSearch = !q || text.includes(q);
+      const okStatus = !status || row.status === status;
+      const okType = !type || row.type === type;
+      return okSearch && okStatus && okType;
+    });
+  }
+
+  function populateUserTenantOptions() {
+    const select = document.getElementById("userTenantId");
+    if (!select) return;
+
+    const currentValue = select.value || "";
+
+    select.innerHTML = `
+      <option value="">Sem vínculo</option>
+      ${allTenants.map(t => `
+        <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
+      `).join("")}
+    `;
+
+    select.value = currentValue;
   }
 
   function renderTenants() {
@@ -165,13 +248,57 @@
     }).join("");
   }
 
-  function escapeHtml(str) {
-    return String(str ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+  function renderUsers() {
+    if (!usersTableBody) return;
+
+    const rows = filteredUsers();
+
+    if (!rows.length) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty-row">Nenhum usuário encontrado.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    usersTableBody.innerHTML = rows.map(row => `
+      <tr>
+        <td>
+          <strong>${escapeHtml(row.name)}</strong>
+          ${row.phone ? `<br><small class="muted">${escapeHtml(row.phone)}</small>` : ""}
+        </td>
+        <td>${escapeHtml(row.email || "-")}</td>
+        <td>${escapeHtml(userTypeLabel(row.type))}</td>
+        <td>${escapeHtml(row.tenant_name || "-")}</td>
+        <td>${userStatusBadge(row.status)}</td>
+        <td>${escapeHtml(formatDateBR(row.last_login_at) || "-")}</td>
+        <td>${escapeHtml(formatDateBR(row.created_at) || "-")}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-light btn-sm" data-user-action="resend-access" data-user-id="${row.id}">
+              Reenviar acesso
+            </button>
+
+            <button class="btn btn-light btn-sm" data-user-action="reset-password" data-user-id="${row.id}">
+              Resetar senha
+            </button>
+
+            ${
+              row.status === "blocked"
+                ? `<button class="btn btn-primary btn-sm" data-user-action="unblock" data-user-id="${row.id}">Desbloquear</button>`
+                : `<button class="btn btn-light btn-sm" data-user-action="block" data-user-id="${row.id}">Bloquear</button>`
+            }
+
+            ${
+              row.status === "disabled"
+                ? `<button class="btn btn-primary btn-sm" data-user-action="enable" data-user-id="${row.id}">Habilitar</button>`
+                : `<button class="btn btn-danger btn-sm" data-user-action="disable" data-user-id="${row.id}">Desabilitar</button>`
+            }
+          </div>
+        </td>
+      </tr>
+    `).join("");
   }
 
   function buildAccessMessage(tenant, adminEmail, adminName) {
@@ -182,8 +309,26 @@
       ``,
       `Tenant: ${tenant.name}`,
       `Slug: ${tenant.slug}`,
-      `Painel: https://portalwifi2.pages.dev/painel`,
+      `Painel: https://portalwifi2.pages.dev/estabelecimento/?tenant=${tenant.slug}`,
       `Usuário: ${adminEmail}`,
+      `Senha provisória: [gerar/definir]`,
+      ``,
+      `Recomendamos alterar a senha no primeiro acesso.`,
+      ``,
+      `Equipe Portal WiFi`
+    ].join("\n");
+  }
+
+  function buildUserAccessMessage(user) {
+    return [
+      `Olá, ${user.name || "Usuário(a)"}.`,
+      ``,
+      `Seu acesso à plataforma Portal WiFi foi criado/atualizado com sucesso.`,
+      ``,
+      `Perfil: ${userTypeLabel(user.type)}`,
+      `Tenant: ${user.tenant_name || "Sem vínculo"}`,
+      `Painel: https://portalwifi2.pages.dev/platform.html`,
+      `Usuário: ${user.email}`,
       `Senha provisória: [gerar/definir]`,
       ``,
       `Recomendamos alterar a senha no primeiro acesso.`,
@@ -218,9 +363,46 @@
 
     allTenants.unshift(tenant);
     renderTenants();
+    populateUserTenantOptions();
     closeModal(modalCreateTenant);
 
     accessResultText.textContent = buildAccessMessage(tenant, adminEmail, adminName);
+    openModal(modalAccessResult);
+  }
+
+  function handleCreateUser() {
+    const userName = document.getElementById("userName")?.value.trim();
+    const userEmail = document.getElementById("userEmail")?.value.trim();
+    const userPhone = document.getElementById("userPhone")?.value.trim();
+    const userType = document.getElementById("userType")?.value;
+    const userStatus = document.getElementById("userStatus")?.value;
+    const userTenantId = document.getElementById("userTenantId")?.value;
+
+    if (!userName || !userEmail || !userType || !userStatus) {
+      alert("Preencha nome, e-mail, tipo e status do usuário.");
+      return;
+    }
+
+    const tenant = allTenants.find(t => t.id === userTenantId);
+
+    const user = {
+      id: crypto.randomUUID(),
+      name: userName,
+      email: userEmail,
+      phone: userPhone || "",
+      type: userType,
+      status: userStatus,
+      tenant_id: tenant?.id || "",
+      tenant_name: tenant?.name || "",
+      last_login_at: "",
+      created_at: new Date().toISOString()
+    };
+
+    allUsers.unshift(user);
+    renderUsers();
+    closeModal(modalCreateUser);
+
+    accessResultText.textContent = buildUserAccessMessage(user);
     openModal(modalAccessResult);
   }
 
@@ -240,15 +422,12 @@
       return;
     }
 
-if (action === "open-panel") {
-  localStorage.setItem("portalwifi.activeTenantId", tenant.id || "");
-  localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
-  localStorage.setItem("portalwifi.activeTenantSlug", tenant.slug || "");
-
-  renderTenants();
-  window.location.href = `/estabelecimento/?tenant=${encodeURIComponent(tenant.slug || "")}`;
-  return;
-}
+    if (action === "open-panel") {
+      setActiveTenant(tenant);
+      renderTenants();
+      window.location.href = `/estabelecimento/?tenant=${encodeURIComponent(tenant.slug || "")}`;
+      return;
+    }
 
     if (action === "change-admin") {
       document.getElementById("changeAdminTenantId").value = tenant.id;
@@ -277,6 +456,56 @@ if (action === "open-panel") {
       tenant.status = "active";
       renderTenants();
       return;
+    }
+  }
+
+  function handleUsersTableClick(e) {
+    const btn = e.target.closest("[data-user-action]");
+    if (!btn) return;
+
+    const action = btn.dataset.userAction;
+    const id = btn.dataset.userId;
+    const user = allUsers.find(u => u.id === id);
+    if (!user) return;
+
+    if (action === "resend-access") {
+      accessResultText.textContent = buildUserAccessMessage(user);
+      openModal(modalAccessResult);
+      return;
+    }
+
+    if (action === "reset-password") {
+      accessResultText.textContent = [
+        `Reset de senha solicitado para ${user.name}.`,
+        ``,
+        `Usuário: ${user.email}`,
+        `Nova senha provisória: [gerar/definir]`
+      ].join("\n");
+      openModal(modalAccessResult);
+      return;
+    }
+
+    if (action === "block") {
+      user.status = "blocked";
+      renderUsers();
+      return;
+    }
+
+    if (action === "unblock") {
+      user.status = "active";
+      renderUsers();
+      return;
+    }
+
+    if (action === "disable") {
+      user.status = "disabled";
+      renderUsers();
+      return;
+    }
+
+    if (action === "enable") {
+      user.status = "active";
+      renderUsers();
     }
   }
 
@@ -318,15 +547,34 @@ if (action === "open-panel") {
     btn?.addEventListener("click", () => openModal(modalCreateTenant));
   });
 
+  btnOpenCreateUser?.addEventListener("click", () => {
+    populateUserTenantOptions();
+    openModal(modalCreateUser);
+  });
+
   btnReloadTenants?.addEventListener("click", renderTenants);
-  btnRefreshPlatform?.addEventListener("click", renderTenants);
+
+  btnRefreshPlatform?.addEventListener("click", () => {
+    renderTenants();
+    renderUsers();
+  });
+
+  btnLogout?.addEventListener("click", () => {
+    alert("Fluxo de logout ainda será integrado.");
+  });
 
   tenantSearch?.addEventListener("input", renderTenants);
   tenantStatusFilter?.addEventListener("change", renderTenants);
 
+  userSearch?.addEventListener("input", renderUsers);
+  userStatusFilter?.addEventListener("change", renderUsers);
+  userTypeFilter?.addEventListener("change", renderUsers);
+
   tenantsTableBody?.addEventListener("click", handleTableClick);
+  usersTableBody?.addEventListener("click", handleUsersTableClick);
 
   document.getElementById("btnCreateTenantConfirm")?.addEventListener("click", handleCreateTenant);
+  document.getElementById("btnCreateUserConfirm")?.addEventListener("click", handleCreateUser);
   document.getElementById("btnChangeAdminConfirm")?.addEventListener("click", handleConfirmChangeAdmin);
   document.getElementById("btnDisableTenantConfirm")?.addEventListener("click", handleConfirmDisableTenant);
 
@@ -348,4 +596,6 @@ if (action === "open-panel") {
 
   setSection("overview");
   renderTenants();
+  populateUserTenantOptions();
+  renderUsers();
 })();
