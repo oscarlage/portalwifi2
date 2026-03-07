@@ -12,33 +12,62 @@
   const TENANT_ID_KEY = "portalwifi.activeTenantId";
   const TENANT_NAME_KEY = "portalwifi.activeTenantName";
   const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
+  const ROUTE_KEY = "portalwifi.estabelecimento.route";
+
+  function getQueryTenantSlug() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tenant");
+  }
+
+  function syncTenantFromUrl() {
+    const queryTenantSlug = getQueryTenantSlug();
+    if (queryTenantSlug) {
+      localStorage.setItem(TENANT_SLUG_KEY, queryTenantSlug);
+
+      const savedName = localStorage.getItem(TENANT_NAME_KEY);
+      if (!savedName) {
+        localStorage.setItem(
+          TENANT_NAME_KEY,
+          queryTenantSlug
+            .split("-")
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ")
+        );
+      }
+    }
+  }
+
+  syncTenantFromUrl();
 
   const tenantId = localStorage.getItem(TENANT_ID_KEY);
   const tenantName = localStorage.getItem(TENANT_NAME_KEY);
   const tenantSlug = localStorage.getItem(TENANT_SLUG_KEY);
 
+  const BASE_ROUTE = "/estabelecimento";
+  const DEFAULT_ROUTE = BASE_ROUTE;
+
   const routes = {
-    "/painel": {
+    "/estabelecimento": {
       page: "/estabelecimento/home.html",
       title: "Dashboard",
       subtitle: "Visão geral do movimento do Wi-Fi."
     },
-    "/painel/clientes": {
+    "/estabelecimento/clientes": {
       page: "/estabelecimento/clientes.html",
       title: "Clientes",
       subtitle: "Base de clientes captados pelo Wi-Fi."
     },
-    "/painel/campanhas": {
+    "/estabelecimento/campanhas": {
       page: "/estabelecimento/campanhas.html",
       title: "Campanhas",
       subtitle: "Campanhas e ações de relacionamento."
     },
-    "/painel/configuracoes": {
+    "/estabelecimento/configuracoes": {
       page: "/estabelecimento/configuracoes.html",
       title: "Configurações",
       subtitle: "Personalização do portal e parâmetros do estabelecimento."
     },
-    "/painel/relatorios": {
+    "/estabelecimento/relatorios": {
       page: "/estabelecimento/relatorios.html",
       title: "Relatórios",
       subtitle: "Análises e visão consolidada dos acessos."
@@ -46,14 +75,22 @@
   };
 
   function normalizePath(pathname) {
-    if (!pathname) return "/painel";
+    if (!pathname) return DEFAULT_ROUTE;
+
     const clean = pathname.replace(/\/+$/, "");
-    return clean || "/painel";
+    if (!clean) return DEFAULT_ROUTE;
+
+    if (clean === "/painel") return DEFAULT_ROUTE;
+    if (clean.startsWith("/painel/")) {
+      return clean.replace(/^\/painel/, BASE_ROUTE);
+    }
+
+    return clean;
   }
 
   function getRouteConfig(pathname) {
     const normalized = normalizePath(pathname);
-    return routes[normalized] || routes["/painel"];
+    return routes[normalized] || routes[DEFAULT_ROUTE];
   }
 
   function setActiveByRoute(route) {
@@ -69,25 +106,41 @@
   }
 
   function updateTenantShell() {
-    const name = tenantName || tenantSlug || "Estabelecimento";
-    const sub = tenantId
+    const displayName = tenantName || tenantSlug || "Estabelecimento";
+    const sub = tenantId || tenantSlug
       ? `Tenant ativo • ${tenantSlug || tenantId}`
       : "Nenhum tenant selecionado";
 
-    if (shellTenantName) shellTenantName.textContent = name;
+    if (shellTenantName) shellTenantName.textContent = displayName;
     if (shellTenantSub) shellTenantSub.textContent = sub;
-    if (sideTenantValue) sideTenantValue.textContent = tenantName || tenantSlug || tenantId || "Não selecionado";
+    if (sideTenantValue) {
+      sideTenantValue.textContent =
+        tenantName || tenantSlug || tenantId || "Não selecionado";
+    }
+  }
+
+  function buildUrl(route) {
+    const url = new URL(window.location.origin + route);
+    if (tenantSlug) {
+      url.searchParams.set("tenant", tenantSlug);
+    }
+    return url.pathname + url.search;
+  }
+
+  function ensureTenantSelected() {
+    if (!tenantId && !tenantSlug) {
+      alert("Nenhum tenant ativo selecionado. Volte à plataforma e selecione um tenant.");
+      window.location.href = "/platform.html";
+      return false;
+    }
+    return true;
   }
 
   function loadRoute(route, push = true) {
     const normalized = normalizePath(route);
     const meta = getRouteConfig(normalized);
 
-    if (!tenantId) {
-      alert("Nenhum tenant ativo selecionado. Volte ao platform e selecione um tenant.");
-      window.location.href = "/platform.html";
-      return;
-    }
+    if (!ensureTenantSelected()) return;
 
     if (frame) {
       frame.src = meta.page;
@@ -96,17 +149,17 @@
     updateHeader(normalized);
     setActiveByRoute(normalized);
 
-    localStorage.setItem("portalwifi.estabelecimento.route", normalized);
+    localStorage.setItem(ROUTE_KEY, normalized);
 
     if (push) {
-      history.pushState({ route: normalized }, "", normalized);
+      history.pushState({ route: normalized }, "", buildUrl(normalized));
     }
   }
 
   buttons.forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
-      const route = btn.dataset.route || "/painel";
+      const route = btn.dataset.route || DEFAULT_ROUTE;
       loadRoute(route, true);
     });
   });
@@ -128,9 +181,10 @@
   updateTenantShell();
 
   const currentPath = normalizePath(window.location.pathname);
+  const savedRoute = localStorage.getItem(ROUTE_KEY);
   const initialRoute = routes[currentPath]
     ? currentPath
-    : (localStorage.getItem("portalwifi.estabelecimento.route") || "/painel");
+    : (routes[savedRoute] ? savedRoute : DEFAULT_ROUTE);
 
   loadRoute(initialRoute, false);
 })();
