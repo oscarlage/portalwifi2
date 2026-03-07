@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
 <body class="frame-page">
+
   <section class="dashboard-grid">
     <div class="metric-card">
       <div class="metric-label">Conectados hoje</div>
@@ -26,23 +27,117 @@
 
   <section class="panel-card">
     <h2>Dicas para seu negócio</h2>
-    <p>Em breve aqui aparecerão insights automáticos sobre movimento, retorno e oportunidades.</p>
+    <p id="tenantInfo" class="muted" style="margin-top:-6px;margin-bottom:14px;">
+      Carregando tenant...
+    </p>
+
+    <div id="insightsBox">
+      <p>Em breve aqui aparecerão insights automáticos sobre movimento, retorno e oportunidades.</p>
+    </div>
   </section>
 
   <script>
     (async function () {
-      const API = "https://portalwifi-api.oscar-lage.workers.dev/api/admin/dashboard/summary";
+      const API_BASE = "https://portalwifi-api.oscar-lage.workers.dev";
+      const TENANT_ID_KEY = "portalwifi.activeTenantId";
+      const TENANT_NAME_KEY = "portalwifi.activeTenantName";
+      const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
+
+      const tenantId = localStorage.getItem(TENANT_ID_KEY);
+      const tenantName = localStorage.getItem(TENANT_NAME_KEY);
+      const tenantSlug = localStorage.getItem(TENANT_SLUG_KEY);
+
+      const elConnected = document.getElementById("connectedToday");
+      const elNewCustomers = document.getElementById("newCustomers");
+      const elReturning = document.getElementById("returningCustomers");
+      const elTenantInfo = document.getElementById("tenantInfo");
+      const elInsightsBox = document.getElementById("insightsBox");
+
+      function setText(el, value) {
+        if (el) el.textContent = value;
+      }
+
+      function renderInsights(summary) {
+        const connected = Number(summary.connected || 0);
+        const newCustomers = Number(summary.new_customers || 0);
+        const returning = Number(summary.returning_customers || 0);
+        const marketingOptin = Number(summary.marketing_optin || 0);
+
+        const insights = [];
+
+        if (newCustomers > 0) {
+          insights.push(`Você captou ${newCustomers} novo(s) cliente(s) no período atual.`);
+        } else {
+          insights.push("Nenhum novo cliente foi captado no período atual.");
+        }
+
+        if (connected > 0) {
+          insights.push(`Foram registradas ${connected} sessão(ões) de conexão no período.`);
+        } else {
+          insights.push("Ainda não há sessões registradas no período atual.");
+        }
+
+        if (marketingOptin > 0) {
+          insights.push(`${marketingOptin} cliente(s) já aceitaram receber marketing.`);
+        } else {
+          insights.push("Ainda não há clientes com opt-in de marketing.");
+        }
+
+        if (returning > 0) {
+          insights.push(`${returning} cliente(s) recorrente(s) retornaram no período.`);
+        } else {
+          insights.push("A lógica de recorrência ainda está em evolução para este tenant.");
+        }
+
+        elInsightsBox.innerHTML = `
+          <ul class="bullets" style="margin:0;padding-left:18px;">
+            ${insights.map(item => `<li>${item}</li>`).join("")}
+          </ul>
+        `;
+      }
+
+      if (!tenantId) {
+        setText(elTenantInfo, "Nenhum tenant ativo foi selecionado.");
+        if (elInsightsBox) {
+          elInsightsBox.innerHTML = `<p style="color:#ffb4b4;">Selecione um tenant no platform antes de abrir o painel.</p>`;
+        }
+        return;
+      }
+
+      setText(
+        elTenantInfo,
+        `Tenant ativo: ${tenantName || tenantSlug || tenantId}`
+      );
 
       try {
-        const res = await fetch(API);
-        const data = await res.json();
-        if (!data.ok) return;
+        const res = await fetch(
+          `${API_BASE}/api/admin/dashboard/summary?tenant_id=${encodeURIComponent(tenantId)}`
+        );
 
-        document.getElementById("connectedToday").textContent = data.summary.connected ?? 0;
-        document.getElementById("newCustomers").textContent = data.summary.new_customers ?? 0;
-        document.getElementById("returningCustomers").textContent = data.summary.returning_customers ?? 0;
+        const data = await res.json();
+
+        if (!data.ok) {
+          throw new Error(data.detail || data.error || "Falha ao carregar dashboard.");
+        }
+
+        const summary = data.summary || {};
+
+        setText(elConnected, summary.connected ?? 0);
+        setText(elNewCustomers, summary.new_customers ?? 0);
+        setText(elReturning, summary.returning_customers ?? 0);
+
+        renderInsights(summary);
+
       } catch (err) {
         console.error("Erro ao carregar dashboard:", err);
+
+        if (elInsightsBox) {
+          elInsightsBox.innerHTML = `
+            <p style="color:#ffb4b4;">
+              Não foi possível carregar os dados do dashboard.
+            </p>
+          `;
+        }
       }
     })();
   </script>
