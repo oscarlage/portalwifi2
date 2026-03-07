@@ -1,8 +1,11 @@
 (async function () {
-  const API = "https://portalwifi-api.oscar-lage.workers.dev/api/admin/leads";
+  const API_BASE = "https://portalwifi-api.oscar-lage.workers.dev";
+  const TENANT_ID_KEY = "portalwifi.activeTenantId";
 
   const tbody = document.getElementById("clientesTable");
   const buscaInput = document.getElementById("buscaCliente");
+
+  const tenantId = localStorage.getItem(TENANT_ID_KEY);
 
   let allRows = [];
 
@@ -74,6 +77,7 @@
 
   function applyFilter() {
     const q = (buscaInput?.value || "").trim().toLowerCase();
+
     if (!q) {
       renderRows(allRows);
       return;
@@ -83,6 +87,7 @@
       const name = String(row.full_name || "").toLowerCase();
       const phone = String(row.phone || "").toLowerCase();
       const city = String(row.city || "").toLowerCase();
+
       return name.includes(q) || phone.includes(q) || city.includes(q);
     });
 
@@ -90,6 +95,20 @@
   }
 
   async function loadClients() {
+    if (!tenantId) {
+      console.error("Nenhum tenant ativo selecionado.");
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="color:#ffb4b4;">
+              Nenhum tenant ativo foi selecionado.
+            </td>
+          </tr>
+        `;
+      }
+      return;
+    }
+
     if (tbody) {
       tbody.innerHTML = `
         <tr>
@@ -99,7 +118,10 @@
     }
 
     try {
-      const res = await fetch(API);
+      const res = await fetch(
+        `${API_BASE}/api/admin/leads?tenant_id=${encodeURIComponent(tenantId)}`
+      );
+
       const data = await res.json();
 
       if (!data.ok) {
@@ -108,8 +130,10 @@
 
       allRows = Array.isArray(data.data) ? data.data : [];
       renderRows(allRows);
+
     } catch (err) {
       console.error("Erro ao carregar clientes:", err);
+
       if (tbody) {
         tbody.innerHTML = `
           <tr>
