@@ -126,13 +126,67 @@
         </div>
       </section>
 
-      <section class="section" id="section-users">
-        <div class="section-head">
-          <div>
-            <h2>Usuários</h2>
-            <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
-          </div>
-        </div>
+<section class="section" id="section-users">
+  <div class="section-head">
+    <div>
+      <h2>Usuários</h2>
+      <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
+    </div>
+
+    <div class="section-actions">
+      <button class="btn btn-primary" id="btnOpenCreateUser" type="button">Novo usuário</button>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <div class="toolbar">
+      <input
+        type="text"
+        id="userSearch"
+        class="input"
+        placeholder="Buscar por nome ou e-mail..."
+      >
+
+      <select id="userStatusFilter" class="input select">
+        <option value="">Todos os status</option>
+        <option value="active">Ativos</option>
+        <option value="pending">Pendentes</option>
+        <option value="blocked">Bloqueados</option>
+        <option value="disabled">Desabilitados</option>
+      </select>
+
+      <select id="userTypeFilter" class="input select">
+        <option value="">Todos os tipos</option>
+        <option value="platform_admin">Platform admin</option>
+        <option value="tenant_admin">Tenant admin</option>
+        <option value="tenant_manager">Tenant manager</option>
+        <option value="tenant_viewer">Tenant viewer</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>E-mail</th>
+            <th>Tipo</th>
+            <th>Tenant</th>
+            <th>Status</th>
+            <th>Último acesso</th>
+            <th>Criado em</th>
+            <th style="width:280px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr>
+            <td colspan="8" class="empty-row">Carregando usuários...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
         <div class="panel-card">
           <p class="muted">Módulo em preparação.</p>
