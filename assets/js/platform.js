@@ -19,6 +19,10 @@
   const accessResultText = document.getElementById("accessResultText");
   const btnCopyAccessMessage = document.getElementById("btnCopyAccessMessage");
 
+  const ACTIVE_TENANT_ID_KEY = "portalwifi.activeTenantId";
+  const ACTIVE_TENANT_NAME_KEY = "portalwifi.activeTenantName";
+  const ACTIVE_TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
+
   let allTenants = [
     {
       id: "8814c725-ff72-41f2-be86-e9671bcc6c7b",
@@ -31,11 +35,24 @@
     }
   ];
 
+  function getActiveTenantId() {
+    return localStorage.getItem(ACTIVE_TENANT_ID_KEY) || "";
+  }
+
+  function setActiveTenant(tenant) {
+    localStorage.setItem(ACTIVE_TENANT_ID_KEY, tenant.id);
+    localStorage.setItem(ACTIVE_TENANT_NAME_KEY, tenant.name);
+    localStorage.setItem(ACTIVE_TENANT_SLUG_KEY, tenant.slug);
+  }
+
   function setSection(name) {
-    navLinks.forEach(btn => btn.classList.toggle("active", btn.dataset.section === name));
+    navLinks.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.section === name);
+    });
+
     sections.forEach(sec => {
       const id = sec.id.replace("section-", "");
-      sec.classList.toggle("active", id === name || (name === "overview" && id === "tenants"));
+      sec.classList.toggle("active", id === name);
     });
   }
 
@@ -62,6 +79,11 @@
       "Pendente";
 
     return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  function activeBadge(isActive) {
+    if (!isActive) return "";
+    return `<div style="margin-top:6px;"><span class="badge active">Tenant ativo</span></div>`;
   }
 
   function renderMetrics(rows) {
@@ -96,31 +118,51 @@
       return;
     }
 
-    tenantsTableBody.innerHTML = rows.map(row => `
-      <tr>
-        <td>
-          <strong>${escapeHtml(row.name)}</strong><br>
-          <small class="muted">${escapeHtml(row.id)}</small>
-        </td>
-        <td>${escapeHtml(row.slug)}</td>
-        <td>${statusBadge(row.status)}</td>
-        <td>${escapeHtml(row.admin_name || "-")}</td>
-        <td>${escapeHtml(row.admin_email || "-")}</td>
-        <td>${escapeHtml(formatDateBR(row.created_at))}</td>
-        <td>
-          <div class="actions">
-            <button class="btn btn-light btn-sm" data-action="select" data-id="${row.id}">Selecionar</button>
-            <button class="btn btn-light btn-sm" data-action="change-admin" data-id="${row.id}">Alterar admin</button>
-            <button class="btn btn-light btn-sm" data-action="resend-access" data-id="${row.id}">Reenviar acesso</button>
-            ${
-              row.status === "disabled"
-                ? `<button class="btn btn-primary btn-sm" data-action="enable" data-id="${row.id}">Habilitar</button>`
-                : `<button class="btn btn-danger btn-sm" data-action="disable" data-id="${row.id}">Desabilitar</button>`
-            }
-          </div>
-        </td>
-      </tr>
-    `).join("");
+    const activeTenantId = getActiveTenantId();
+
+    tenantsTableBody.innerHTML = rows.map(row => {
+      const isActive = row.id === activeTenantId;
+
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHtml(row.name)}</strong><br>
+            <small class="muted">${escapeHtml(row.id)}</small>
+            ${activeBadge(isActive)}
+          </td>
+          <td>${escapeHtml(row.slug)}</td>
+          <td>${statusBadge(row.status)}</td>
+          <td>${escapeHtml(row.admin_name || "-")}</td>
+          <td>${escapeHtml(row.admin_email || "-")}</td>
+          <td>${escapeHtml(formatDateBR(row.created_at))}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light btn-sm" data-action="select" data-id="${row.id}">
+                ${isActive ? "Selecionado" : "Selecionar"}
+              </button>
+
+              <button class="btn btn-primary btn-sm" data-action="open-panel" data-id="${row.id}">
+                Abrir painel
+              </button>
+
+              <button class="btn btn-light btn-sm" data-action="change-admin" data-id="${row.id}">
+                Alterar admin
+              </button>
+
+              <button class="btn btn-light btn-sm" data-action="resend-access" data-id="${row.id}">
+                Reenviar acesso
+              </button>
+
+              ${
+                row.status === "disabled"
+                  ? `<button class="btn btn-primary btn-sm" data-action="enable" data-id="${row.id}">Habilitar</button>`
+                  : `<button class="btn btn-danger btn-sm" data-action="disable" data-id="${row.id}">Desabilitar</button>`
+              }
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
   }
 
   function escapeHtml(str) {
@@ -192,10 +234,16 @@
     if (!tenant) return;
 
     if (action === "select") {
-      localStorage.setItem("portalwifi.activeTenantId", tenant.id);
-      localStorage.setItem("portalwifi.activeTenantName", tenant.name);
-      localStorage.setItem("portalwifi.activeTenantSlug", tenant.slug);
+      setActiveTenant(tenant);
+      renderTenants();
       alert(`Tenant ativo selecionado: ${tenant.name}`);
+      return;
+    }
+
+    if (action === "open-panel") {
+      setActiveTenant(tenant);
+      renderTenants();
+      window.location.href = "/painel";
       return;
     }
 
