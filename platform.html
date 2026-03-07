@@ -74,7 +74,7 @@
         </div>
       </section>
 
-      <section class="section active" id="section-tenants">
+      <section class="section" id="section-tenants">
         <div class="section-head">
           <div>
             <h2>Tenants</h2>
@@ -126,70 +126,65 @@
         </div>
       </section>
 
-<section class="section" id="section-users">
-  <div class="section-head">
-    <div>
-      <h2>Usuários</h2>
-      <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
-    </div>
+      <section class="section" id="section-users">
+        <div class="section-head">
+          <div>
+            <h2>Usuários</h2>
+            <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
+          </div>
 
-    <div class="section-actions">
-      <button class="btn btn-primary" id="btnOpenCreateUser" type="button">Novo usuário</button>
-    </div>
-  </div>
-
-  <div class="panel-card">
-    <div class="toolbar">
-      <input
-        type="text"
-        id="userSearch"
-        class="input"
-        placeholder="Buscar por nome ou e-mail..."
-      >
-
-      <select id="userStatusFilter" class="input select">
-        <option value="">Todos os status</option>
-        <option value="active">Ativos</option>
-        <option value="pending">Pendentes</option>
-        <option value="blocked">Bloqueados</option>
-        <option value="disabled">Desabilitados</option>
-      </select>
-
-      <select id="userTypeFilter" class="input select">
-        <option value="">Todos os tipos</option>
-        <option value="platform_admin">Platform admin</option>
-        <option value="tenant_admin">Tenant admin</option>
-        <option value="tenant_manager">Tenant manager</option>
-        <option value="tenant_viewer">Tenant viewer</option>
-      </select>
-    </div>
-
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>E-mail</th>
-            <th>Tipo</th>
-            <th>Tenant</th>
-            <th>Status</th>
-            <th>Último acesso</th>
-            <th>Criado em</th>
-            <th style="width:280px;">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="usersTableBody">
-          <tr>
-            <td colspan="8" class="empty-row">Carregando usuários...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+          <div class="section-actions">
+            <button class="btn btn-primary" id="btnOpenCreateUser" type="button">Novo usuário</button>
+          </div>
+        </div>
 
         <div class="panel-card">
-          <p class="muted">Módulo em preparação.</p>
+          <div class="toolbar">
+            <input
+              type="text"
+              id="userSearch"
+              class="input"
+              placeholder="Buscar por nome, e-mail ou tenant..."
+            >
+
+            <select id="userStatusFilter" class="input select">
+              <option value="">Todos os status</option>
+              <option value="active">Ativos</option>
+              <option value="pending">Pendentes</option>
+              <option value="blocked">Bloqueados</option>
+              <option value="disabled">Desabilitados</option>
+            </select>
+
+            <select id="userTypeFilter" class="input select">
+              <option value="">Todos os tipos</option>
+              <option value="platform_admin">Platform admin</option>
+              <option value="tenant_admin">Tenant admin</option>
+              <option value="tenant_manager">Tenant manager</option>
+              <option value="tenant_viewer">Tenant viewer</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Usuário</th>
+                  <th>E-mail</th>
+                  <th>Tipo</th>
+                  <th>Tenant</th>
+                  <th>Status</th>
+                  <th>Último acesso</th>
+                  <th>Criado em</th>
+                  <th style="width:280px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="8" class="empty-row">Carregando usuários...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -313,6 +308,96 @@
     </div>
   </div>
 
+  <!-- MODAL: NOVO USUÁRIO -->
+  <div class="modal-backdrop hidden" id="modalCreateUser">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Novo usuário</h3>
+        <button class="icon-btn" type="button" data-close="modalCreateUser">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Dados do usuário</h4>
+
+            <label class="field">
+              <span>Nome</span>
+              <input type="text" id="userName" class="input" placeholder="Ex.: Maria Souza">
+            </label>
+
+            <label class="field">
+              <span>E-mail</span>
+              <input type="email" id="userEmail" class="input" placeholder="Ex.: maria@tenant.com">
+            </label>
+
+            <label class="field">
+              <span>Telefone</span>
+              <input type="text" id="userPhone" class="input" placeholder="Opcional">
+            </label>
+          </div>
+
+          <div class="form-section">
+            <h4>Acesso e vínculo</h4>
+
+            <label class="field">
+              <span>Tipo de usuário</span>
+              <select id="userType" class="input select">
+                <option value="tenant_admin">Tenant admin</option>
+                <option value="tenant_manager">Tenant manager</option>
+                <option value="tenant_viewer">Tenant viewer</option>
+                <option value="platform_admin">Platform admin</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Status inicial</span>
+              <select id="userStatus" class="input select">
+                <option value="active">Ativo</option>
+                <option value="pending">Pendente</option>
+                <option value="blocked">Bloqueado</option>
+                <option value="disabled">Desabilitado</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Tenant vinculado</span>
+              <select id="userTenantId" class="input select">
+                <option value="">Sem vínculo</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Entrega de acesso</h4>
+
+          <div class="checks-grid">
+            <label class="check">
+              <input type="checkbox" id="userSendAccessEmail" checked>
+              <span>Enviar acesso por e-mail automaticamente</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="userGenerateTempPassword" checked>
+              <span>Gerar senha provisória</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="userForcePasswordChange" checked>
+              <span>Forçar troca de senha no primeiro acesso</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalCreateUser">Cancelar</button>
+        <button class="btn btn-primary" id="btnCreateUserConfirm" type="button">Criar usuário</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ALTERAR ADMIN -->
   <div class="modal-backdrop hidden" id="modalChangeAdmin">
     <div class="modal modal-sm">
@@ -388,7 +473,7 @@
   <div class="modal-backdrop hidden" id="modalAccessResult">
     <div class="modal modal-sm">
       <div class="modal-head">
-        <h3>Acesso do tenant</h3>
+        <h3>Acesso gerado</h3>
         <button class="icon-btn" type="button" data-close="modalAccessResult">×</button>
       </div>
 
