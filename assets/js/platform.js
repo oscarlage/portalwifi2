@@ -240,12 +240,15 @@
       return;
     }
 
-    if (action === "open-panel") {
-      setActiveTenant(tenant);
-      renderTenants();
-      window.location.href = "/painel";
-      return;
-    }
+if (action === "open-panel") {
+  localStorage.setItem("portalwifi.activeTenantId", tenant.id || "");
+  localStorage.setItem("portalwifi.activeTenantName", tenant.name || "");
+  localStorage.setItem("portalwifi.activeTenantSlug", tenant.slug || "");
+
+  renderTenants();
+  window.location.href = `/estabelecimento/?tenant=${encodeURIComponent(tenant.slug || "")}`;
+  return;
+}
 
     if (action === "change-admin") {
       document.getElementById("changeAdminTenantId").value = tenant.id;
