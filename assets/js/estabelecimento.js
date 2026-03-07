@@ -1,105 +1,63 @@
 (function () {
-  const frame = document.getElementById("contentFrame");
-  const buttons = Array.from(document.querySelectorAll(".nav-item"));
-  const title = document.getElementById("pageTitle");
-  const subtitle = document.getElementById("pageSubtitle");
-  const reloadBtn = document.getElementById("reloadFrameBtn");
 
-  const routes = {
-    "/painel": {
-      page: "/estabelecimento/home.html",
-      title: "Dashboard",
-      subtitle: "Visão geral do movimento do Wi-Fi."
-    },
-    "/painel/clientes": {
-      page: "/estabelecimento/clientes.html",
-      title: "Clientes",
-      subtitle: "Base de clientes captados pelo Wi-Fi."
-    },
-    "/painel/campanhas": {
-      page: "/estabelecimento/campanhas.html",
-      title: "Campanhas",
-      subtitle: "Campanhas e ações de relacionamento."
-    },
-    "/painel/configuracoes": {
-      page: "/estabelecimento/configuracoes.html",
-      title: "Configurações",
-      subtitle: "Personalização do portal e parâmetros do estabelecimento."
-    },
-    "/painel/relatorios": {
-      page: "/estabelecimento/relatorios.html",
-      title: "Relatórios",
-      subtitle: "Análises e visão consolidada dos acessos."
-    }
-  };
+const API_BASE = "https://portalwifi-api.oscar-lage.workers.dev";
 
-  function normalizePath(pathname) {
-    if (!pathname) return "/painel";
-    const clean = pathname.replace(/\/+$/, "");
-    return clean || "/painel";
+const TENANT_ID_KEY = "portalwifi.activeTenantId";
+const TENANT_NAME_KEY = "portalwifi.activeTenantName";
+const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
+
+const tenantId = localStorage.getItem(TENANT_ID_KEY);
+const tenantName = localStorage.getItem(TENANT_NAME_KEY);
+const tenantSlug = localStorage.getItem(TENANT_SLUG_KEY);
+
+const elTenantName = document.getElementById("tenantName");
+const elConnected = document.getElementById("metricConnected");
+const elNewCustomers = document.getElementById("metricNewCustomers");
+const elReturning = document.getElementById("metricReturning");
+
+init();
+
+async function init() {
+
+  if (!tenantId) {
+    alert("Nenhum tenant ativo selecionado.");
+    window.location.href = "/platform.html";
+    return;
   }
 
-  function getRouteConfig(pathname) {
-    const normalized = normalizePath(pathname);
-    return routes[normalized] || routes["/painel"];
+  if (elTenantName) {
+    elTenantName.textContent = tenantName || tenantSlug || "Estabelecimento";
   }
 
-  function setActiveByRoute(route) {
-    buttons.forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.route === route);
-    });
-  }
+  await loadDashboard();
 
-  function updateHeader(route) {
-    const meta = getRouteConfig(route);
-    if (title) title.textContent = meta.title;
-    if (subtitle) subtitle.textContent = meta.subtitle;
-  }
+}
 
-  function loadRoute(route, push = true) {
-    const normalized = normalizePath(route);
-    const meta = getRouteConfig(normalized);
+async function loadDashboard() {
 
-    if (frame) {
-      frame.src = meta.page;
+  try {
+
+    const res = await fetch(
+      `${API_BASE}/api/admin/dashboard/summary?tenant_id=${tenantId}`
+    );
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      console.error("Erro dashboard:", data);
+      return;
     }
 
-    updateHeader(normalized);
-    setActiveByRoute(normalized);
+    const s = data.summary;
 
-    localStorage.setItem("portalwifi.estabelecimento.route", normalized);
+    if (elConnected) elConnected.textContent = s.connected ?? 0;
+    if (elNewCustomers) elNewCustomers.textContent = s.new_customers ?? 0;
+    if (elReturning) elReturning.textContent = s.returning_customers ?? 0;
 
-    if (push) {
-      history.pushState({ route: normalized }, "", normalized);
-    }
+  } catch (err) {
+    console.error("Erro ao carregar dashboard:", err);
   }
 
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const route = btn.dataset.route || "/painel";
-      loadRoute(route, true);
-    });
-  });
+}
 
-  if (reloadBtn && frame) {
-    reloadBtn.addEventListener("click", () => {
-      try {
-        frame.contentWindow.location.reload();
-      } catch (err) {
-        frame.src = frame.src;
-      }
-    });
-  }
-
-  window.addEventListener("popstate", () => {
-    loadRoute(window.location.pathname, false);
-  });
-
-  const currentPath = normalizePath(window.location.pathname);
-  const initialRoute = routes[currentPath]
-    ? currentPath
-    : (localStorage.getItem("portalwifi.estabelecimento.route") || "/painel");
-
-  loadRoute(initialRoute, false);
 })();
