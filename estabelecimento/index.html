@@ -9,8 +9,8 @@
 <body class="app-shell">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-title">Sítio Coisa Nossa</div>
-      <div class="brand-sub">Painel do Estabelecimento</div>
+      <div class="brand-title" id="shellTenantName">Estabelecimento</div>
+      <div class="brand-sub" id="shellTenantSub">Painel do Estabelecimento</div>
     </div>
 
     <nav class="side-nav">
@@ -36,7 +36,12 @@
     </nav>
 
     <div class="side-footer">
-      <a href="/dashboard.html">Voltar ao painel de tenants</a>
+      <div class="side-tenant-box">
+        <div class="side-tenant-label">Tenant ativo</div>
+        <div class="side-tenant-value" id="sideTenantValue">Não selecionado</div>
+      </div>
+
+      <a href="/platform.html">Voltar ao platform</a>
     </div>
   </aside>
 
