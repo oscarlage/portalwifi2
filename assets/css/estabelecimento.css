@@ -132,23 +132,27 @@ body{
 }
 
 .universal-help-btn{
-  width:42px;
-  height:42px;
-  min-width:42px;
-  border-radius:999px;
-  border:1px solid rgba(91,124,255,.32);
-  background:var(--accent-soft);
-  color:#fff;
-  font-size:18px;
-  font-weight:800;
-  cursor:pointer;
-  transition:.2s ease;
-  box-shadow:0 10px 24px rgba(91,124,255,.16);
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 999px;
+  border: 1px solid rgba(91,124,255,.35);
+  background: linear-gradient(180deg, var(--accent) 0%, #4b69ea 100%);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: .2s ease;
+  box-shadow: 0 14px 30px rgba(91,124,255,.28);
+  z-index: 120;
 }
 
 .universal-help-btn:hover{
-  background:rgba(91,124,255,.28);
-  transform:translateY(-1px);
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, var(--accent-hover) 0%, #5974ee 100%);
 }
 
 .form-help-box{
@@ -557,7 +561,16 @@ input[type="color"]{
   .layout{
     grid-template-columns:1fr;
   }
-
+@media (max-width: 980px){
+  .universal-help-btn{
+    right: 16px;
+    bottom: 16px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 20px;
+  }
+}
   .sidebar{
     position:relative;
     height:auto;
