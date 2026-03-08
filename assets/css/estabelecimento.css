@@ -40,7 +40,7 @@ body{
 }
 
 /* =========================
-   LAYOUT
+   LAYOUT ANTIGO / CONFIGURAÇÕES
 ========================= */
 
 .layout{
@@ -348,7 +348,6 @@ input[type="color"]{
   cursor: pointer;
 }
 
-/* força contraste correto no formulário */
 .settings-form input[type="text"],
 .settings-form input[type="url"],
 .settings-form input[type="email"],
@@ -372,7 +371,6 @@ input[type="color"]{
   color: #f8fbff;
 }
 
-/* autofill do Chrome */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -660,83 +658,6 @@ select:-webkit-autofill{
 }
 
 /* =========================
-   RESPONSIVO
-========================= */
-
-@media (max-width: 1180px){
-  .field-row{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 980px){
-  .layout{
-    grid-template-columns: 1fr;
-  }
-
-  .universal-help-btn{
-    right: 16px;
-    bottom: 16px;
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    font-size: 20px;
-  }
-
-  .sidebar{
-    position: relative;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .content{
-    padding: 20px;
-  }
-
-  .page-header{
-    align-items: flex-start;
-  }
-
-  .grid-2{
-    grid-template-columns: 1fr;
-  }
-
-  .social-row,
-  .field-row{
-    grid-template-columns: 1fr;
-  }
-
-  .check{
-    padding-top: 0;
-  }
-  .page-content{
-  width: 100%;
-  max-width: 1200px;
-}
-
-.tenant-inline-info{
-  margin-top: -6px;
-  margin-bottom: 14px;
-}
-
-.bullets{
-  margin: 0;
-  padding-left: 18px;
-}
-
-.bullets li{
-  margin-bottom: 8px;
-}
-
-.muted{
-  color: var(--muted);
-}
-
-.text-danger{
-  color: #ffb4b4;
-}
-  /* =========================
    SHELL DO ESTABELECIMENTO
 ========================= */
 
@@ -949,16 +870,62 @@ select:-webkit-autofill{
 }
 
 /* =========================
-   RESPONSIVO DA SHELL
+   RESPONSIVO
 ========================= */
 
+@media (max-width: 1180px){
+  .field-row{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px){
+  .layout{
+    grid-template-columns: 1fr;
+  }
+
   .app-shell{
     grid-template-columns: 1fr;
+  }
+
+  .universal-help-btn{
+    right: 16px;
+    bottom: 16px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 20px;
+  }
+
+  .sidebar{
+    position: relative;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .content{
+    padding: 20px;
+  }
+
+  .page-header{
+    align-items: flex-start;
+  }
+
+  .grid-2{
+    grid-template-columns: 1fr;
+  }
+
+  .social-row,
+  .field-row{
+    grid-template-columns: 1fr;
+  }
+
+  .check{
+    padding-top: 0;
   }
 
   #contentFrame{
     height: calc(100vh - 220px);
   }
-}
 }
