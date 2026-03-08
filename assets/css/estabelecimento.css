@@ -710,4 +710,30 @@ select:-webkit-autofill{
   .check{
     padding-top: 0;
   }
+  .page-content{
+  width: 100%;
+  max-width: 1200px;
+}
+
+.tenant-inline-info{
+  margin-top: -6px;
+  margin-bottom: 14px;
+}
+
+.bullets{
+  margin: 0;
+  padding-left: 18px;
+}
+
+.bullets li{
+  margin-bottom: 8px;
+}
+
+.muted{
+  color: var(--muted);
+}
+
+.text-danger{
+  color: #ffb4b4;
+}
 }
