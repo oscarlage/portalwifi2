@@ -20,184 +20,447 @@
     </aside>
 
     <main class="content">
-      <h1>Configurações do Captive Portal</h1>
-      <p>Defina a identidade visual, os campos do formulário, splash, termos e redes sociais exibidos no portal de acesso ao Wi-Fi.</p>
+      <div class="page-header">
+        <div>
+          <h1>Configurações do Captive Portal</h1>
+          <p>Defina a identidade visual, os campos do formulário, splash, termos e redes sociais exibidos no portal de acesso ao Wi-Fi.</p>
+        </div>
+
+        <button
+          type="button"
+          class="universal-help-btn"
+          id="openUniversalHelp"
+          aria-label="Abrir ajuda"
+          title="Ajuda geral desta página"
+        >
+          ?
+        </button>
+      </div>
+
+      <div id="formHelp" class="form-help-box">
+        Selecione um campo para ver instruções específicas aqui.
+      </div>
 
       <form id="portalSettingsForm" class="settings-form">
         <section class="card">
           <h2>Identidade</h2>
+          <p>Informações principais da marca exibidas no portal de acesso.</p>
+
           <div class="grid-2">
             <label>
-              <span>Nome da marca</span>
-              <input type="text" id="brand_name" name="brand_name">
+              <span>
+                Nome da marca
+                <span class="help-tip" data-tip="Nome exibido no topo ou no conteúdo do captive portal."></span>
+              </span>
+              <input
+                type="text"
+                id="brand_name"
+                name="brand_name"
+                data-help="Defina o nome principal do estabelecimento. Exemplo: Sítio Coisa Nossa."
+              >
+              <small class="field-help">Nome principal mostrado ao cliente no portal.</small>
             </label>
 
             <label>
-              <span>URL da logo</span>
-              <input type="url" id="logo_url" name="logo_url" placeholder="https://...">
+              <span>
+                URL da logo
+                <span class="help-tip" data-tip="Informe a URL pública da logo que será exibida no portal."></span>
+              </span>
+              <input
+                type="url"
+                id="logo_url"
+                name="logo_url"
+                placeholder="https://..."
+                data-help="URL pública da imagem da logo do estabelecimento. Use PNG ou SVG preferencialmente."
+              >
+              <small class="field-help">Use uma imagem pública e acessível por URL.</small>
             </label>
 
             <label>
-              <span>Cor principal</span>
-              <input type="color" id="primary_color" name="primary_color">
+              <span>
+                Cor principal
+                <span class="help-tip" data-tip="Cor dominante do portal, usada em destaques e identidade visual."></span>
+              </span>
+              <input
+                type="color"
+                id="primary_color"
+                name="primary_color"
+                data-help="Cor principal da identidade visual do portal. Ela será usada em elementos-chave da interface."
+              >
+              <small class="field-help">Cor base da identidade visual.</small>
             </label>
 
             <label>
-              <span>Cor de destaque</span>
-              <input type="color" id="accent_color" name="accent_color">
+              <span>
+                Cor de destaque
+                <span class="help-tip" data-tip="Cor complementar usada em botões, links e elementos de chamada."></span>
+              </span>
+              <input
+                type="color"
+                id="accent_color"
+                name="accent_color"
+                data-help="Cor de destaque para botões, links e pontos de atenção no captive portal."
+              >
+              <small class="field-help">Use uma cor que contraste bem com o fundo.</small>
             </label>
           </div>
         </section>
 
         <section class="card">
           <h2>Textos principais</h2>
+          <p>Defina os textos que apresentam o portal ao cliente.</p>
+
           <div class="grid-1">
             <label>
-              <span>Título</span>
-              <input type="text" id="headline" name="headline">
+              <span>
+                Título
+                <span class="help-tip" data-tip="Mensagem principal do captive portal."></span>
+              </span>
+              <input
+                type="text"
+                id="headline"
+                name="headline"
+                data-help="Título principal que o cliente verá ao abrir o portal. Exemplo: Bem-vindo ao nosso Wi-Fi."
+              >
+              <small class="field-help">Frase de maior destaque na tela.</small>
             </label>
 
             <label>
-              <span>Subtítulo</span>
-              <input type="text" id="subheadline" name="subheadline">
+              <span>
+                Subtítulo
+                <span class="help-tip" data-tip="Texto complementar logo abaixo do título."></span>
+              </span>
+              <input
+                type="text"
+                id="subheadline"
+                name="subheadline"
+                data-help="Texto secundário que complementa o título principal. Use uma frase curta e objetiva."
+              >
+              <small class="field-help">Mensagem complementar ao título.</small>
             </label>
 
             <label>
-              <span>Mensagem de boas-vindas</span>
-              <textarea id="welcome_message" name="welcome_message" rows="3"></textarea>
+              <span>
+                Mensagem de boas-vindas
+                <span class="help-tip" data-tip="Texto introdutório explicando o acesso ao Wi-Fi."></span>
+              </span>
+              <textarea
+                id="welcome_message"
+                name="welcome_message"
+                rows="3"
+                data-help="Mensagem introdutória explicando ao cliente como acessar a internet e o que preencher."
+              ></textarea>
+              <small class="field-help">Explique rapidamente o que o cliente precisa fazer.</small>
             </label>
           </div>
         </section>
 
         <section class="card">
           <h2>Fundo</h2>
+          <p>Escolha se o portal usará cor sólida, imagem ou vídeo como plano de fundo.</p>
+
           <div class="grid-2">
             <label>
-              <span>Tipo de fundo</span>
-              <select id="bg_type" name="bg_type">
+              <span>
+                Tipo de fundo
+                <span class="help-tip" data-tip="Escolha entre cor sólida, imagem ou vídeo de fundo."></span>
+              </span>
+              <select
+                id="bg_type"
+                name="bg_type"
+                data-help="Defina o tipo de fundo do portal. Cor é mais leve. Imagem é versátil. Vídeo gera mais impacto visual."
+              >
                 <option value="color">Cor</option>
                 <option value="image">Imagem</option>
                 <option value="video">Vídeo</option>
               </select>
+              <small class="field-help">Escolha o formato visual do fundo.</small>
             </label>
 
             <label>
-              <span>Força do overlay (0 a 100)</span>
-              <input type="number" id="bg_overlay_strength" name="bg_overlay_strength" min="0" max="100">
+              <span>
+                Força do overlay (0 a 100)
+                <span class="help-tip" data-tip="Escurece o fundo para melhorar a leitura do conteúdo. Recomendado entre 30 e 60."></span>
+              </span>
+              <input
+                type="number"
+                id="bg_overlay_strength"
+                name="bg_overlay_strength"
+                min="0"
+                max="100"
+                data-help="Controla a intensidade do escurecimento sobre o fundo. Recomenda-se entre 30 e 60 para melhor leitura."
+              >
+              <small class="field-help">Quanto maior, mais escuro o fundo ficará.</small>
             </label>
 
-            <label>
-              <span>Cor de fundo</span>
-              <input type="color" id="bg_color" name="bg_color">
+            <label id="bgColorWrap">
+              <span>
+                Cor de fundo
+                <span class="help-tip" data-tip="Usada quando o tipo de fundo for Cor."></span>
+              </span>
+              <input
+                type="color"
+                id="bg_color"
+                name="bg_color"
+                data-help="Defina a cor do fundo quando o tipo selecionado for Cor."
+              >
+              <small class="field-help">Aplicada apenas para fundo do tipo cor.</small>
             </label>
 
-            <label>
-              <span>URL da imagem de fundo</span>
-              <input type="url" id="bg_image_url" name="bg_image_url" placeholder="https://...">
+            <label id="bgImageWrap">
+              <span>
+                URL da imagem de fundo
+                <span class="help-tip" data-tip="Imagem exibida atrás do conteúdo do portal."></span>
+              </span>
+              <input
+                type="url"
+                id="bg_image_url"
+                name="bg_image_url"
+                placeholder="https://..."
+                data-help="URL pública da imagem de fundo. Prefira imagens horizontais e leves para melhor desempenho."
+              >
+              <small class="field-help">Aplicada apenas para fundo do tipo imagem.</small>
             </label>
 
-            <label class="full">
-              <span>URL do vídeo de fundo</span>
-              <input type="url" id="bg_video_url" name="bg_video_url" placeholder="https://...">
+            <label class="full" id="bgVideoWrap">
+              <span>
+                URL do vídeo de fundo
+                <span class="help-tip" data-tip="Vídeo usado como fundo visual do portal. Prefira MP4 leve, curto e em loop."></span>
+              </span>
+              <input
+                type="url"
+                id="bg_video_url"
+                name="bg_video_url"
+                placeholder="https://..."
+                data-help="URL pública do vídeo de fundo. Prefira MP4 curto, leve e otimizado para web."
+              >
+              <small class="field-help">Aplicado apenas para fundo do tipo vídeo.</small>
             </label>
           </div>
         </section>
 
         <section class="card">
           <h2>Campos do formulário</h2>
-          <p>Escolha quais campos aparecem no captive portal e quais são obrigatórios.</p>
+          <p>Escolha quais campos aparecem no captive portal, a ordem e quais são obrigatórios.</p>
           <div id="fieldsEditor"></div>
         </section>
 
         <section class="card">
           <h2>Termos</h2>
+          <p>Configure o texto de aceite e a obrigatoriedade de concordância.</p>
+
           <div class="grid-2">
             <label class="check">
-              <input type="checkbox" id="terms_enabled" name="terms_enabled">
+              <input
+                type="checkbox"
+                id="terms_enabled"
+                name="terms_enabled"
+                data-help="Habilita a exibição dos termos de uso no captive portal."
+              >
               <span>Habilitar termos</span>
             </label>
 
             <label class="check">
-              <input type="checkbox" id="terms_required" name="terms_required">
+              <input
+                type="checkbox"
+                id="terms_required"
+                name="terms_required"
+                data-help="Exige que o usuário aceite os termos antes de acessar a internet."
+              >
               <span>Exigir aceite</span>
             </label>
 
             <label class="full">
-              <span>Título dos termos</span>
-              <input type="text" id="terms_title" name="terms_title">
+              <span>
+                Título dos termos
+                <span class="help-tip" data-tip="Título exibido no bloco ou modal de termos."></span>
+              </span>
+              <input
+                type="text"
+                id="terms_title"
+                name="terms_title"
+                data-help="Título da seção de termos. Exemplo: Termos de uso e política de privacidade."
+              >
+              <small class="field-help">Título exibido para o usuário antes do aceite.</small>
             </label>
 
             <label class="full">
-              <span>Conteúdo dos termos</span>
-              <textarea id="terms_body" name="terms_body" rows="6"></textarea>
+              <span>
+                Conteúdo dos termos
+                <span class="help-tip" data-tip="Texto completo dos termos apresentados ao cliente."></span>
+              </span>
+              <textarea
+                id="terms_body"
+                name="terms_body"
+                rows="6"
+                data-help="Texto completo dos termos que o usuário poderá ler e aceitar antes de acessar a internet."
+              ></textarea>
+              <small class="field-help">Inclua aqui o conteúdo legal ou resumo do consentimento.</small>
             </label>
           </div>
         </section>
 
         <section class="card">
           <h2>Splash</h2>
+          <p>Tela opcional de destaque antes ou durante o acesso, útil para promoção, campanha ou aviso.</p>
+
           <div class="grid-2">
             <label class="check">
-              <input type="checkbox" id="splash_enabled" name="splash_enabled">
+              <input
+                type="checkbox"
+                id="splash_enabled"
+                name="splash_enabled"
+                data-help="Ativa a exibição de uma splash page para divulgação, aviso ou promoção."
+              >
               <span>Habilitar splash</span>
             </label>
 
             <label>
-              <span>Tempo para fechar (segundos)</span>
-              <input type="number" id="splash_dismiss_seconds" name="splash_dismiss_seconds" min="0" max="60">
+              <span>
+                Tempo para fechar (segundos)
+                <span class="help-tip" data-tip="Tempo até o splash desaparecer automaticamente. Recomendado entre 3 e 5 segundos."></span>
+              </span>
+              <input
+                type="number"
+                id="splash_dismiss_seconds"
+                name="splash_dismiss_seconds"
+                min="0"
+                max="60"
+                data-help="Tempo em segundos antes do splash desaparecer automaticamente. Recomendado entre 3 e 5 segundos."
+              >
+              <small class="field-help">Defina zero se quiser fechar manualmente.</small>
             </label>
 
             <label>
-              <span>Título do splash</span>
-              <input type="text" id="splash_title" name="splash_title">
+              <span>
+                Título do splash
+                <span class="help-tip" data-tip="Título principal exibido na splash page."></span>
+              </span>
+              <input
+                type="text"
+                id="splash_title"
+                name="splash_title"
+                data-help="Título principal mostrado na splash page."
+              >
+              <small class="field-help">Mensagem curta e direta.</small>
             </label>
 
             <label>
-              <span>Imagem do splash</span>
-              <input type="url" id="splash_image_url" name="splash_image_url" placeholder="https://...">
+              <span>
+                Imagem do splash
+                <span class="help-tip" data-tip="Imagem usada na splash page para destaque visual."></span>
+              </span>
+              <input
+                type="url"
+                id="splash_image_url"
+                name="splash_image_url"
+                placeholder="https://..."
+                data-help="URL pública da imagem que será exibida na splash page."
+              >
+              <small class="field-help">Pode ser banner, foto ou arte promocional.</small>
             </label>
 
             <label class="full">
-              <span>Mensagem do splash</span>
-              <textarea id="splash_message" name="splash_message" rows="3"></textarea>
+              <span>
+                Mensagem do splash
+                <span class="help-tip" data-tip="Texto complementar exibido no splash."></span>
+              </span>
+              <textarea
+                id="splash_message"
+                name="splash_message"
+                rows="3"
+                data-help="Mensagem complementar da splash page. Pode divulgar uma oferta, aviso ou informação importante."
+              ></textarea>
+              <small class="field-help">Texto livre complementar ao título.</small>
             </label>
 
             <label>
-              <span>Texto do botão</span>
-              <input type="text" id="splash_cta_text" name="splash_cta_text">
+              <span>
+                Texto do botão
+                <span class="help-tip" data-tip="Texto do botão exibido na splash page."></span>
+              </span>
+              <input
+                type="text"
+                id="splash_cta_text"
+                name="splash_cta_text"
+                data-help="Texto do botão da splash page. Exemplo: Saiba mais, Ver cardápio, Aproveitar oferta."
+              >
+              <small class="field-help">Opcional, usado em chamadas para ação.</small>
             </label>
 
             <label>
-              <span>URL do botão</span>
-              <input type="url" id="splash_cta_url" name="splash_cta_url" placeholder="https://...">
+              <span>
+                URL do botão
+                <span class="help-tip" data-tip="Link para onde o botão da splash vai direcionar o usuário."></span>
+              </span>
+              <input
+                type="url"
+                id="splash_cta_url"
+                name="splash_cta_url"
+                placeholder="https://..."
+                data-help="URL de destino do botão do splash. Pode apontar para Instagram, cardápio, landing page ou site."
+              >
+              <small class="field-help">Opcional. Use URL completa.</small>
             </label>
           </div>
         </section>
 
         <section class="card">
           <h2>Redes sociais</h2>
+          <p>Defina quais redes serão exibidas ao cliente no portal.</p>
           <div id="socialLinksEditor"></div>
         </section>
 
         <section class="card">
           <h2>Rodapé</h2>
+          <p>Texto exibido no final do captive portal.</p>
+
           <label>
-            <span>Texto do rodapé</span>
-            <textarea id="footer_text" name="footer_text" rows="3"></textarea>
+            <span>
+              Texto do rodapé
+              <span class="help-tip" data-tip="Texto exibido no rodapé do portal, como direitos autorais, slogan ou assinatura."></span>
+            </span>
+            <textarea
+              id="footer_text"
+              name="footer_text"
+              rows="3"
+              data-help="Texto exibido no rodapé do portal. Exemplo: © 2026 Sítio Coisa Nossa."
+            ></textarea>
+            <small class="field-help">Pode conter assinatura institucional ou mensagem final.</small>
           </label>
         </section>
 
         <section class="card">
           <h2>Mensagens</h2>
+          <p>Mensagens usadas pelo sistema em casos de sucesso e erro.</p>
+
           <div class="grid-1">
             <label>
-              <span>Mensagem de sucesso</span>
-              <textarea id="success_message" name="success_message" rows="3"></textarea>
+              <span>
+                Mensagem de sucesso
+                <span class="help-tip" data-tip="Texto mostrado quando o acesso é liberado com sucesso."></span>
+              </span>
+              <textarea
+                id="success_message"
+                name="success_message"
+                rows="3"
+                data-help="Mensagem exibida ao usuário quando o acesso for liberado com sucesso."
+              ></textarea>
+              <small class="field-help">Exibida após login e autorização do acesso.</small>
             </label>
 
             <label>
-              <span>Mensagem de erro</span>
-              <textarea id="error_message" name="error_message" rows="3"></textarea>
+              <span>
+                Mensagem de erro
+                <span class="help-tip" data-tip="Texto mostrado quando houver falha na liberação do acesso."></span>
+              </span>
+              <textarea
+                id="error_message"
+                name="error_message"
+                rows="3"
+                data-help="Mensagem exibida se ocorrer alguma falha no processo de autenticação ou liberação."
+              ></textarea>
+              <small class="field-help">Use uma frase clara e orientativa.</small>
             </label>
           </div>
         </section>
@@ -209,6 +472,57 @@
       </form>
     </main>
   </div>
+
+  <div class="help-drawer-backdrop" id="helpDrawerBackdrop"></div>
+
+  <aside class="help-drawer" id="helpDrawer" aria-hidden="true">
+    <div class="help-drawer-header">
+      <h2>Ajuda das configurações</h2>
+      <button type="button" class="help-drawer-close" id="closeUniversalHelp" aria-label="Fechar ajuda">×</button>
+    </div>
+
+    <div class="help-drawer-body">
+      <div class="help-block">
+        <h3>Identidade</h3>
+        <p>Define como a marca do estabelecimento será apresentada no portal, incluindo nome, logo e cores principais.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Textos principais</h3>
+        <p>São as mensagens que o cliente verá ao abrir o portal. Use frases curtas, claras e acolhedoras.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Fundo</h3>
+        <p>Você pode usar cor, imagem ou vídeo. Em imagens e vídeos, utilize overlay para melhorar a legibilidade do conteúdo.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Campos do formulário</h3>
+        <p>Escolha quais dados o cliente deve preencher. O ideal é usar apenas os campos realmente necessários para evitar atrito.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Termos</h3>
+        <p>Ative quando precisar exibir consentimento, política de uso ou aceite de marketing/LGPD antes do acesso.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Splash</h3>
+        <p>Recurso útil para apresentar promoções, avisos, campanhas ou direcionar o cliente para um link específico.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Redes sociais</h3>
+        <p>Somente redes ativas serão exibidas no captive portal. Use links completos e públicos.</p>
+      </div>
+
+      <div class="help-block">
+        <h3>Rodapé e mensagens</h3>
+        <p>Use o rodapé para assinatura institucional e as mensagens para orientar o cliente em situações de sucesso ou erro.</p>
+      </div>
+    </div>
+  </aside>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
