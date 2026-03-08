@@ -984,4 +984,18 @@ td{
   color: var(--text);
   font-size: 14px;
 }
+  .btn-secondary{
+  border:1px solid rgba(255,255,255,.14);
+  background: var(--card);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:14px;
+  transition:.2s ease;
+}
+
+.btn-secondary:hover{
+  background: var(--card-2);
+}
 }
