@@ -928,4 +928,60 @@ select:-webkit-autofill{
   #contentFrame{
     height: calc(100vh - 220px);
   }
+
+  .section-header{
+  margin-bottom: 20px;
+}
+
+.section-header h1{
+  margin: 0 0 8px;
+  font-size: 2rem;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.section-header p{
+  margin: 0;
+  color: var(--muted);
+}
+
+.toolbar{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-input{
+  width: 280px;
+  max-width: 100%;
+}
+
+.table-wrap{
+  width: 100%;
+  overflow-x: auto;
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td{
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+th{
+  color: #fff;
+  font-size: 14px;
+}
+
+td{
+  color: var(--text);
+  font-size: 14px;
+}
 }
