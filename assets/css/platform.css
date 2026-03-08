@@ -127,7 +127,7 @@ body{
   flex-direction:column;
   gap:20px;
 }
-
+.hidden { display:none !important; }
 .section{
   display:none;
 }
