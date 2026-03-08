@@ -72,6 +72,28 @@
             <div class="metric-value" id="metricAdmins">0</div>
           </article>
         </div>
+
+        <div class="cards-grid" style="margin-top:20px;">
+          <article class="metric-card">
+            <div class="metric-label">Total de usuários</div>
+            <div class="metric-value" id="metricTotalUsers">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Usuários globais</div>
+            <div class="metric-value" id="metricGlobalUsers">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Usuários com tenant</div>
+            <div class="metric-value" id="metricTenantUsers">0</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-label">Usuários bloqueados</div>
+            <div class="metric-value" id="metricBlockedUsers">0</div>
+          </article>
+        </div>
       </section>
 
       <section class="section" id="section-tenants">
@@ -113,7 +135,7 @@
                   <th>Admin principal</th>
                   <th>E-mail</th>
                   <th>Criado em</th>
-                  <th style="width:280px;">Ações</th>
+                  <th style="width:320px;">Ações</th>
                 </tr>
               </thead>
               <tbody id="tenantsTableBody">
@@ -130,7 +152,7 @@
         <div class="section-head">
           <div>
             <h2>Usuários</h2>
-            <p>Gestão de usuários da plataforma e vínculos com tenants.</p>
+            <p>Gestão de usuários globais da plataforma e usuários vinculados aos tenants.</p>
           </div>
 
           <div class="section-actions">
@@ -157,10 +179,17 @@
 
             <select id="userTypeFilter" class="input select">
               <option value="">Todos os tipos</option>
+              <option value="global">Globais</option>
+              <option value="tenant">Tenant</option>
+              <option value="hybrid">Híbridos</option>
               <option value="platform_admin">Platform admin</option>
               <option value="tenant_admin">Tenant admin</option>
-              <option value="tenant_manager">Tenant manager</option>
               <option value="tenant_viewer">Tenant viewer</option>
+              <option value="tenant_marketing">Tenant marketing</option>
+            </select>
+
+            <select id="userTenantFilter" class="input select">
+              <option value="">Todos os tenants</option>
             </select>
           </div>
 
@@ -170,12 +199,12 @@
                 <tr>
                   <th>Usuário</th>
                   <th>E-mail</th>
-                  <th>Tipo</th>
-                  <th>Tenant</th>
+                  <th>Escopo</th>
+                  <th>Papel</th>
+                  <th>Tenant(s)</th>
                   <th>Status</th>
                   <th>Último acesso</th>
-                  <th>Criado em</th>
-                  <th style="width:280px;">Ações</th>
+                  <th style="width:360px;">Ações</th>
                 </tr>
               </thead>
               <tbody id="usersTableBody">
@@ -273,32 +302,6 @@
             </label>
           </div>
         </div>
-
-        <div class="form-section">
-          <h4>Entrega de acesso</h4>
-
-          <div class="checks-grid">
-            <label class="check">
-              <input type="checkbox" id="sendAccessEmail" checked>
-              <span>Enviar acesso por e-mail automaticamente</span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="generateTempPassword" checked>
-              <span>Gerar senha provisória</span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="forcePasswordChange" checked>
-              <span>Forçar troca de senha no primeiro acesso</span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="showAccessMessage" checked>
-              <span>Exibir mensagem pronta para copiar</span>
-            </label>
-          </div>
-        </div>
       </div>
 
       <div class="modal-foot">
@@ -344,8 +347,8 @@
               <span>Tipo de usuário</span>
               <select id="userType" class="input select">
                 <option value="tenant_admin">Tenant admin</option>
-                <option value="tenant_manager">Tenant manager</option>
                 <option value="tenant_viewer">Tenant viewer</option>
+                <option value="tenant_marketing">Tenant marketing</option>
                 <option value="platform_admin">Platform admin</option>
               </select>
             </label>
@@ -368,32 +371,146 @@
             </label>
           </div>
         </div>
+      </div>
 
-        <div class="form-section">
-          <h4>Entrega de acesso</h4>
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalCreateUser">Cancelar</button>
+        <button class="btn btn-primary" id="btnCreateUserConfirm" type="button">Criar usuário</button>
+      </div>
+    </div>
+  </div>
 
-          <div class="checks-grid">
-            <label class="check">
-              <input type="checkbox" id="userSendAccessEmail" checked>
-              <span>Enviar acesso por e-mail automaticamente</span>
+  <!-- MODAL: EDITAR USUÁRIO -->
+  <div class="modal-backdrop hidden" id="modalEditUser">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Editar usuário</h3>
+        <button class="icon-btn" type="button" data-close="modalEditUser">×</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="editUserId">
+
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Dados básicos</h4>
+
+            <label class="field">
+              <span>Nome</span>
+              <input type="text" id="editUserName" class="input" placeholder="Nome completo">
+            </label>
+
+            <label class="field">
+              <span>E-mail</span>
+              <input type="email" id="editUserEmail" class="input" placeholder="email@dominio.com">
+            </label>
+
+            <label class="field">
+              <span>Telefone</span>
+              <input type="text" id="editUserPhone" class="input" placeholder="Opcional">
+            </label>
+          </div>
+
+          <div class="form-section">
+            <h4>Acesso</h4>
+
+            <label class="field">
+              <span>Escopo</span>
+              <select id="editUserScope" class="input select">
+                <option value="tenant">Tenant</option>
+                <option value="global">Global</option>
+                <option value="hybrid">Híbrido</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Papel global</span>
+              <select id="editUserPlatformRole" class="input select">
+                <option value="">Sem papel global</option>
+                <option value="platform_admin">Platform admin</option>
+                <option value="platform_support">Platform support</option>
+                <option value="platform_operations">Platform operations</option>
+                <option value="platform_readonly">Platform readonly</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Status</span>
+              <select id="editUserStatus" class="input select">
+                <option value="active">Ativo</option>
+                <option value="pending">Pendente</option>
+                <option value="blocked">Bloqueado</option>
+                <option value="disabled">Desabilitado</option>
+              </select>
             </label>
 
             <label class="check">
-              <input type="checkbox" id="userGenerateTempPassword" checked>
-              <span>Gerar senha provisória</span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="userForcePasswordChange" checked>
-              <span>Forçar troca de senha no primeiro acesso</span>
+              <input type="checkbox" id="editIsPlatformUser">
+              <span>Usuário da plataforma</span>
             </label>
           </div>
         </div>
       </div>
 
       <div class="modal-foot">
-        <button class="btn btn-light" type="button" data-close="modalCreateUser">Cancelar</button>
-        <button class="btn btn-primary" id="btnCreateUserConfirm" type="button">Criar usuário</button>
+        <button class="btn btn-light" type="button" data-close="modalEditUser">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveUserEdit" type="button">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GERENCIAR VÍNCULOS -->
+  <div class="modal-backdrop hidden" id="modalManageMemberships">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Gerenciar vínculos com tenants</h3>
+        <button class="icon-btn" type="button" data-close="modalManageMemberships">×</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="membershipUserId">
+
+        <div class="form-section">
+          <h4>Usuário</h4>
+          <div class="result-box" id="membershipUserSummary">-</div>
+        </div>
+
+        <div class="form-section">
+          <h4>Vínculos atuais</h4>
+          <div id="membershipList">
+            <p class="muted">Carregando vínculos...</p>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h4>Adicionar novo vínculo</h4>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Tenant</span>
+              <select id="membershipTenantId" class="input select">
+                <option value="">Selecione</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Papel</span>
+              <select id="membershipRole" class="input select">
+                <option value="tenant_admin">Tenant admin</option>
+                <option value="tenant_viewer">Tenant viewer</option>
+                <option value="tenant_marketing">Tenant marketing</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="modal-foot" style="padding:0; margin-top:12px;">
+            <button class="btn btn-primary" id="btnAddMembership" type="button">Adicionar vínculo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-light" type="button" data-close="modalManageMemberships">Fechar</button>
       </div>
     </div>
   </div>
@@ -422,14 +539,6 @@
         <label class="field">
           <span>Novo e-mail do admin</span>
           <input type="email" id="newAdminEmail" class="input" placeholder="E-mail do novo administrador">
-        </label>
-
-        <label class="field">
-          <span>Ação para admin atual</span>
-          <select id="previousAdminAction" class="input select">
-            <option value="read">Manter como read</option>
-            <option value="remove">Remover acesso do tenant</option>
-          </select>
         </label>
       </div>
 
@@ -490,6 +599,11 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.PORTAL_SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+    window.PORTAL_SUPABASE_ANON_KEY = "SUA_ANON_KEY";
+  </script>
   <script src="/assets/js/platform.js"></script>
 </body>
 </html>
