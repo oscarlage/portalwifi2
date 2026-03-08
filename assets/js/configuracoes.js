@@ -387,38 +387,29 @@
     return data?.user || null;
   }
 
-  async function getTenantIdForUser(userId) {
-    const fromMembership = await sb
-      .from("tenant_members")
-      .select("tenant_id, tenants(name)")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
+async function getTenantIdForUser(userId) {
+  const { data, error } = await sb
+    .from("tenant_members")
+    .select("tenant_id, role, is_active")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
 
-    if (!fromMembership.error && fromMembership.data?.tenant_id) {
-      const tenantName = fromMembership.data.tenants?.name || "Estabelecimento";
-      return {
-        tenant_id: fromMembership.data.tenant_id,
-        tenant_name: tenantName,
-      };
-    }
+  if (error) {
+    throw error;
+  }
 
-    const fromUsers = await sb
-      .from("users")
-      .select("tenant_id, full_name")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
-
-    if (!fromUsers.error && fromUsers.data?.tenant_id) {
-      return {
-        tenant_id: fromUsers.data.tenant_id,
-        tenant_name: fromUsers.data.full_name || "Estabelecimento",
-      };
-    }
-
+  if (!data?.tenant_id) {
     throw new Error("Não foi possível identificar o tenant do usuário logado.");
   }
+
+  return {
+    tenant_id: data.tenant_id,
+    tenant_name: "Estabelecimento",
+    role: data.role
+  };
+}
 
   async function loadPortalSettings(tenantId) {
     const { data, error } = await sb
@@ -475,6 +466,22 @@
     applyBgTypeVisibility();
   }
 
+
+  async function getTenantName(tenantId) {
+  const { data, error } = await sb
+    .from("tenants")
+    .select("name")
+    .eq("id", tenantId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Não foi possível carregar o nome do tenant:", error.message);
+    return "Estabelecimento";
+  }
+
+  return data?.name || "Estabelecimento";
+}
   function collectPayload() {
     return {
       tenant_id: currentTenantId,
@@ -576,12 +583,14 @@
         return;
       }
 
-      const membership = await getTenantIdForUser(currentUser.id);
-      currentTenantId = membership.tenant_id;
+const membership = await getTenantIdForUser(currentUser.id);
+currentTenantId = membership.tenant_id;
 
-      if (tenantNameEl) {
-        tenantNameEl.textContent = membership.tenant_name || "Estabelecimento";
-      }
+const tenantName = await getTenantName(currentTenantId);
+
+if (tenantNameEl) {
+  tenantNameEl.textContent = tenantName;
+}
 
       const settings = await loadPortalSettings(currentTenantId);
       populateForm(settings);
