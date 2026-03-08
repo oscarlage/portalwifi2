@@ -29,6 +29,12 @@
   const tenantNameEl = document.getElementById("tenantName");
   const fieldsEditor = document.getElementById("fieldsEditor");
   const socialLinksEditor = document.getElementById("socialLinksEditor");
+  const formHelp = document.getElementById("formHelp");
+
+  const openUniversalHelpBtn = document.getElementById("openUniversalHelp");
+  const closeUniversalHelpBtn = document.getElementById("closeUniversalHelp");
+  const helpDrawer = document.getElementById("helpDrawer");
+  const helpDrawerBackdrop = document.getElementById("helpDrawerBackdrop");
 
   let currentTenantId = null;
   let currentUser = null;
@@ -42,6 +48,7 @@
       enabled: true,
       required: true,
       order: 1,
+      help: "Nome completo do cliente."
     },
     {
       name: "whatsapp",
@@ -51,6 +58,7 @@
       enabled: true,
       required: true,
       order: 2,
+      help: "Número de WhatsApp do cliente, útil para campanhas e relacionamento."
     },
     {
       name: "city",
@@ -60,6 +68,7 @@
       enabled: true,
       required: false,
       order: 3,
+      help: "Cidade de origem do cliente."
     },
     {
       name: "email",
@@ -69,6 +78,7 @@
       enabled: false,
       required: false,
       order: 4,
+      help: "E-mail do cliente para campanhas, newsletters ou relacionamento."
     },
     {
       name: "birthdate",
@@ -78,6 +88,7 @@
       enabled: false,
       required: false,
       order: 5,
+      help: "Pode ser usado para ações sazonais, aniversário e relacionamento."
     },
     {
       name: "marketing_consent",
@@ -87,7 +98,8 @@
       enabled: true,
       required: false,
       order: 6,
-    },
+      help: "Consentimento do cliente para receber comunicações promocionais."
+    }
   ];
 
   const DEFAULT_SOCIAL_LINKS = [
@@ -97,6 +109,7 @@
       icon: "instagram",
       url: "",
       enabled: false,
+      help: "Perfil oficial do estabelecimento no Instagram."
     },
     {
       name: "facebook",
@@ -104,6 +117,7 @@
       icon: "facebook",
       url: "",
       enabled: false,
+      help: "Página oficial do estabelecimento no Facebook."
     },
     {
       name: "whatsapp",
@@ -111,6 +125,7 @@
       icon: "whatsapp",
       url: "",
       enabled: false,
+      help: "Link oficial de contato via WhatsApp."
     },
     {
       name: "site",
@@ -118,13 +133,14 @@
       icon: "globe",
       url: "",
       enabled: false,
-    },
+      help: "Site institucional, cardápio digital ou página principal."
+    }
   ];
 
   function setStatus(message, isError = false) {
     if (!saveStatus) return;
     saveStatus.textContent = message || "";
-    saveStatus.style.color = isError ? "#b42318" : "#067647";
+    saveStatus.style.color = isError ? "#ff8d8d" : "#7be2aa";
   }
 
   function byId(id) {
@@ -180,6 +196,44 @@
     el.checked = !!value;
   }
 
+  function setFormHelp(message) {
+    if (!formHelp) return;
+    formHelp.textContent = message || "Selecione um campo para ver instruções específicas aqui.";
+  }
+
+  function bindContextHelp(root = document) {
+    const fields = root.querySelectorAll("input, select, textarea");
+    fields.forEach((el) => {
+      el.addEventListener("focus", () => {
+        const help = el.dataset.help;
+        if (help) setFormHelp(help);
+      });
+
+      el.addEventListener("mouseenter", () => {
+        const help = el.dataset.help;
+        if (help) setFormHelp(help);
+      });
+
+      el.addEventListener("blur", () => {
+        setFormHelp("Selecione um campo para ver instruções específicas aqui.");
+      });
+    });
+  }
+
+  function openHelpDrawer() {
+    if (!helpDrawer || !helpDrawerBackdrop) return;
+    helpDrawer.classList.add("is-open");
+    helpDrawerBackdrop.classList.add("is-open");
+    helpDrawer.setAttribute("aria-hidden", "false");
+  }
+
+  function closeHelpDrawer() {
+    if (!helpDrawer || !helpDrawerBackdrop) return;
+    helpDrawer.classList.remove("is-open");
+    helpDrawerBackdrop.classList.remove("is-open");
+    helpDrawer.setAttribute("aria-hidden", "true");
+  }
+
   function mergeFields(savedFields) {
     const incoming = safeJsonArray(savedFields, DEFAULT_FIELDS);
     const map = new Map();
@@ -198,13 +252,15 @@
         enabled: !!f.enabled,
         required: !!f.required,
         order: Number.isFinite(f.order) ? f.order : 999,
+        help: f.help || ""
       };
+
       map.set(f.name, {
         ...base,
         ...f,
         enabled: !!f.enabled,
         required: !!f.required,
-        order: Number.isFinite(f.order) ? f.order : base.order,
+        order: Number.isFinite(f.order) ? f.order : base.order
       });
     });
 
@@ -227,12 +283,13 @@
         icon: item.icon || item.name,
         url: "",
         enabled: false,
+        help: item.help || ""
       };
 
       map.set(item.name, {
         ...base,
         ...item,
-        enabled: !!item.enabled,
+        enabled: !!item.enabled
       });
     });
 
@@ -244,82 +301,140 @@
 
     const rows = fields
       .map((field, index) => {
-        const disabledRequired = field.type === "checkbox" ? "" : "";
         return `
           <div class="field-row" data-index="${index}">
             <label>
-              <span>Campo</span>
-              <input type="text" class="field-label" value="${escapeHtml(field.label || "")}">
+              <span>
+                Campo
+                <span class="help-tip" data-tip="${escapeHtml(field.help || "Configuração deste campo no formulário do portal.")}"></span>
+              </span>
+              <input
+                type="text"
+                class="field-label"
+                value="${escapeHtml(field.label || "")}"
+                data-help="${escapeHtml(field.help || "Defina o texto visível deste campo para o cliente.")}"
+              >
+              <small class="field-help">Texto exibido para o cliente.</small>
             </label>
 
             <label>
               <span>Tipo</span>
-              <select class="field-type">
+              <select
+                class="field-type"
+                data-help="Selecione o tipo do campo. Isso impacta a forma como o cliente preencherá a informação."
+              >
                 <option value="text" ${field.type === "text" ? "selected" : ""}>Texto</option>
                 <option value="tel" ${field.type === "tel" ? "selected" : ""}>Telefone</option>
                 <option value="email" ${field.type === "email" ? "selected" : ""}>E-mail</option>
                 <option value="date" ${field.type === "date" ? "selected" : ""}>Data</option>
                 <option value="checkbox" ${field.type === "checkbox" ? "selected" : ""}>Checkbox</option>
               </select>
+              <small class="field-help">Formato do campo.</small>
             </label>
 
             <label>
               <span>Placeholder</span>
-              <input type="text" class="field-placeholder" value="${escapeHtml(field.placeholder || "")}">
+              <input
+                type="text"
+                class="field-placeholder"
+                value="${escapeHtml(field.placeholder || "")}"
+                data-help="Texto de exemplo exibido dentro do campo antes do preenchimento."
+              >
+              <small class="field-help">Exemplo de preenchimento.</small>
             </label>
 
             <label>
               <span>Ordem</span>
-              <input type="number" class="field-order" min="1" value="${escapeHtml(field.order ?? index + 1)}">
+              <input
+                type="number"
+                class="field-order"
+                min="1"
+                value="${escapeHtml(field.order ?? index + 1)}"
+                data-help="Define a posição do campo na ordem de exibição do formulário."
+              >
+              <small class="field-help">Menor número aparece primeiro.</small>
             </label>
 
             <label class="check">
-              <input type="checkbox" class="field-enabled" ${field.enabled ? "checked" : ""}>
+              <input
+                type="checkbox"
+                class="field-enabled"
+                ${field.enabled ? "checked" : ""}
+                data-help="Ative para mostrar este campo no captive portal."
+              >
               <span>Mostrar</span>
             </label>
 
             <label class="check">
-              <input type="checkbox" class="field-required" ${field.required ? "checked" : ""} ${disabledRequired}>
+              <input
+                type="checkbox"
+                class="field-required"
+                ${field.required ? "checked" : ""}
+                data-help="Ative para tornar este campo obrigatório no formulário."
+              >
               <span>Obrig.</span>
             </label>
 
             <input type="hidden" class="field-name" value="${escapeHtml(field.name)}">
+            <input type="hidden" class="field-helptext" value="${escapeHtml(field.help || "")}">
           </div>
         `;
       })
       .join("");
 
     fieldsEditor.innerHTML = rows || "<p>Nenhum campo disponível.</p>";
+    bindContextHelp(fieldsEditor);
   }
 
   function renderSocialLinksEditor(links) {
     if (!socialLinksEditor) return;
 
     socialLinksEditor.innerHTML = links
-      .map(
-        (item, index) => `
-       <div class="social-row" data-index="${index}">
+      .map((item, index) => `
+        <div class="social-row" data-index="${index}">
           <label>
-            <span>Rede</span>
-            <input type="text" class="social-label" value="${escapeHtml(item.label || "")}">
+            <span>
+              Rede
+              <span class="help-tip" data-tip="${escapeHtml(item.help || "Configuração desta rede social.")}"></span>
+            </span>
+            <input
+              type="text"
+              class="social-label"
+              value="${escapeHtml(item.label || "")}"
+              data-help="${escapeHtml(item.help || "Defina o nome exibido desta rede social.")}"
+            >
+            <small class="field-help">Nome exibido ao cliente.</small>
           </label>
 
           <label>
             <span>URL</span>
-            <input type="url" class="social-url" value="${escapeHtml(item.url || "")}" placeholder="https://...">
+            <input
+              type="url"
+              class="social-url"
+              value="${escapeHtml(item.url || "")}"
+              placeholder="https://..."
+              data-help="Informe a URL pública e completa desta rede social."
+            >
+            <small class="field-help">Use URL completa e pública.</small>
           </label>
 
-         <label class="check">
-            <input type="checkbox" class="social-enabled" ${item.enabled ? "checked" : ""}>
+          <label class="check">
+            <input
+              type="checkbox"
+              class="social-enabled"
+              ${item.enabled ? "checked" : ""}
+              data-help="Ative para exibir esta rede social no captive portal."
+            >
             <span>Ativo</span>
           </label>
 
           <input type="hidden" class="social-name" value="${escapeHtml(item.name || "")}">
           <input type="hidden" class="social-icon" value="${escapeHtml(item.icon || "")}">
         </div>
-      `
-      )
+      `)
       .join("");
+
+    bindContextHelp(socialLinksEditor);
   }
 
   function readFieldsEditor() {
@@ -334,6 +449,7 @@
       const order = toInt(row.querySelector(".field-order")?.value, 999);
       const enabled = !!row.querySelector(".field-enabled")?.checked;
       const required = !!row.querySelector(".field-required")?.checked;
+      const help = row.querySelector(".field-helptext")?.value || "";
 
       return {
         name,
@@ -343,6 +459,7 @@
         enabled,
         required,
         order,
+        help
       };
     });
 
@@ -360,25 +477,28 @@
       const url = row.querySelector(".social-url")?.value?.trim() || "";
       const enabled = !!row.querySelector(".social-enabled")?.checked;
 
+      const defaultItem = DEFAULT_SOCIAL_LINKS.find((i) => i.name === name);
+
       return {
         name,
         icon,
         label,
         url,
         enabled,
+        help: defaultItem?.help || ""
       };
     });
   }
 
   function applyBgTypeVisibility() {
     const bgType = getFormValue("bg_type", "image");
-    const bgColor = byId("bg_color")?.closest("label");
-    const bgImage = byId("bg_image_url")?.closest("label");
-    const bgVideo = byId("bg_video_url")?.closest("label");
+    const bgColorWrap = byId("bgColorWrap");
+    const bgImageWrap = byId("bgImageWrap");
+    const bgVideoWrap = byId("bgVideoWrap");
 
-    if (bgColor) bgColor.style.display = bgType === "color" ? "" : "none";
-    if (bgImage) bgImage.style.display = bgType === "image" ? "" : "none";
-    if (bgVideo) bgVideo.style.display = bgType === "video" ? "" : "none";
+    if (bgColorWrap) bgColorWrap.style.display = bgType === "color" ? "" : "none";
+    if (bgImageWrap) bgImageWrap.style.display = bgType === "image" ? "" : "none";
+    if (bgVideoWrap) bgVideoWrap.style.display = bgType === "video" ? "" : "none";
   }
 
   async function getCurrentUser() {
@@ -387,29 +507,43 @@
     return data?.user || null;
   }
 
-async function getTenantIdForUser(userId) {
-  const { data, error } = await sb
-    .from("tenant_members")
-    .select("tenant_id, role, is_active")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  async function getTenantIdForUser(userId) {
+    const { data, error } = await sb
+      .from("tenant_members")
+      .select("tenant_id, role, is_active")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (error) throw error;
+
+    if (!data?.tenant_id) {
+      throw new Error("Não foi possível identificar o tenant do usuário logado.");
+    }
+
+    return {
+      tenant_id: data.tenant_id,
+      tenant_name: "Estabelecimento",
+      role: data.role
+    };
   }
 
-  if (!data?.tenant_id) {
-    throw new Error("Não foi possível identificar o tenant do usuário logado.");
-  }
+  async function getTenantName(tenantId) {
+    const { data, error } = await sb
+      .from("tenants")
+      .select("name")
+      .eq("id", tenantId)
+      .limit(1)
+      .maybeSingle();
 
-  return {
-    tenant_id: data.tenant_id,
-    tenant_name: "Estabelecimento",
-    role: data.role
-  };
-}
+    if (error) {
+      console.warn("Não foi possível carregar o nome do tenant:", error.message);
+      return "Estabelecimento";
+    }
+
+    return data?.name || "Estabelecimento";
+  }
 
   async function loadPortalSettings(tenantId) {
     const { data, error } = await sb
@@ -464,24 +598,9 @@ async function getTenantIdForUser(userId) {
     renderFieldsEditor(fields);
     renderSocialLinksEditor(socialLinks);
     applyBgTypeVisibility();
+    bindContextHelp(document);
   }
 
-
-  async function getTenantName(tenantId) {
-  const { data, error } = await sb
-    .from("tenants")
-    .select("name")
-    .eq("id", tenantId)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.warn("Não foi possível carregar o nome do tenant:", error.message);
-    return "Estabelecimento";
-  }
-
-  return data?.name || "Estabelecimento";
-}
   function collectPayload() {
     return {
       tenant_id: currentTenantId,
@@ -521,13 +640,17 @@ async function getTenantIdForUser(userId) {
       success_message: getFormValue("success_message").trim(),
       error_message: getFormValue("error_message").trim(),
 
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
   }
 
   function validatePayload(payload) {
     if (!payload.tenant_id) {
       throw new Error("Tenant não identificado.");
+    }
+
+    if (payload.logo_url && !/^https?:\/\//i.test(payload.logo_url)) {
+      throw new Error("A URL da logo deve começar com http:// ou https://");
     }
 
     if (payload.bg_type === "image" && payload.bg_image_url && !/^https?:\/\//i.test(payload.bg_image_url)) {
@@ -538,8 +661,12 @@ async function getTenantIdForUser(userId) {
       throw new Error("A URL do vídeo de fundo deve começar com http:// ou https://");
     }
 
-    if (payload.logo_url && !/^https?:\/\//i.test(payload.logo_url)) {
-      throw new Error("A URL da logo deve começar com http:// ou https://");
+    if (payload.splash_image_url && !/^https?:\/\//i.test(payload.splash_image_url)) {
+      throw new Error("A URL da imagem do splash deve começar com http:// ou https://");
+    }
+
+    if (payload.splash_cta_url && !/^https?:\/\//i.test(payload.splash_cta_url)) {
+      throw new Error("A URL do botão do splash deve começar com http:// ou https://");
     }
 
     const enabledFields = payload.fields.filter((f) => f.enabled);
@@ -552,7 +679,7 @@ async function getTenantIdForUser(userId) {
 
   async function savePortalSettings(payload) {
     const { error } = await sb.from("portal_settings").upsert(payload, {
-      onConflict: "tenant_id",
+      onConflict: "tenant_id"
     });
 
     if (error) throw error;
@@ -583,14 +710,14 @@ async function getTenantIdForUser(userId) {
         return;
       }
 
-const membership = await getTenantIdForUser(currentUser.id);
-currentTenantId = membership.tenant_id;
+      const membership = await getTenantIdForUser(currentUser.id);
+      currentTenantId = membership.tenant_id;
 
-const tenantName = await getTenantName(currentTenantId);
+      const tenantName = await getTenantName(currentTenantId);
 
-if (tenantNameEl) {
-  tenantNameEl.textContent = tenantName;
-}
+      if (tenantNameEl) {
+        tenantNameEl.textContent = tenantName;
+      }
 
       const settings = await loadPortalSettings(currentTenantId);
       populateForm(settings);
@@ -604,6 +731,25 @@ if (tenantNameEl) {
         form.addEventListener("submit", handleSubmit);
       }
 
+      if (openUniversalHelpBtn) {
+        openUniversalHelpBtn.addEventListener("click", openHelpDrawer);
+      }
+
+      if (closeUniversalHelpBtn) {
+        closeUniversalHelpBtn.addEventListener("click", closeHelpDrawer);
+      }
+
+      if (helpDrawerBackdrop) {
+        helpDrawerBackdrop.addEventListener("click", closeHelpDrawer);
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeHelpDrawer();
+        }
+      });
+
+      bindContextHelp(document);
       setStatus("");
     } catch (err) {
       console.error(err);
