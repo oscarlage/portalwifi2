@@ -10,39 +10,46 @@
 
 <body class="frame-page">
 
+<div class="page-content">
+
 <section class="panel-card">
 
-  <header style="margin-bottom:20px;">
+  <header class="section-header">
     <h1>Campanhas</h1>
     <p>Crie campanhas de marketing para seus clientes do Wi-Fi.</p>
   </header>
 
-  <div style="display:flex;gap:10px;margin-bottom:20px;">
+  <div class="toolbar">
     <button class="btn-secondary">Nova campanha</button>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Tipo</th>
-        <th>Status</th>
-        <th>Clientes</th>
-        <th>Data</th>
-      </tr>
-    </thead>
+  <div class="table-wrap">
+    <table>
 
-    <tbody id="campaignTable">
-      <tr>
-        <td colspan="5" style="color:#9aa6c5;">
-          Nenhuma campanha criada ainda.
-        </td>
-      </tr>
-    </tbody>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th>Clientes</th>
+          <th>Data</th>
+        </tr>
+      </thead>
 
-  </table>
+      <tbody id="campaignTable">
+        <tr>
+          <td colspan="5" class="muted">
+            Nenhuma campanha criada ainda.
+          </td>
+        </tr>
+      </tbody>
+
+    </table>
+  </div>
 
 </section>
+
+</div>
 
 <script src="/assets/js/campanhas.js"></script>
 
