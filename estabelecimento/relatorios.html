@@ -2,12 +2,72 @@
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Relatórios</title>
+
 <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-<body>
-<h1>Relatórios</h1>
-<p>Relatórios de acessos e comportamento de clientes.</p>
+
+<body class="frame-page">
+
+<div class="page-content">
+
+<section class="panel-card">
+
+<header class="section-header">
+  <h1>Relatórios</h1>
+  <p>Análise de acessos e comportamento dos clientes conectados ao Wi-Fi.</p>
+</header>
+
+<section class="dashboard-grid">
+
+  <div class="metric-card">
+    <div class="metric-label">Conexões hoje</div>
+    <div class="metric-value" id="reportConnectionsToday">0</div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Novos clientes</div>
+    <div class="metric-value" id="reportNewCustomers">0</div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-label">Clientes recorrentes</div>
+    <div class="metric-value" id="reportReturningCustomers">0</div>
+  </div>
+
+</section>
+
+<section class="panel-card" style="margin-top:20px;">
+
+  <h2>Horários de pico</h2>
+  <p class="muted">
+    Identifique os períodos com maior fluxo de clientes conectados.
+  </p>
+
+  <div id="peakHoursChart" style="height:240px;display:flex;align-items:center;justify-content:center;">
+    <span class="muted">Gráfico será exibido aqui.</span>
+  </div>
+
+</section>
+
+<section class="panel-card" style="margin-top:20px;">
+
+  <h2>Resumo de comportamento</h2>
+
+  <div id="reportInsights">
+    <ul class="bullets">
+      <li>Aguardando dados para gerar análises.</li>
+    </ul>
+  </div>
+
+</section>
+
+</section>
+
+</div>
+
 <script src="/assets/js/relatorios.js"></script>
+
 </body>
 </html>
