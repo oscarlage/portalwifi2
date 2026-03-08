@@ -2,71 +2,55 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel do Estabelecimento</title>
   <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-<body class="app-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-title" id="shellTenantName">Estabelecimento</div>
-      <div class="brand-sub" id="shellTenantSub">Painel do Estabelecimento</div>
-    </div>
-
-<nav class="side-nav">
-  <button class="nav-item" data-route="/estabelecimento" data-page="/estabelecimento/home.html" type="button">
-    Dashboard
-  </button>
-
-  <button class="nav-item" data-route="/estabelecimento/clientes" data-page="/estabelecimento/clientes.html" type="button">
-    Clientes
-  </button>
-
-  <button class="nav-item" data-route="/estabelecimento/campanhas" data-page="/estabelecimento/campanhas.html" type="button">
-    Campanhas
-  </button>
-
-  <button class="nav-item" data-route="/estabelecimento/configuracoes" data-page="/estabelecimento/configuracoes.html" type="button">
-    Configurações
-  </button>
-
-  <button class="nav-item" data-route="/estabelecimento/relatorios" data-page="/estabelecimento/relatorios.html" type="button">
-    Relatórios
-  </button>
-</nav>
-
-    <div class="side-footer">
-      <div class="side-tenant-box">
-        <div class="side-tenant-label">Tenant ativo</div>
-        <div class="side-tenant-value" id="sideTenantValue">Não selecionado</div>
-      </div>
-
-      <a href="/platform.html">Voltar à plataforma</a>
-    </div>
-  </aside>
-
-  <main class="main">
-    <header class="topbar">
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
       <div>
-        <h1 id="pageTitle">Dashboard</h1>
-        <p id="pageSubtitle">Visão geral do movimento do Wi-Fi.</p>
+        <div class="brand-title" id="tenantName">Estabelecimento</div>
+        <div class="brand-sub" id="tenantSlug">Tenant ativo</div>
       </div>
 
-      <div class="topbar-actions">
-        <button id="reloadFrameBtn" class="btn-secondary" type="button">Atualizar</button>
+      <nav class="side-nav">
+        <button class="nav-item active" data-page="/estabelecimento/home.html">Dashboard</button>
+        <button class="nav-item" data-page="/estabelecimento/clientes.html">Clientes</button>
+        <button class="nav-item" data-page="/estabelecimento/campanhas.html">Campanhas</button>
+        <button class="nav-item" data-page="/estabelecimento/configuracoes.html">Configurações</button>
+        <button class="nav-item" data-page="/estabelecimento/relatorios.html">Relatórios</button>
+      </nav>
+
+      <div class="side-footer">
+        <div class="side-tenant-box">
+          <div class="side-tenant-label">Tenant ativo</div>
+          <div class="side-tenant-value" id="tenantNameFooter">Estabelecimento</div>
+        </div>
+
+        <a href="/platform.html">Voltar à plataforma</a>
       </div>
-    </header>
+    </aside>
 
-    <section class="frame-wrap">
-      <iframe
-        id="contentFrame"
-        title="Conteúdo do painel"
-        src="/estabelecimento/home.html"
-        loading="eager">
-      </iframe>
-    </section>
-  </main>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="pageSubtitle">Visão geral do estabelecimento.</p>
+        </div>
+      </div>
 
+      <div class="frame-wrap">
+        <iframe id="contentFrame" src="/estabelecimento/home.html"></iframe>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+    window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
+  </script>
   <script src="/assets/js/estabelecimento.js"></script>
 </body>
 </html>
