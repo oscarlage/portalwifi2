@@ -736,4 +736,229 @@ select:-webkit-autofill{
 .text-danger{
   color: #ffb4b4;
 }
+  /* =========================
+   SHELL DO ESTABELECIMENTO
+========================= */
+
+.app-shell{
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+}
+
+.brand-title{
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.brand-sub{
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.side-nav{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-item{
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: .2s ease;
+}
+
+.nav-item:hover{
+  background: var(--accent-soft);
+  border-color: rgba(91,124,255,.25);
+}
+
+.nav-item.active{
+  background: var(--accent-soft);
+  border-color: rgba(91,124,255,.35);
+  color: #fff;
+}
+
+.side-footer{
+  margin-top: auto;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.side-footer a{
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.side-footer a:hover{
+  color: #fff;
+}
+
+.side-tenant-box{
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.03);
+}
+
+.side-tenant-label{
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.side-tenant-value{
+  font-size: 14px;
+  font-weight: 700;
+  word-break: break-word;
+  color: #fff;
+}
+
+.main{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar{
+  padding: 26px 28px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.topbar h1{
+  margin: 0 0 6px;
+  font-size: 34px;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.topbar p{
+  margin: 0;
+  color: var(--muted);
+}
+
+.frame-wrap{
+  padding: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+#contentFrame{
+  width: 100%;
+  height: calc(100vh - 120px);
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+}
+
+/* =========================
+   PÁGINAS INTERNAS DO FRAME
+========================= */
+
+.frame-page{
+  margin: 0;
+  padding: 24px;
+  background: transparent;
+  color: var(--text);
+}
+
+.page-content{
+  width: 100%;
+  max-width: 1200px;
+}
+
+.dashboard-grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.metric-card,
+.panel-card{
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.metric-card{
+  padding: 22px;
+}
+
+.metric-label{
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.metric-value{
+  font-size: 34px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.panel-card{
+  padding: 22px;
+}
+
+.panel-card h2{
+  margin-top: 0;
+  color: #fff;
+}
+
+.muted{
+  color: var(--muted);
+}
+
+.bullets{
+  margin: 0;
+  padding-left: 18px;
+}
+
+.bullets li{
+  margin-bottom: 8px;
+}
+
+.tenant-inline-info{
+  margin-top: -6px;
+  margin-bottom: 14px;
+}
+
+.text-danger{
+  color: #ffb4b4;
+}
+
+/* =========================
+   RESPONSIVO DA SHELL
+========================= */
+
+@media (max-width: 980px){
+  .app-shell{
+    grid-template-columns: 1fr;
+  }
+
+  #contentFrame{
+    height: calc(100vh - 220px);
+  }
+}
 }
