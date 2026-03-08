@@ -258,8 +258,42 @@ input[type="email"],
 input[type="tel"],
 input[type="date"],
 input[type="number"],
+select,
+textarea{
+  width:100%;
+  min-width:0;
+  appearance:none;
+  -webkit-appearance:none;
+  border:1px solid var(--line-strong);
+  background:#0d1f3d;
+  color:#f8fbff;
+  border-radius:12px;
+  padding:11px 13px;
+  font-size:14px;
+  outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+input[type="text"],
+input[type="url"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
 select{
   height:var(--input-h);
+}
+
+select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, #cfe0ff 50%),
+    linear-gradient(135deg, #cfe0ff 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 12px) calc(50% - 3px);
+  background-size:6px 6px, 6px 6px;
+  background-repeat:no-repeat;
+  padding-right:34px;
 }
 
 textarea{
@@ -271,6 +305,7 @@ textarea{
 input::placeholder,
 textarea::placeholder{
   color:#9fb1d8;
+  opacity:1;
 }
 
 input:focus,
@@ -278,15 +313,35 @@ select:focus,
 textarea:focus{
   border-color:var(--accent);
   box-shadow:0 0 0 4px rgba(91,124,255,.16);
-  background:rgba(255,255,255,.09);
+  background:#12284a;
+  color:#ffffff;
 }
+
+select option{
+  background:#0d1f3d;
+  color:#f8fbff;
+}
+
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill{
+  -webkit-text-fill-color:#f8fbff !important;
+  -webkit-box-shadow:0 0 0px 1000px #0d1f3d inset !important;
+  box-shadow:0 0 0px 1000px #0d1f3d inset !important;
+  transition:background-color 9999s ease-in-out 0s;
+  border:1px solid var(--line-strong) !important;
+}
+
 
 input[type="color"]{
   width:100%;
   height:var(--input-h);
   padding:4px;
   border:1px solid var(--line-strong);
-  background:rgba(255,255,255,.06);
+  background:#0d1f3d;
   border-radius:12px;
   cursor:pointer;
 }
