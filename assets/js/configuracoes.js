@@ -246,7 +246,7 @@
       .map((field, index) => {
         const disabledRequired = field.type === "checkbox" ? "" : "";
         return `
-          <div class="field-row" data-index="${index}" style="display:grid;grid-template-columns:1.3fr .8fr 1.2fr .9fr .9fr .7fr;gap:12px;align-items:end;margin-bottom:14px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;">
+          <div class="field-row" data-index="${index}">
             <label>
               <span>Campo</span>
               <input type="text" class="field-label" value="${escapeHtml(field.label || "")}">
@@ -273,12 +273,12 @@
               <input type="number" class="field-order" min="1" value="${escapeHtml(field.order ?? index + 1)}">
             </label>
 
-            <label class="check" style="display:flex;gap:8px;align-items:center;padding-top:28px;">
+            <label class="check">
               <input type="checkbox" class="field-enabled" ${field.enabled ? "checked" : ""}>
               <span>Mostrar</span>
             </label>
 
-            <label class="check" style="display:flex;gap:8px;align-items:center;padding-top:28px;">
+            <label class="check">
               <input type="checkbox" class="field-required" ${field.required ? "checked" : ""} ${disabledRequired}>
               <span>Obrig.</span>
             </label>
@@ -298,7 +298,7 @@
     socialLinksEditor.innerHTML = links
       .map(
         (item, index) => `
-        <div class="social-row" data-index="${index}" style="display:grid;grid-template-columns:1fr 2fr .8fr;gap:12px;align-items:end;margin-bottom:14px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;">
+       <div class="social-row" data-index="${index}">
           <label>
             <span>Rede</span>
             <input type="text" class="social-label" value="${escapeHtml(item.label || "")}">
@@ -309,7 +309,7 @@
             <input type="url" class="social-url" value="${escapeHtml(item.url || "")}" placeholder="https://...">
           </label>
 
-          <label class="check" style="display:flex;gap:8px;align-items:center;padding-top:28px;">
+         <label class="check">
             <input type="checkbox" class="social-enabled" ${item.enabled ? "checked" : ""}>
             <span>Ativo</span>
           </label>
