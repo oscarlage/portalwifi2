@@ -249,4 +249,193 @@ th,td{
   #contentFrame{
     height:calc(100vh - 220px);
   }
+
+  /* ============================= */
+/* FORM SETTINGS */
+/* ============================= */
+
+.settings-form{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
 }
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:22px;
+}
+
+.card h2{
+  margin:0 0 8px;
+  font-size:20px;
+}
+
+.card p{
+  margin:0 0 16px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* ============================= */
+/* GRID */
+/* ============================= */
+
+.grid-1{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+
+.grid-2{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.full{
+  grid-column:1 / -1;
+}
+
+/* ============================= */
+/* FORM ELEMENTS */
+/* ============================= */
+
+label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:14px;
+}
+
+label span{
+  color:var(--muted);
+  font-size:13px;
+}
+
+input,
+select,
+textarea{
+  background:var(--card-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:14px;
+  outline:none;
+}
+
+input:focus,
+textarea:focus,
+select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(91,124,255,.15);
+}
+
+textarea{
+  resize:vertical;
+}
+
+/* ============================= */
+/* CHECKBOX */
+/* ============================= */
+
+.check{
+  flex-direction:row;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+}
+
+.check span{
+  color:var(--text);
+}
+
+/* ============================= */
+/* FIELDS EDITOR */
+/* ============================= */
+
+.field-row{
+  display:grid;
+  grid-template-columns:1.3fr .8fr 1.2fr .8fr .7fr .7fr;
+  gap:12px;
+  align-items:end;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--card-2);
+  margin-bottom:12px;
+}
+
+/* ============================= */
+/* SOCIAL LINKS */
+/* ============================= */
+
+.social-row{
+  display:grid;
+  grid-template-columns:1fr 2fr .8fr;
+  gap:12px;
+  align-items:end;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--card-2);
+  margin-bottom:12px;
+}
+
+/* ============================= */
+/* ACTIONS */
+/* ============================= */
+
+.form-actions{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-top:10px;
+}
+
+.form-actions button{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  padding:12px 18px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.form-actions button:hover{
+  background:#4a68e0;
+}
+
+#saveStatus{
+  font-size:13px;
+  color:var(--muted);
+}
+
+/* ============================= */
+/* RESPONSIVE */
+/* ============================= */
+
+@media(max-width:900px){
+
+  .grid-2{
+    grid-template-columns:1fr;
+  }
+
+  .field-row{
+    grid-template-columns:1fr;
+  }
+
+  .social-row{
+    grid-template-columns:1fr;
+  }
+
+}
+}
+
+
