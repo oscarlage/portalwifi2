@@ -1,13 +1,215 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<title>Configurações</title>
-<link rel="stylesheet" href="/assets/css/estabelecimento.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Configurações do Portal</title>
+  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
 <body>
-<h1>Configurações do Portal</h1>
-<p>Personalize cores, textos e campos do portal Wi‑Fi.</p>
-<script src="/assets/js/configuracoes.js"></script>
+  <div class="layout">
+    <aside class="sidebar">
+      <h2 id="tenantName">Estabelecimento</h2>
+      <nav>
+        <a href="/estabelecimento/home.html">Dashboard</a>
+        <a href="/estabelecimento/clientes.html">Clientes</a>
+        <a href="/estabelecimento/campanhas.html">Campanhas</a>
+        <a href="/estabelecimento/relatorios.html">Relatórios</a>
+        <a href="/estabelecimento/configuracoes.html" class="active">Configurações</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Configurações do Captive Portal</h1>
+      <p>Personalize a aparência e o comportamento da página de acesso ao Wi-Fi.</p>
+
+      <form id="portalSettingsForm" class="settings-form">
+        <section class="card">
+          <h2>Identidade</h2>
+          <div class="grid-2">
+            <label>
+              <span>Nome da marca</span>
+              <input type="text" id="brand_name" name="brand_name">
+            </label>
+
+            <label>
+              <span>URL da logo</span>
+              <input type="url" id="logo_url" name="logo_url" placeholder="https://...">
+            </label>
+
+            <label>
+              <span>Cor principal</span>
+              <input type="color" id="primary_color" name="primary_color">
+            </label>
+
+            <label>
+              <span>Cor de destaque</span>
+              <input type="color" id="accent_color" name="accent_color">
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Textos principais</h2>
+          <div class="grid-1">
+            <label>
+              <span>Título</span>
+              <input type="text" id="headline" name="headline">
+            </label>
+
+            <label>
+              <span>Subtítulo</span>
+              <input type="text" id="subheadline" name="subheadline">
+            </label>
+
+            <label>
+              <span>Mensagem de boas-vindas</span>
+              <textarea id="welcome_message" name="welcome_message" rows="3"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Fundo</h2>
+          <div class="grid-2">
+            <label>
+              <span>Tipo de fundo</span>
+              <select id="bg_type" name="bg_type">
+                <option value="color">Cor</option>
+                <option value="image">Imagem</option>
+                <option value="video">Vídeo</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Força do overlay (0 a 100)</span>
+              <input type="number" id="bg_overlay_strength" name="bg_overlay_strength" min="0" max="100">
+            </label>
+
+            <label>
+              <span>Cor de fundo</span>
+              <input type="color" id="bg_color" name="bg_color">
+            </label>
+
+            <label>
+              <span>URL da imagem de fundo</span>
+              <input type="url" id="bg_image_url" name="bg_image_url" placeholder="https://...">
+            </label>
+
+            <label class="full">
+              <span>URL do vídeo de fundo</span>
+              <input type="url" id="bg_video_url" name="bg_video_url" placeholder="https://...">
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Campos do formulário</h2>
+          <p>Escolha quais campos aparecem no captive portal e quais são obrigatórios.</p>
+          <div id="fieldsEditor"></div>
+        </section>
+
+        <section class="card">
+          <h2>Termos</h2>
+          <div class="grid-2">
+            <label class="check">
+              <input type="checkbox" id="terms_enabled" name="terms_enabled">
+              <span>Habilitar termos</span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="terms_required" name="terms_required">
+              <span>Exigir aceite</span>
+            </label>
+
+            <label class="full">
+              <span>Título dos termos</span>
+              <input type="text" id="terms_title" name="terms_title">
+            </label>
+
+            <label class="full">
+              <span>Conteúdo dos termos</span>
+              <textarea id="terms_body" name="terms_body" rows="6"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Splash</h2>
+          <div class="grid-2">
+            <label class="check">
+              <input type="checkbox" id="splash_enabled" name="splash_enabled">
+              <span>Habilitar splash</span>
+            </label>
+
+            <label>
+              <span>Tempo para fechar (segundos)</span>
+              <input type="number" id="splash_dismiss_seconds" name="splash_dismiss_seconds" min="0" max="60">
+            </label>
+
+            <label>
+              <span>Título do splash</span>
+              <input type="text" id="splash_title" name="splash_title">
+            </label>
+
+            <label>
+              <span>Imagem do splash</span>
+              <input type="url" id="splash_image_url" name="splash_image_url" placeholder="https://...">
+            </label>
+
+            <label class="full">
+              <span>Mensagem do splash</span>
+              <textarea id="splash_message" name="splash_message" rows="3"></textarea>
+            </label>
+
+            <label>
+              <span>Texto do botão</span>
+              <input type="text" id="splash_cta_text" name="splash_cta_text">
+            </label>
+
+            <label>
+              <span>URL do botão</span>
+              <input type="url" id="splash_cta_url" name="splash_cta_url" placeholder="https://...">
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Redes sociais</h2>
+          <div id="socialLinksEditor"></div>
+        </section>
+
+        <section class="card">
+          <h2>Rodapé</h2>
+          <label>
+            <span>Texto do rodapé</span>
+            <textarea id="footer_text" name="footer_text" rows="3"></textarea>
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>Mensagens</h2>
+          <div class="grid-1">
+            <label>
+              <span>Mensagem de sucesso</span>
+              <textarea id="success_message" name="success_message" rows="3"></textarea>
+            </label>
+
+            <label>
+              <span>Mensagem de erro</span>
+              <textarea id="error_message" name="error_message" rows="3"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <button type="submit">Salvar configurações</button>
+          <span id="saveStatus"></span>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="/assets/js/configuracoes.js"></script>
 </body>
 </html>
