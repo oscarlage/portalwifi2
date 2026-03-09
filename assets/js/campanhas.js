@@ -5,33 +5,28 @@
 
   const campaignTable = document.getElementById("campaignTable");
   const campaignModal = document.getElementById("campaignModal");
-  const openCampaignModalBtn = document.getElementById("openCampaignModal");
-  const closeCampaignModalBtn = document.getElementById("closeCampaignModal");
-  const cancelCampaignModalBtn = document.getElementById("cancelCampaignModal");
   const campaignForm = document.getElementById("campaignForm");
   const campaignModalTitle = document.getElementById("campaignModalTitle");
 
+  const openCampaignModalBtn = document.getElementById("openCampaignModal");
+  const closeCampaignModalBtn = document.getElementById("closeCampaignModal");
+  const cancelCampaignModalBtn = document.getElementById("cancelCampaignModal");
+
   const campaignId = document.getElementById("campaignId");
-  const campaignName = document.getElementById("campaignName");
-  const campaignType = document.getElementById("campaignType");
-  const campaignStatus = document.getElementById("campaignStatus");
-  const campaignAudience = document.getElementById("campaignAudience");
-  const campaignClients = document.getElementById("campaignClients");
-  const campaignDate = document.getElementById("campaignDate");
+  const campaignTitle = document.getElementById("campaignTitle");
   const campaignMessage = document.getElementById("campaignMessage");
+  const campaignType = document.getElementById("campaignType");
+  const audienceType = document.getElementById("audienceType");
+  const campaignStartsAt = document.getElementById("campaignStartsAt");
+  const campaignEndsAt = document.getElementById("campaignEndsAt");
+  const campaignCouponCode = document.getElementById("campaignCouponCode");
+  const campaignPriority = document.getElementById("campaignPriority");
+  const campaignCtaLabel = document.getElementById("campaignCtaLabel");
+  const campaignCtaUrl = document.getElementById("campaignCtaUrl");
+  const campaignImageUrl = document.getElementById("campaignImageUrl");
+  const campaignActive = document.getElementById("campaignActive");
 
   let campaignsCache = [];
-
-  function openModal(editMode = false) {
-    campaignModal.classList.add("show");
-    campaignModalTitle.textContent = editMode ? "Editar campanha" : "Nova campanha";
-  }
-
-  function closeModal() {
-    campaignModal.classList.remove("show");
-    campaignForm.reset();
-    campaignId.value = "";
-  }
 
   function escapeHtml(str) {
     return String(str || "")
@@ -42,41 +37,63 @@
       .replace(/'/g, "&#039;");
   }
 
-  function formatType(type) {
-    const map = {
-      whatsapp: "WhatsApp",
-      sms: "SMS",
-      email: "E-mail",
-      cupom: "Cupom promocional",
-      reengajamento: "Reengajamento"
-    };
-    return map[type] || type || "-";
+  function openModal(editMode = false) {
+    campaignModal.classList.add("show");
+    campaignModalTitle.textContent = editMode ? "Editar campanha" : "Nova campanha";
   }
 
-  function formatStatus(status) {
-    const labels = {
-      rascunho: "Rascunho",
-      agendada: "Agendada",
-      enviada: "Enviada"
-    };
-
-    return `
-      <span class="status-badge status-${status || "rascunho"}">
-        ${labels[status] || status || "Rascunho"}
-      </span>
-    `;
+  function closeModal() {
+    campaignModal.classList.remove("show");
+    campaignForm.reset();
+    campaignId.value = "";
+    campaignPriority.value = 0;
+    campaignActive.value = "true";
   }
 
   function formatDate(dateStr) {
     if (!dateStr) return "-";
-
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return "-";
-
-    return date.toLocaleString("pt-BR", {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleString("pt-BR", {
       dateStyle: "short",
       timeStyle: "short"
     });
+  }
+
+  function formatPeriod(startsAt, endsAt) {
+    if (!startsAt && !endsAt) return "Sem período";
+    return `${formatDate(startsAt)} até ${formatDate(endsAt)}`;
+  }
+
+  function formatCampaignType(value) {
+    const map = {
+      portal: "Portal",
+      post_login: "Pós-login",
+      coupon: "Cupom",
+      birthday: "Aniversário",
+      returning_customer: "Cliente recorrente",
+      inactive_customer: "Cliente inativo"
+    };
+    return map[value] || value || "-";
+  }
+
+  function formatAudienceType(value) {
+    const map = {
+      all: "Todos",
+      new_customers: "Novos clientes",
+      returning_customers: "Recorrentes",
+      inactive_30d: "Inativos 30d",
+      inactive_60d: "Inativos 60d",
+      birthday_month: "Aniversariantes",
+      consent_marketing: "Consentimento marketing"
+    };
+    return map[value] || value || "-";
+  }
+
+  function formatActive(active) {
+    return active
+      ? '<span class="status-badge status-active">Ativa</span>'
+      : '<span class="status-badge status-inactive">Inativa</span>';
   }
 
   function toInputDateTime(dateStr) {
@@ -84,13 +101,13 @@
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return "";
 
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hour = String(d.getHours()).padStart(2, "0");
-    const minute = String(d.getMinutes()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
 
-    return `${year}-${month}-${day}T${hour}:${minute}`;
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
   }
 
   function fromInputDateTime(value) {
@@ -98,33 +115,6 @@
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return null;
     return d.toISOString();
-  }
-
-  function renderCampaigns(campaigns) {
-    if (!campaigns || !campaigns.length) {
-      campaignTable.innerHTML = `
-        <tr>
-          <td colspan="6" class="loading-row">Nenhuma campanha criada ainda.</td>
-        </tr>
-      `;
-      return;
-    }
-
-    campaignTable.innerHTML = campaigns.map(campaign => `
-      <tr>
-        <td>${escapeHtml(campaign.name)}</td>
-        <td>${formatType(campaign.type)}</td>
-        <td>${formatStatus(campaign.status)}</td>
-        <td>${campaign.estimated_clients || 0}</td>
-        <td>${formatDate(campaign.scheduled_at)}</td>
-        <td>
-          <div class="actions-cell">
-            <button class="table-action" data-action="edit" data-id="${campaign.id}">Editar</button>
-            <button class="table-action" data-action="delete" data-id="${campaign.id}">Excluir</button>
-          </div>
-        </td>
-      </tr>
-    `).join("");
   }
 
   async function apiFetch(url, options = {}) {
@@ -136,8 +126,8 @@
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || `Erro HTTP ${response.status}`);
+      const errorText = await response.text().catch(() => "");
+      throw new Error(errorText || `Erro HTTP ${response.status}`);
     }
 
     const contentType = response.headers.get("content-type") || "";
@@ -148,51 +138,92 @@
     return null;
   }
 
+  function renderCampaigns(items) {
+    if (!items.length) {
+      campaignTable.innerHTML = `
+        <tr>
+          <td colspan="7" class="muted">Nenhuma campanha criada ainda.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    campaignTable.innerHTML = items.map(item => `
+      <tr>
+        <td>${escapeHtml(item.title)}</td>
+        <td>${escapeHtml(formatCampaignType(item.campaign_type))}</td>
+        <td>${escapeHtml(formatAudienceType(item.audience_type))}</td>
+        <td>${formatActive(!!item.active)}</td>
+        <td>${escapeHtml(formatPeriod(item.starts_at, item.ends_at))}</td>
+        <td>${Number(item.priority || 0)}</td>
+        <td>
+          <button class="table-action" data-action="edit" data-id="${item.id}">Editar</button>
+          <button class="table-action" data-action="delete" data-id="${item.id}">Excluir</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
   async function loadCampaigns() {
     try {
       campaignTable.innerHTML = `
         <tr>
-          <td colspan="6" class="loading-row">Carregando campanhas...</td>
+          <td colspan="7" class="muted">Carregando campanhas...</td>
         </tr>
       `;
 
       const data = await apiFetch(`${API_BASE}/api/admin/campaigns?tenant_id=${encodeURIComponent(TENANT_ID)}`);
-
       campaignsCache = Array.isArray(data) ? data : (data.items || []);
-      campaignsCache.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      campaignsCache.sort((a, b) => {
+        const pa = Number(a.priority || 0);
+        const pb = Number(b.priority || 0);
+        if (pb !== pa) return pb - pa;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
 
       renderCampaigns(campaignsCache);
-    } catch (error) {
-      console.error("Erro ao carregar campanhas:", error);
+    } catch (err) {
+      console.error(err);
       campaignTable.innerHTML = `
         <tr>
-          <td colspan="6" class="error-row">Erro ao carregar campanhas.</td>
+          <td colspan="7" class="muted">Erro ao carregar campanhas.</td>
         </tr>
       `;
     }
   }
 
-  function fillForm(campaign) {
-    campaignId.value = campaign.id || "";
-    campaignName.value = campaign.name || "";
-    campaignType.value = campaign.type || "";
-    campaignStatus.value = campaign.status || "rascunho";
-    campaignAudience.value = campaign.audience || "";
-    campaignClients.value = campaign.estimated_clients ?? "";
-    campaignDate.value = toInputDateTime(campaign.scheduled_at);
-    campaignMessage.value = campaign.message || "";
+  function fillForm(item) {
+    campaignId.value = item.id || "";
+    campaignTitle.value = item.title || "";
+    campaignMessage.value = item.message || "";
+    campaignType.value = item.campaign_type || "portal";
+    audienceType.value = item.audience_type || "all";
+    campaignStartsAt.value = toInputDateTime(item.starts_at);
+    campaignEndsAt.value = toInputDateTime(item.ends_at);
+    campaignCouponCode.value = item.coupon_code || "";
+    campaignPriority.value = Number(item.priority || 0);
+    campaignCtaLabel.value = item.cta_label || "";
+    campaignCtaUrl.value = item.cta_url || "";
+    campaignImageUrl.value = item.image_url || "";
+    campaignActive.value = item.active ? "true" : "false";
   }
 
-  function getFormPayload() {
+  function getPayload() {
     return {
       tenant_id: TENANT_ID,
-      name: campaignName.value.trim(),
-      type: campaignType.value,
-      status: campaignStatus.value,
-      audience: campaignAudience.value || null,
-      estimated_clients: Number(campaignClients.value || 0),
-      scheduled_at: fromInputDateTime(campaignDate.value),
-      message: campaignMessage.value.trim() || null
+      title: campaignTitle.value.trim(),
+      message: campaignMessage.value.trim(),
+      active: campaignActive.value === "true",
+      starts_at: fromInputDateTime(campaignStartsAt.value),
+      ends_at: fromInputDateTime(campaignEndsAt.value),
+      campaign_type: campaignType.value,
+      audience_type: audienceType.value,
+      coupon_code: campaignCouponCode.value.trim() || null,
+      cta_label: campaignCtaLabel.value.trim() || null,
+      cta_url: campaignCtaUrl.value.trim() || null,
+      image_url: campaignImageUrl.value.trim() || null,
+      priority: Number(campaignPriority.value || 0)
     };
   }
 
@@ -210,15 +241,14 @@
     });
   }
 
-  async function deleteCampaign(id) {
+  async function removeCampaign(id) {
     return apiFetch(`${API_BASE}/api/admin/campaigns/${encodeURIComponent(id)}`, {
       method: "DELETE"
     });
   }
 
   openCampaignModalBtn.addEventListener("click", () => {
-    campaignForm.reset();
-    campaignId.value = "";
+    closeModal();
     openModal(false);
   });
 
@@ -226,68 +256,69 @@
   cancelCampaignModalBtn.addEventListener("click", closeModal);
 
   campaignModal.addEventListener("click", (e) => {
-    if (e.target === campaignModal) {
-      closeModal();
-    }
+    if (e.target === campaignModal) closeModal();
   });
 
   campaignForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     try {
-      const payload = getFormPayload();
-
       if (!TENANT_ID) {
         alert("tenantId não configurado.");
         return;
       }
 
-      if (!payload.name || !payload.type || !payload.status) {
-        alert("Preencha os campos obrigatórios.");
+      const payload = getPayload();
+
+      if (!payload.title || !payload.message) {
+        alert("Preencha título e mensagem.");
         return;
       }
 
-      const id = campaignId.value;
+      if (payload.starts_at && payload.ends_at && payload.starts_at > payload.ends_at) {
+        alert("A data final deve ser maior que a data inicial.");
+        return;
+      }
 
-      if (id) {
-        await updateCampaign(id, payload);
+      if (campaignId.value) {
+        await updateCampaign(campaignId.value, payload);
       } else {
         await createCampaign(payload);
       }
 
       closeModal();
       await loadCampaigns();
-    } catch (error) {
-      console.error("Erro ao salvar campanha:", error);
+    } catch (err) {
+      console.error(err);
       alert("Não foi possível salvar a campanha.");
     }
   });
 
   campaignTable.addEventListener("click", async (e) => {
-    const button = e.target.closest("button[data-action]");
-    if (!button) return;
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
 
-    const action = button.dataset.action;
-    const id = button.dataset.id;
-    const campaign = campaignsCache.find(item => String(item.id) === String(id));
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const item = campaignsCache.find(c => String(c.id) === String(id));
 
-    if (!campaign) return;
+    if (!item) return;
 
     if (action === "edit") {
-      fillForm(campaign);
+      fillForm(item);
       openModal(true);
       return;
     }
 
     if (action === "delete") {
-      const confirmed = confirm(`Deseja excluir a campanha "${campaign.name}"?`);
-      if (!confirmed) return;
+      const ok = confirm(`Deseja excluir a campanha "${item.title}"?`);
+      if (!ok) return;
 
       try {
-        await deleteCampaign(id);
+        await removeCampaign(id);
         await loadCampaigns();
-      } catch (error) {
-        console.error("Erro ao excluir campanha:", error);
+      } catch (err) {
+        console.error(err);
         alert("Não foi possível excluir a campanha.");
       }
     }
