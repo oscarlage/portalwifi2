@@ -1,78 +1,82 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relatórios</title>
-<link rel="stylesheet" href="/assets/css/estabelecimento.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatórios</title>
+  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 </head>
-
 <body class="frame-page">
   <div class="page-content">
 
-    <section class="panel-card">
-      <header class="section-header">
-        <h1>Relatórios</h1>
-        <p>Análise de acessos e comportamento dos clientes conectados ao Wi-Fi.</p>
-      </header>
+    <header class="section-header">
+      <h1>Relatórios</h1>
+      <p>Análise de acessos e comportamento dos clientes conectados ao Wi-Fi.</p>
+    </header>
 
- <div class="filters-bar">
+    <div class="reports-top-grid">
+      <section class="panel-card">
+        <h2>Filtros</h2>
+        <p class="muted">Refine o período, datas e faixa horária da análise.</p>
 
-  <label>
-    <span>Período</span>
-    <select id="reportPeriod">
-      <option value="today">Hoje</option>
-      <option value="7d" selected>Últimos 7 dias</option>
-      <option value="30d">Últimos 30 dias</option>
-      <option value="custom">Personalizado</option>
-    </select>
-  </label>
+        <div class="filters-stack">
+          <label>
+            <span>Período</span>
+            <select id="reportPeriod">
+              <option value="today">Hoje</option>
+              <option value="7d" selected>Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </label>
 
-  <label>
-    <span>Data inicial</span>
-    <input type="date" id="reportDateFrom">
-  </label>
+          <label>
+            <span>Data inicial</span>
+            <input type="date" id="reportDateFrom">
+          </label>
 
-  <label>
-    <span>Data final</span>
-    <input type="date" id="reportDateTo">
-  </label>
+          <label>
+            <span>Data final</span>
+            <input type="date" id="reportDateTo">
+          </label>
 
-  <label>
-    <span>Hora inicial</span>
-    <select id="reportHourFrom"></select>
-  </label>
+          <label>
+            <span>Hora inicial</span>
+            <select id="reportHourFrom"></select>
+          </label>
 
-  <label>
-    <span>Hora final</span>
-    <select id="reportHourTo"></select>
-  </label>
+          <label>
+            <span>Hora final</span>
+            <select id="reportHourTo"></select>
+          </label>
 
-  <div class="filter-actions compact">
-    <button type="button" class="btn-secondary" id="applyReportFilters">
-      Aplicar
-    </button>
-  </div>
+          <div class="filter-actions vertical">
+            <button type="button" class="btn-secondary" id="applyReportFilters">
+              Aplicar filtros
+            </button>
+          </div>
+        </div>
+      </section>
 
-</div>
-    </section>
+      <div class="reports-metrics-col">
+        <section class="dashboard-grid dashboard-grid-single">
+          <div class="metric-card">
+            <div class="metric-label">Conexões no período</div>
+            <div class="metric-value" id="reportConnectionsToday">0</div>
+          </div>
 
-    <section class="dashboard-grid">
-      <div class="metric-card">
-        <div class="metric-label">Conexões no período</div>
-        <div class="metric-value" id="reportConnectionsToday">0</div>
+          <div class="metric-card">
+            <div class="metric-label">Novos clientes</div>
+            <div class="metric-value" id="reportNewCustomers">0</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Clientes recorrentes</div>
+            <div class="metric-value" id="reportReturningCustomers">0</div>
+          </div>
+        </section>
       </div>
-
-      <div class="metric-card">
-        <div class="metric-label">Novos clientes</div>
-        <div class="metric-value" id="reportNewCustomers">0</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-label">Clientes recorrentes</div>
-        <div class="metric-value" id="reportReturningCustomers">0</div>
-      </div>
-    </section>
+    </div>
 
     <section class="reports-grid">
       <section class="panel-card">
@@ -94,7 +98,7 @@
       </section>
     </section>
 
-    <section class="panel-card" style="margin-top:20px;">
+    <section class="panel-card mt-20">
       <h2>Resumo de comportamento</h2>
       <div id="reportInsights">
         <ul class="bullets">
