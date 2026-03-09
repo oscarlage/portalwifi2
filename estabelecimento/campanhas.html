@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Campanhas</title>
+
   <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 
   <style>
@@ -11,6 +12,100 @@
       display: flex;
       justify-content: flex-end;
       margin-bottom: 16px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .table-action {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .btn-primary {
+      background: #0f766e;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #0d655e;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-secondary:hover {
+      background: #cfd8e3;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    .table-action {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      padding: 7px 10px;
+      font-size: 13px;
+      margin-right: 6px;
+    }
+
+    .table-action:hover {
+      background: #f8fafc;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #4338ca;
+      white-space: nowrap;
+    }
+
+    .muted-center {
+      text-align: center;
+      color: #64748b;
     }
 
     .modal-backdrop {
@@ -30,47 +125,78 @@
 
     .modal-card {
       width: 100%;
-      max-width: 860px;
+      max-width: 1100px;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
       background: #fff;
-      border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.18);
-      overflow: hidden;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.20);
     }
 
     .modal-header,
     .modal-footer {
       padding: 18px 20px;
       border-bottom: 1px solid #e5e7eb;
-    }
-
-    .modal-footer {
-      border-top: 1px solid #e5e7eb;
-      border-bottom: 0;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
+      background: #fff;
+      position: sticky;
+      z-index: 2;
     }
 
     .modal-header {
+      top: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
+    .modal-footer {
+      bottom: 0;
+      border-bottom: 0;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
     .modal-header h2 {
       margin: 0;
       font-size: 20px;
+      color: #0f172a;
     }
 
     .modal-close {
       border: 0;
       background: transparent;
-      font-size: 24px;
+      font-size: 28px;
       cursor: pointer;
+      color: #334155;
+      line-height: 1;
     }
 
     .modal-body {
       padding: 20px;
+      background: #f8fafc;
+    }
+
+    .section-block {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .section-block h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      color: #0f172a;
+    }
+
+    .section-block p.section-hint {
+      margin: -6px 0 14px;
+      font-size: 13px;
+      color: #64748b;
     }
 
     .form-grid {
@@ -100,10 +226,11 @@
     .form-group textarea {
       width: 100%;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 10px 12px;
+      border-radius: 12px;
+      padding: 11px 12px;
       font: inherit;
       background: #fff;
+      color: #0f172a;
     }
 
     .form-group textarea {
@@ -111,78 +238,226 @@
       resize: vertical;
     }
 
-    .btn-primary,
-    .btn-secondary {
-      border: 0;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      background: #0f766e;
-      color: #fff;
-    }
-
-    .btn-secondary {
-      background: #e2e8f0;
-      color: #0f172a;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border-radius: 999px;
+    .input-help {
       font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status-active {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .status-inactive {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .table-action {
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      color: #0f172a;
-      border-radius: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 13px;
-      margin-right: 6px;
-    }
-
-    .muted {
       color: #64748b;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+      padding: 4px 0;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .check-item input {
+      width: 16px;
+      height: 16px;
+      accent-color: #0f766e;
+    }
+
+    .preview-wrap {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .preview-card {
+      background:
+        linear-gradient(180deg, rgba(15,23,42,.25), rgba(15,23,42,.55)),
+        linear-gradient(135deg, #0f766e, #1e293b);
+      color: #fff;
+      border-radius: 24px;
+      padding: 22px;
+      min-height: 520px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .preview-inner {
+      max-width: 520px;
+      margin: 0 auto;
       text-align: center;
     }
 
-    @media (max-width: 720px) {
-      .form-grid {
+    .preview-image {
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,.08);
+      min-height: 170px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview-image img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-image.placeholder {
+      border: 1px dashed rgba(255,255,255,.35);
+      color: rgba(255,255,255,.8);
+      font-size: 14px;
+      padding: 24px;
+    }
+
+    .preview-title {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+
+    .preview-subtitle {
+      margin: 0 0 12px;
+      font-size: 15px;
+      opacity: .92;
+    }
+
+    .preview-message {
+      margin: 0 0 16px;
+      font-size: 15px;
+      line-height: 1.55;
+      opacity: .98;
+      white-space: pre-wrap;
+    }
+
+    .preview-coupon {
+      margin: 0 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .preview-button {
+      display: inline-block;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 800;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin: 4px 0 16px;
+    }
+
+    .preview-socials {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .preview-socials a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .preview-meta {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .preview-meta h4 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: #0f172a;
+    }
+
+    .meta-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      font-size: 14px;
+    }
+
+    .meta-item strong {
+      color: #0f172a;
+    }
+
+    .top-note {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 980px) {
+      .preview-wrap {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .form-grid,
+      .check-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-card {
+        max-height: calc(100vh - 16px);
+      }
+
+      .preview-title {
+        font-size: 22px;
       }
     }
   </style>
 </head>
+
 <body class="frame-page">
   <div class="page-content">
     <section class="panel-card">
       <header class="section-header">
         <h1>Campanhas</h1>
-        <p>Crie e gerencie campanhas promocionais do portal Wi-Fi.</p>
+        <p>Configure campanhas visuais do portal e escolha exatamente o que será exibido para o cliente ao conectar no Wi-Fi.</p>
       </header>
 
       <div class="toolbar">
-        <button class="btn-primary" id="openCampaignModal">Nova campanha</button>
+        <button type="button" class="btn-primary" id="openCampaignModal">Nova campanha</button>
       </div>
 
       <div class="table-wrap">
@@ -191,7 +466,6 @@
             <tr>
               <th>Título</th>
               <th>Tipo</th>
-              <th>Público</th>
               <th>Status</th>
               <th>Período</th>
               <th>Prioridade</th>
@@ -200,7 +474,7 @@
           </thead>
           <tbody id="campaignTable">
             <tr>
-              <td colspan="7" class="muted">Carregando campanhas...</td>
+              <td colspan="6" class="muted-center">Carregando campanhas...</td>
             </tr>
           </tbody>
         </table>
@@ -208,101 +482,169 @@
     </section>
   </div>
 
-  <div class="modal-backdrop" id="campaignModal">
-    <div class="modal-card">
+  <div class="modal-backdrop" id="campaignModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="campaignModalTitle">
       <div class="modal-header">
-        <h2 id="campaignModalTitle">Nova campanha</h2>
-        <button class="modal-close" id="closeCampaignModal">&times;</button>
+        <div>
+          <h2 id="campaignModalTitle">Nova campanha</h2>
+          <div class="top-note">Edite o conteúdo e veja no preview como a campanha será renderizada no portal.</div>
+        </div>
+        <button type="button" class="modal-close" id="closeCampaignModal" aria-label="Fechar">&times;</button>
       </div>
 
       <form id="campaignForm">
         <div class="modal-body">
           <input type="hidden" id="campaignId">
 
-          <div class="form-grid">
-            <div class="form-group full">
-              <label for="campaignTitle">Título</label>
-              <input type="text" id="campaignTitle" required>
-            </div>
+          <div class="section-block">
+            <h3>Conteúdo principal</h3>
+            <p class="section-hint">Esses dados formam o conteúdo visível da campanha.</p>
 
-            <div class="form-group full">
-              <label for="campaignMessage">Mensagem</label>
-              <textarea id="campaignMessage" required></textarea>
-            </div>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="campaignTitle">Título</label>
+                <input type="text" id="campaignTitle" maxlength="140" required>
+              </div>
 
-            <div class="form-group">
-              <label for="campaignType">Tipo de campanha</label>
-              <select id="campaignType" required>
-                <option value="portal">Portal</option>
-                <option value="post_login">Pós-login</option>
-                <option value="coupon">Cupom</option>
-                <option value="birthday">Aniversário</option>
-                <option value="returning_customer">Cliente recorrente</option>
-                <option value="inactive_customer">Cliente inativo</option>
-              </select>
-            </div>
+              <div class="form-group full">
+                <label for="campaignSubtitle">Subtítulo</label>
+                <input type="text" id="campaignSubtitle" maxlength="180">
+              </div>
 
-            <div class="form-group">
-              <label for="audienceType">Público</label>
-              <select id="audienceType" required>
-                <option value="all">Todos</option>
-                <option value="new_customers">Novos clientes</option>
-                <option value="returning_customers">Clientes recorrentes</option>
-                <option value="inactive_30d">Inativos há 30 dias</option>
-                <option value="inactive_60d">Inativos há 60 dias</option>
-                <option value="birthday_month">Aniversariantes do mês</option>
-                <option value="consent_marketing">Com consentimento de marketing</option>
-              </select>
-            </div>
+              <div class="form-group full">
+                <label for="campaignMessage">Mensagem</label>
+                <textarea id="campaignMessage" required></textarea>
+                <div class="input-help">Use uma mensagem curta e comercial. Quebras de linha são respeitadas no preview.</div>
+              </div>
 
-            <div class="form-group">
-              <label for="campaignStartsAt">Início</label>
-              <input type="datetime-local" id="campaignStartsAt">
-            </div>
+              <div class="form-group">
+                <label for="campaignImageUrl">Imagem / banner URL</label>
+                <input type="url" id="campaignImageUrl" placeholder="https://...">
+              </div>
 
-            <div class="form-group">
-              <label for="campaignEndsAt">Fim</label>
-              <input type="datetime-local" id="campaignEndsAt">
+              <div class="form-group">
+                <label for="campaignCouponCode">Cupom</label>
+                <input type="text" id="campaignCouponCode" maxlength="60" placeholder="Ex.: SITIO10">
+              </div>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label for="campaignCouponCode">Cupom</label>
-              <input type="text" id="campaignCouponCode" placeholder="Ex.: SITIO10">
+          <div class="section-block">
+            <h3>Ação e redes sociais</h3>
+            <p class="section-hint">Configure o botão principal e os links sociais que poderão aparecer no portal.</p>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="campaignButtonLabel">Texto do botão</label>
+                <input type="text" id="campaignButtonLabel" maxlength="80" placeholder="Ex.: Ver promoção">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignButtonUrl">URL do botão</label>
+                <input type="url" id="campaignButtonUrl" placeholder="https://...">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignInstagramUrl">Instagram</label>
+                <input type="url" id="campaignInstagramUrl" placeholder="https://instagram.com/...">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignFacebookUrl">Facebook</label>
+                <input type="url" id="campaignFacebookUrl" placeholder="https://facebook.com/...">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignWhatsappUrl">WhatsApp</label>
+                <input type="url" id="campaignWhatsappUrl" placeholder="https://wa.me/...">
+              </div>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label for="campaignPriority">Prioridade</label>
-              <input type="number" id="campaignPriority" min="0" value="0">
+          <div class="section-block">
+            <h3>Configuração da campanha</h3>
+            <p class="section-hint">Controle vigência, status e prioridade de exibição.</p>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="campaignType">Tipo</label>
+                <select id="campaignType">
+                  <option value="portal">Portal</option>
+                  <option value="post_login">Pós-login</option>
+                  <option value="coupon">Cupom</option>
+                  <option value="birthday">Aniversário</option>
+                  <option value="returning_customer">Cliente recorrente</option>
+                  <option value="inactive_customer">Cliente inativo</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignActive">Status</label>
+                <select id="campaignActive">
+                  <option value="true">Ativa</option>
+                  <option value="false">Inativa</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignStartsAt">Início</label>
+                <input type="datetime-local" id="campaignStartsAt">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignEndsAt">Fim</label>
+                <input type="datetime-local" id="campaignEndsAt">
+              </div>
+
+              <div class="form-group">
+                <label for="campaignPriority">Prioridade</label>
+                <input type="number" id="campaignPriority" min="0" step="1" value="0">
+                <div class="input-help">Campanhas com maior prioridade aparecem primeiro.</div>
+              </div>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label for="campaignCtaLabel">Texto do botão</label>
-              <input type="text" id="campaignCtaLabel" placeholder="Ex.: Resgatar oferta">
+          <div class="section-block">
+            <h3>Elementos visíveis no portal</h3>
+            <p class="section-hint">Marque apenas o que deve ser renderizado no portal captive.</p>
+
+            <div class="check-grid">
+              <label class="check-item"><input type="checkbox" id="cfgShowTitle" checked> Exibir título</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowSubtitle" checked> Exibir subtítulo</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowMessage" checked> Exibir mensagem</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowImage" checked> Exibir imagem</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowButton" checked> Exibir botão</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowSocials" checked> Exibir redes sociais</label>
+              <label class="check-item"><input type="checkbox" id="cfgShowCoupon" checked> Exibir cupom</label>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label for="campaignCtaUrl">URL do botão</label>
-              <input type="url" id="campaignCtaUrl" placeholder="https://...">
-            </div>
+          <div class="section-block">
+            <h3>Preview do portal</h3>
+            <p class="section-hint">Pré-visualização aproximada de como a campanha aparecerá ao cliente.</p>
 
-            <div class="form-group full">
-              <label for="campaignImageUrl">Imagem/Banner URL</label>
-              <input type="url" id="campaignImageUrl" placeholder="https://...">
-            </div>
+            <div class="preview-wrap">
+              <div class="preview-card">
+                <div class="preview-inner" id="campaignPreview"></div>
+              </div>
 
-            <div class="form-group">
-              <label for="campaignActive">Status</label>
-              <select id="campaignActive">
-                <option value="true">Ativa</option>
-                <option value="false">Inativa</option>
-              </select>
+              <div class="preview-meta">
+                <h4>Resumo técnico</h4>
+                <div class="meta-list" id="campaignPreviewMeta"></div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancelar</button>
-          <button type="submit" class="btn-primary">Salvar campanha</button>
+          <div>
+            <button type="button" class="btn-danger hidden" id="deleteCampaignBtn">Excluir campanha</button>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancelar</button>
+            <button type="submit" class="btn-primary">Salvar campanha</button>
+          </div>
         </div>
       </form>
     </div>
