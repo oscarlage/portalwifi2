@@ -241,6 +241,11 @@
     .input-help {
       font-size: 12px;
       color: #64748b;
+      line-height: 1.45;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 10px;
     }
 
     .check-grid {
@@ -498,72 +503,115 @@
 
           <div class="section-block">
             <h3>Conteúdo principal</h3>
-            <p class="section-hint">Esses dados formam o conteúdo visível da campanha.</p>
+            <p class="section-hint">Esses dados formam o conteúdo visual da campanha que será exibida no portal.</p>
 
             <div class="form-grid">
               <div class="form-group full">
                 <label for="campaignTitle">Título</label>
                 <input type="text" id="campaignTitle" maxlength="140" required>
+                <div class="input-help">
+                  Texto principal da campanha. Use uma frase curta, clara e chamativa.<br>
+                  Exemplo: <strong>Ganhe 10% no almoço de hoje</strong>.
+                </div>
               </div>
 
               <div class="form-group full">
                 <label for="campaignSubtitle">Subtítulo</label>
                 <input type="text" id="campaignSubtitle" maxlength="180">
+                <div class="input-help">
+                  Texto complementar abaixo do título. Ideal para reforçar a oferta ou contexto.<br>
+                  Exemplo: <strong>Oferta válida somente para clientes conectados ao Wi-Fi</strong>.
+                </div>
               </div>
 
               <div class="form-group full">
                 <label for="campaignMessage">Mensagem</label>
                 <textarea id="campaignMessage" required></textarea>
-                <div class="input-help">Use uma mensagem curta e comercial. Quebras de linha são respeitadas no preview.</div>
+                <div class="input-help">
+                  Conteúdo principal da campanha. Pode conter explicação da promoção, instrução de uso ou convite.<br>
+                  Use texto direto e objetivo. Quebras de linha serão respeitadas no preview.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignImageUrl">Imagem / banner URL</label>
                 <input type="url" id="campaignImageUrl" placeholder="https://...">
+                <div class="input-help">
+                  URL pública da imagem que será exibida no portal.<br>
+                  <strong>Dimensão ideal:</strong> 1200 x 675 px ou proporção próxima de 16:9.<br>
+                  <strong>Formatos recomendados:</strong> JPG, JPEG, PNG ou WEBP.<br>
+                  Prefira imagens leves, bem recortadas e com até cerca de 500 KB para melhor carregamento.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignCouponCode">Cupom</label>
                 <input type="text" id="campaignCouponCode" maxlength="60" placeholder="Ex.: SITIO10">
+                <div class="input-help">
+                  Código promocional opcional para resgate no balcão, caixa ou pedido.<br>
+                  Exemplo: <strong>SITIO10</strong>, <strong>CAFEFREE</strong> ou <strong>VOLTEI</strong>.
+                </div>
               </div>
             </div>
           </div>
 
           <div class="section-block">
             <h3>Ação e redes sociais</h3>
-            <p class="section-hint">Configure o botão principal e os links sociais que poderão aparecer no portal.</p>
+            <p class="section-hint">Configure o botão principal e os links sociais que podem aparecer na campanha.</p>
 
             <div class="form-grid">
               <div class="form-group">
                 <label for="campaignButtonLabel">Texto do botão</label>
                 <input type="text" id="campaignButtonLabel" maxlength="80" placeholder="Ex.: Ver promoção">
+                <div class="input-help">
+                  Texto exibido no botão principal da campanha.<br>
+                  Exemplos: <strong>Ver promoção</strong>, <strong>Falar no WhatsApp</strong>, <strong>Seguir no Instagram</strong>.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignButtonUrl">URL do botão</label>
                 <input type="url" id="campaignButtonUrl" placeholder="https://...">
+                <div class="input-help">
+                  Link aberto quando o cliente clicar no botão.<br>
+                  Pode apontar para Instagram, WhatsApp, cardápio digital, site ou landing page.<br>
+                  Use URL completa iniciando com <strong>https://</strong>.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignInstagramUrl">Instagram</label>
                 <input type="url" id="campaignInstagramUrl" placeholder="https://instagram.com/...">
+                <div class="input-help">
+                  Link do Instagram do estabelecimento.<br>
+                  Exemplo: <strong>https://instagram.com/seuperfil</strong>.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignFacebookUrl">Facebook</label>
                 <input type="url" id="campaignFacebookUrl" placeholder="https://facebook.com/...">
+                <div class="input-help">
+                  Link da página do Facebook do estabelecimento.<br>
+                  Use somente se realmente estiver ativa e atualizada.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignWhatsappUrl">WhatsApp</label>
                 <input type="url" id="campaignWhatsappUrl" placeholder="https://wa.me/...">
+                <div class="input-help">
+                  Link direto para atendimento ou pedidos via WhatsApp.<br>
+                  Exemplo: <strong>https://wa.me/5531999999999</strong>.<br>
+                  Use o número com DDI e DDD, sem espaços nem símbolos.
+                </div>
               </div>
             </div>
           </div>
 
           <div class="section-block">
             <h3>Configuração da campanha</h3>
-            <p class="section-hint">Controle vigência, status e prioridade de exibição.</p>
+            <p class="section-hint">Defina quando a campanha será exibida e com qual prioridade.</p>
 
             <div class="form-grid">
               <div class="form-group">
@@ -576,6 +624,10 @@
                   <option value="returning_customer">Cliente recorrente</option>
                   <option value="inactive_customer">Cliente inativo</option>
                 </select>
+                <div class="input-help">
+                  Define a finalidade da campanha dentro do sistema.<br>
+                  Para exibição direta no captive portal, use normalmente <strong>Portal</strong>.
+                </div>
               </div>
 
               <div class="form-group">
@@ -584,29 +636,44 @@
                   <option value="true">Ativa</option>
                   <option value="false">Inativa</option>
                 </select>
+                <div class="input-help">
+                  Controla se a campanha pode ser exibida pelo portal.<br>
+                  Mesmo ativa, ela também respeita o período configurado.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignStartsAt">Início</label>
                 <input type="datetime-local" id="campaignStartsAt">
+                <div class="input-help">
+                  Data e hora a partir da qual a campanha pode começar a aparecer.<br>
+                  Deixe em branco para permitir exibição imediata.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignEndsAt">Fim</label>
                 <input type="datetime-local" id="campaignEndsAt">
+                <div class="input-help">
+                  Data e hora limite para encerrar a exibição automática da campanha.<br>
+                  Deixe em branco para mantê-la sem prazo final.
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="campaignPriority">Prioridade</label>
                 <input type="number" id="campaignPriority" min="0" step="1" value="0">
-                <div class="input-help">Campanhas com maior prioridade aparecem primeiro.</div>
+                <div class="input-help">
+                  Número usado para decidir qual campanha aparece primeiro quando existir mais de uma ativa.<br>
+                  Quanto maior o valor, maior a prioridade.
+                </div>
               </div>
             </div>
           </div>
 
           <div class="section-block">
             <h3>Elementos visíveis no portal</h3>
-            <p class="section-hint">Marque apenas o que deve ser renderizado no portal captive.</p>
+            <p class="section-hint">Marque apenas os blocos que devem ser renderizados para o cliente.</p>
 
             <div class="check-grid">
               <label class="check-item"><input type="checkbox" id="cfgShowTitle" checked> Exibir título</label>
@@ -617,11 +684,16 @@
               <label class="check-item"><input type="checkbox" id="cfgShowSocials" checked> Exibir redes sociais</label>
               <label class="check-item"><input type="checkbox" id="cfgShowCoupon" checked> Exibir cupom</label>
             </div>
+
+            <div class="input-help" style="margin-top:12px;">
+              Essas opções controlam o que realmente será mostrado no portal.<br>
+              Você pode salvar todas as informações da campanha e escolher exibir apenas parte delas.
+            </div>
           </div>
 
           <div class="section-block">
             <h3>Preview do portal</h3>
-            <p class="section-hint">Pré-visualização aproximada de como a campanha aparecerá ao cliente.</p>
+            <p class="section-hint">Pré-visualização aproximada de como a campanha aparecerá ao cliente no portal captive.</p>
 
             <div class="preview-wrap">
               <div class="preview-card">
