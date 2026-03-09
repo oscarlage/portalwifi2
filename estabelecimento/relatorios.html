@@ -40,10 +40,16 @@
 
 <section class="panel-card" style="margin-top:20px;">
 
+<section class="panel-card" style="margin-top:20px;">
   <h2>Horários de pico</h2>
   <p class="muted">
     Identifique os períodos com maior fluxo de clientes conectados.
   </p>
+
+  <div class="chart-box">
+    <canvas id="peakHoursCanvas"></canvas>
+  </div>
+</section>
 
   <div id="peakHoursChart" style="height:240px;display:flex;align-items:center;justify-content:center;">
     <span class="muted">Gráfico será exibido aqui.</span>
@@ -67,6 +73,7 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/assets/js/relatorios.js"></script>
 
 </body>
