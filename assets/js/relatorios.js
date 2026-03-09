@@ -6,11 +6,18 @@
   const TENANT_NAME_KEY = "portalwifi.activeTenantName";
   const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
 
-  const elConnectionsToday = document.getElementById("reportConnectionsToday");
+  const elConnections = document.getElementById("reportConnectionsToday");
   const elNewCustomers = document.getElementById("reportNewCustomers");
   const elReturningCustomers = document.getElementById("reportReturningCustomers");
   const elInsights = document.getElementById("reportInsights");
   const peakHoursCanvas = document.getElementById("peakHoursCanvas");
+
+  const periodEl = document.getElementById("reportPeriod");
+  const dateFromEl = document.getElementById("reportDateFrom");
+  const dateToEl = document.getElementById("reportDateTo");
+  const hourFromEl = document.getElementById("reportHourFrom");
+  const hourToEl = document.getElementById("reportHourTo");
+  const applyBtn = document.getElementById("applyReportFilters");
 
   let peakHoursChart = null;
 
@@ -32,45 +39,112 @@
   }
 
   function renderError(message) {
-    if (elInsights) {
-      elInsights.innerHTML = `
-        <ul class="bullets">
-          <li class="text-danger">${message}</li>
-        </ul>
-      `;
-    }
+    if (!elInsights) return;
+    elInsights.innerHTML = `
+      <ul class="bullets">
+        <li class="text-danger">${message}</li>
+      </ul>
+    `;
   }
 
-  function renderInsights(summary) {
+  function populateHourSelects() {
+    const options = Array.from({ length: 24 }, (_, i) =>
+      `<option value="${i}">${String(i).padStart(2, "0")}h</option>`
+    ).join("");
+
+    if (hourFromEl) hourFromEl.innerHTML = options;
+    if (hourToEl) hourToEl.innerHTML = options;
+
+    if (hourFromEl) hourFromEl.value = "0";
+    if (hourToEl) hourToEl.value = "23";
+  }
+
+  function toggleCustomDates() {
+    const isCustom = periodEl?.value === "custom";
+    if (dateFromEl) dateFromEl.disabled = !isCustom;
+    if (dateToEl) dateToEl.disabled = !isCustom;
+  }
+
+  function getFilters() {
+    return {
+      period: periodEl?.value || "today",
+      date_from: dateFromEl?.value || "",
+      date_to: dateToEl?.value || "",
+      hour_from: hourFromEl?.value || "0",
+      hour_to: hourToEl?.value || "23"
+    };
+  }
+
+  function buildQuery(paramsObj) {
+    const qs = new URLSearchParams();
+    Object.entries(paramsObj).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        qs.set(key, value);
+      }
+    });
+    return qs.toString();
+  }
+
+  async function fetchSummary(tenantId, filters) {
+    const qs = buildQuery({
+      tenant_id: tenantId,
+      period: filters.period,
+      date_from: filters.date_from,
+      date_to: filters.date_to
+    });
+
+    const res = await fetch(`${API_BASE}/api/admin/dashboard/summary?${qs}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.detail || data.error || "Falha ao carregar resumo.");
+    }
+
+    return data;
+  }
+
+  async function fetchPeakHours(tenantId, filters) {
+    const qs = buildQuery({
+      tenant_id: tenantId,
+      period: filters.period,
+      date_from: filters.date_from,
+      date_to: filters.date_to,
+      hour_from: filters.hour_from,
+      hour_to: filters.hour_to
+    });
+
+    const res = await fetch(`${API_BASE}/api/admin/reports/peak-hours?${qs}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.detail || data.error || "Falha ao carregar horários de pico.");
+    }
+
+    return data;
+  }
+
+  function renderInsights(summary, peakHoursResponse) {
     const connected = safeNumber(summary.connected);
     const newCustomers = safeNumber(summary.new_customers);
     const returning = safeNumber(summary.returning_customers);
     const marketingOptin = safeNumber(summary.marketing_optin);
 
+    const topHour = (peakHoursResponse.hours || []).reduce((best, current) => {
+      if (!best || safeNumber(current.value) > safeNumber(best.value)) return current;
+      return best;
+    }, null);
+
     const insights = [];
 
-    if (connected > 0) {
-      insights.push(`Foram registradas ${connected} conexão(ões) no período consultado.`);
-    } else {
-      insights.push("Ainda não há conexões suficientes para análise no período.");
-    }
+    insights.push(`Foram registradas ${connected} conexão(ões) no período filtrado.`);
+    insights.push(`${newCustomers} novo(s) cliente(s) foram captados.`);
+    insights.push(`${returning} cliente(s) recorrente(s) retornaram.`);
+    insights.push(`${marketingOptin} cliente(s) possuem opt-in de marketing.`);
 
-    if (newCustomers > 0) {
-      insights.push(`${newCustomers} novo(s) cliente(s) foram captados via Wi-Fi.`);
+    if (topHour && safeNumber(topHour.value) > 0) {
+      insights.push(`O horário de maior movimento foi ${topHour.label}, com ${topHour.value} conexão(ões).`);
     } else {
-      insights.push("Nenhum novo cliente foi captado no período.");
-    }
-
-    if (returning > 0) {
-      insights.push(`${returning} cliente(s) recorrente(s) retornaram ao estabelecimento.`);
-    } else {
-      insights.push("Ainda não há recorrência suficiente para análise mais profunda.");
-    }
-
-    if (marketingOptin > 0) {
-      insights.push(`${marketingOptin} cliente(s) aceitaram receber comunicações de marketing.`);
-    } else {
-      insights.push("Nenhum cliente com opt-in de marketing foi identificado até agora.");
+      insights.push("Ainda não há dados suficientes para identificar horário de pico.");
     }
 
     if (elInsights) {
@@ -82,75 +156,6 @@
     }
   }
 
-  function inferPeakHoursFromSummary(summary) {
-    const connected = safeNumber(summary.connected);
-    const newCustomers = safeNumber(summary.new_customers);
-    const returning = safeNumber(summary.returning_customers);
-
-    const base = Math.max(connected, 1);
-    const labels = [
-      "08h", "09h", "10h", "11h", "12h", "13h",
-      "14h", "15h", "16h", "17h", "18h", "19h",
-      "20h", "21h"
-    ];
-
-    const middayBoost = Math.max(newCustomers, 1);
-    const eveningBoost = Math.max(returning, 1);
-
-    const values = labels.map((hour, idx) => {
-      let factor = 0.12;
-
-      if (idx >= 3 && idx <= 5) factor += 0.22;
-      if (idx >= 6 && idx <= 8) factor += 0.10;
-      if (idx >= 9 && idx <= 12) factor += 0.18;
-
-      if (idx >= 4 && idx <= 6) factor += middayBoost * 0.01;
-      if (idx >= 10 && idx <= 12) factor += eveningBoost * 0.01;
-
-      return Math.max(0, Math.round(base * factor));
-    });
-
-    return { labels, values, inferred: true };
-  }
-
-  async function fetchSummary(tenantId) {
-    const res = await fetch(
-      `${API_BASE}/api/admin/dashboard/summary?tenant_id=${encodeURIComponent(tenantId)}`
-    );
-
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      throw new Error(data.detail || data.error || "Falha ao carregar resumo.");
-    }
-
-    return data.summary || {};
-  }
-
-  async function fetchPeakHours(tenantId) {
-    // Endpoint futuro recomendado:
-    // /api/admin/reports/peak-hours?tenant_id=...
-    // Enquanto não existir, retornamos null para usar inferência local.
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/admin/reports/peak-hours?tenant_id=${encodeURIComponent(tenantId)}`
-      );
-
-      if (!res.ok) return null;
-
-      const data = await res.json();
-      if (!data.ok || !Array.isArray(data.hours)) return null;
-
-      return {
-        labels: data.hours.map(item => item.label),
-        values: data.hours.map(item => safeNumber(item.value)),
-        inferred: false
-      };
-    } catch (_) {
-      return null;
-    }
-  }
-
   function destroyChart() {
     if (peakHoursChart) {
       peakHoursChart.destroy();
@@ -158,7 +163,7 @@
     }
   }
 
-  function renderPeakHoursChart(dataset) {
+  function renderPeakHoursChart(hoursResponse) {
     if (!peakHoursCanvas || !window.Chart) return;
 
     destroyChart();
@@ -166,11 +171,11 @@
     peakHoursChart = new Chart(peakHoursCanvas, {
       type: "bar",
       data: {
-        labels: dataset.labels,
+        labels: (hoursResponse.hours || []).map(item => item.label),
         datasets: [
           {
-            label: dataset.inferred ? "Fluxo estimado" : "Conexões por hora",
-            data: dataset.values,
+            label: "Conexões por hora",
+            data: (hoursResponse.hours || []).map(item => safeNumber(item.value)),
             borderWidth: 1
           }
         ]
@@ -183,41 +188,25 @@
             labels: {
               color: "#f8fbff"
             }
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                return `${context.raw} conexão(ões)`;
-              }
-            }
           }
         },
         scales: {
           x: {
-            ticks: {
-              color: "#b9c7e6"
-            },
-            grid: {
-              color: "rgba(255,255,255,.08)"
-            }
+            ticks: { color: "#b9c7e6" },
+            grid: { color: "rgba(255,255,255,.08)" }
           },
           y: {
             beginAtZero: true,
-            ticks: {
-              color: "#b9c7e6",
-              precision: 0
-            },
-            grid: {
-              color: "rgba(255,255,255,.08)"
-            }
+            ticks: { color: "#b9c7e6", precision: 0 },
+            grid: { color: "rgba(255,255,255,.08)" }
           }
         }
       }
     });
   }
 
-  async function init() {
-    const { tenantId, tenantName, tenantSlug } = getTenantContext();
+  async function loadReports() {
+    const { tenantId } = getTenantContext();
 
     if (!tenantId) {
       renderError("Nenhum tenant ativo foi selecionado. Volte à plataforma e selecione um tenant.");
@@ -225,33 +214,41 @@
     }
 
     try {
-      const summary = await fetchSummary(tenantId);
+      const filters = getFilters();
 
-      setText(elConnectionsToday, summary.connected ?? 0);
+      const summaryResponse = await fetchSummary(tenantId, filters);
+      const peakHoursResponse = await fetchPeakHours(tenantId, filters);
+
+      const summary = summaryResponse.summary || {};
+
+      setText(elConnections, summary.connected ?? 0);
       setText(elNewCustomers, summary.new_customers ?? 0);
       setText(elReturningCustomers, summary.returning_customers ?? 0);
 
-      renderInsights(summary);
+      renderPeakHoursChart(peakHoursResponse);
+      renderInsights(summary, peakHoursResponse);
 
-      const peakHours =
-        (await fetchPeakHours(tenantId)) ||
-        inferPeakHoursFromSummary(summary);
-
-      renderPeakHoursChart(peakHours);
-
-      if (peakHours.inferred && elInsights) {
-        elInsights.innerHTML += `
-          <ul class="bullets">
-            <li class="muted">
-              O gráfico de horários está em modo estimado para ${tenantName || tenantSlug || tenantId}, até o endpoint analítico específico ser disponibilizado.
-            </li>
-          </ul>
-        `;
-      }
     } catch (err) {
       console.error("Erro ao carregar relatórios:", err);
-      renderError("Não foi possível carregar os relatórios do estabelecimento.");
+      renderError("Não foi possível carregar os relatórios com os filtros informados.");
     }
+  }
+
+  function bindEvents() {
+    if (periodEl) {
+      periodEl.addEventListener("change", toggleCustomDates);
+    }
+
+    if (applyBtn) {
+      applyBtn.addEventListener("click", loadReports);
+    }
+  }
+
+  function init() {
+    populateHourSelects();
+    toggleCustomDates();
+    bindEvents();
+    loadReports();
   }
 
   init();
