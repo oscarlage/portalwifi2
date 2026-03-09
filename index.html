@@ -1,66 +1,92 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
-
-<meta charset="utf-8">
-<title>Painel do Estabelecimento</title>
-
-<link rel="stylesheet" href="/assets/css/estabelecimento.css">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal WiFi</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
-
 <body>
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+    <h1>Portal WiFi</h1>
+    <p>Verificando acesso...</p>
+  </div>
 
-<div class="layout">
+  <script>
+    window.PORTAL_SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+    window.PORTAL_SUPABASE_ANON_KEY = "SUA_ANON_KEY";
+  </script>
 
-<aside class="sidebar">
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
-<h2 id="tenantName">Estabelecimento</h2>
+    const supabase = createClient(
+      window.PORTAL_SUPABASE_URL,
+      window.PORTAL_SUPABASE_ANON_KEY
+    );
 
-<nav>
+    async function redirectByProfile() {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-<a href="index.html">Dashboard</a>
-<a href="clientes.html">Clientes</a>
-<a href="campanhas.html">Campanhas</a>
-<a href="relatorios.html">Relatórios</a>
-<a href="configuracoes.html">Configurações</a>
+        if (sessionError || !session || !session.user) {
+          window.location.replace("/login.html");
+          return;
+        }
 
-</nav>
+        const userId = session.user.id;
 
-</aside>
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_id, status, is_platform_user")
+          .eq("user_id", userId)
+          .single();
 
+        if (profileError || !profile) {
+          await supabase.auth.signOut();
+          window.location.replace("/login.html?erro=perfil_nao_encontrado");
+          return;
+        }
 
-<main class="content">
+        if (profile.status !== "active") {
+          await supabase.auth.signOut();
+          window.location.replace("/login.html?erro=usuario_inativo");
+          return;
+        }
 
-<h1>Dashboard do Estabelecimento</h1>
+        if (profile.is_platform_user === true) {
+          sessionStorage.removeItem("tenant_id");
+          sessionStorage.removeItem("tenant_role");
+          window.location.replace("/platform.html");
+          return;
+        }
 
-<p>Visão geral do movimento do Wi-Fi.</p>
+        const { data: memberships, error: membershipError } = await supabase
+          .from("tenant_members")
+          .select("tenant_id, role, is_active")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .limit(1);
 
-<div class="cards">
+        if (membershipError || !memberships || memberships.length === 0) {
+          await supabase.auth.signOut();
+          window.location.replace("/login.html?erro=sem_vinculo");
+          return;
+        }
 
-<div class="card">
-<h3>Conectados hoje</h3>
-<p id="metricConnected">0</p>
-</div>
+        const membership = memberships[0];
 
-<div class="card">
-<h3>Novos clientes</h3>
-<p id="metricNewCustomers">0</p>
-</div>
+        sessionStorage.setItem("tenant_id", membership.tenant_id);
+        sessionStorage.setItem("tenant_role", membership.role);
 
-<div class="card">
-<h3>Recorrentes</h3>
-<p id="metricReturning">0</p>
-</div>
+        window.location.replace("/estabelecimento/index.html");
+      } catch (err) {
+        console.error("Erro ao verificar acesso:", err);
+        window.location.replace("/login.html?erro=falha_autenticacao");
+      }
+    }
 
-</div>
-
-</main>
-
-</div>
-
-<script src="/assets/js/estabelecimento.js"></script>
-
+    redirectByProfile();
+  </script>
 </body>
 </html>
