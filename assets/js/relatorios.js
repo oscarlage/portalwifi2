@@ -10,7 +10,9 @@
   const elNewCustomers = document.getElementById("reportNewCustomers");
   const elReturningCustomers = document.getElementById("reportReturningCustomers");
   const elInsights = document.getElementById("reportInsights");
+
   const peakHoursCanvas = document.getElementById("peakHoursCanvas");
+  const customersMixCanvas = document.getElementById("customersMixCanvas");
 
   const periodEl = document.getElementById("reportPeriod");
   const dateFromEl = document.getElementById("reportDateFrom");
@@ -20,6 +22,7 @@
   const applyBtn = document.getElementById("applyReportFilters");
 
   let peakHoursChart = null;
+  let customersMixChart = null;
 
   function getTenantContext() {
     return {
@@ -156,17 +159,19 @@
     }
   }
 
-  function destroyChart() {
+  function destroyCharts() {
     if (peakHoursChart) {
       peakHoursChart.destroy();
       peakHoursChart = null;
+    }
+    if (customersMixChart) {
+      customersMixChart.destroy();
+      customersMixChart = null;
     }
   }
 
   function renderPeakHoursChart(hoursResponse) {
     if (!peakHoursCanvas || !window.Chart) return;
-
-    destroyChart();
 
     peakHoursChart = new Chart(peakHoursCanvas, {
       type: "bar",
@@ -185,9 +190,48 @@
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            labels: {
-              color: "#f8fbff"
-            }
+            labels: { color: "#f8fbff" }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#b9c7e6" },
+            grid: { color: "rgba(255,255,255,.08)" }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#b9c7e6", precision: 0 },
+            grid: { color: "rgba(255,255,255,.08)" }
+          }
+        }
+      }
+    });
+  }
+
+  function renderCustomersMixChart(summary) {
+    if (!customersMixCanvas || !window.Chart) return;
+
+    customersMixChart = new Chart(customersMixCanvas, {
+      type: "bar",
+      data: {
+        labels: ["Novos clientes", "Recorrentes"],
+        datasets: [
+          {
+            label: "Clientes no período",
+            data: [
+              safeNumber(summary.new_customers),
+              safeNumber(summary.returning_customers)
+            ],
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: "#f8fbff" }
           }
         },
         scales: {
@@ -225,7 +269,9 @@
       setText(elNewCustomers, summary.new_customers ?? 0);
       setText(elReturningCustomers, summary.returning_customers ?? 0);
 
+      destroyCharts();
       renderPeakHoursChart(peakHoursResponse);
+      renderCustomersMixChart(summary);
       renderInsights(summary, peakHoursResponse);
 
     } catch (err) {
