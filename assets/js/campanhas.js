@@ -2,8 +2,19 @@
   "use strict";
 
   const SETTINGS = window.PORTAL_SETTINGS || {};
-  const API_BASE = String(SETTINGS.apiBase || "").replace(/\/$/, "");
-  const TENANT_ID = SETTINGS.tenantId || "";
+
+  const API_BASE = String(
+    SETTINGS.apiBase ||
+    document.body.dataset.apiBase ||
+    localStorage.getItem("portal_api_base") ||
+    ""
+  ).replace(/\/$/, "");
+
+  const TENANT_ID =
+    SETTINGS.tenantId ||
+    document.body.dataset.tenantId ||
+    localStorage.getItem("portal_tenant_id") ||
+    "";
 
   const campaignTable = document.getElementById("campaignTable");
   const campaignModal = document.getElementById("campaignModal");
@@ -33,6 +44,12 @@
   const campaignStartsAt = document.getElementById("campaignStartsAt");
   const campaignEndsAt = document.getElementById("campaignEndsAt");
   const campaignPriority = document.getElementById("campaignPriority");
+
+  const campaignBgColor = document.getElementById("campaignBgColor");
+  const campaignTextColor = document.getElementById("campaignTextColor");
+  const campaignButtonBgColor = document.getElementById("campaignButtonBgColor");
+  const campaignButtonTextColor = document.getElementById("campaignButtonTextColor");
+  const campaignUseCustomColors = document.getElementById("campaignUseCustomColors");
 
   const cfgShowTitle = document.getElementById("cfgShowTitle");
   const cfgShowSubtitle = document.getElementById("cfgShowSubtitle");
@@ -65,6 +82,10 @@
     } catch {
       return false;
     }
+  }
+
+  function isValidHexColor(value) {
+    return /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(String(value || "").trim());
   }
 
   function formatDateTime(value) {
@@ -174,12 +195,78 @@
     cfgShowCoupon.checked = !!cfg.show_coupon;
   }
 
+  function getPortalTheme() {
+    const primary =
+      SETTINGS.primaryColor ||
+      document.body.dataset.primaryColor ||
+      localStorage.getItem("portal_primary_color") ||
+      "#0f766e";
+
+    const secondary =
+      SETTINGS.secondaryColor ||
+      document.body.dataset.secondaryColor ||
+      localStorage.getItem("portal_secondary_color") ||
+      "#1e293b";
+
+    const text =
+      SETTINGS.textColor ||
+      document.body.dataset.textColor ||
+      localStorage.getItem("portal_text_color") ||
+      "#ffffff";
+
+    const buttonBg =
+      SETTINGS.buttonColor ||
+      document.body.dataset.buttonColor ||
+      localStorage.getItem("portal_button_color") ||
+      "#ffffff";
+
+    const buttonText =
+      SETTINGS.buttonTextColor ||
+      document.body.dataset.buttonTextColor ||
+      localStorage.getItem("portal_button_text_color") ||
+      "#0f172a";
+
+    return {
+      primary: isValidHexColor(primary) ? primary : "#0f766e",
+      secondary: isValidHexColor(secondary) ? secondary : "#1e293b",
+      text: isValidHexColor(text) ? text : "#ffffff",
+      buttonBg: isValidHexColor(buttonBg) ? buttonBg : "#ffffff",
+      buttonText: isValidHexColor(buttonText) ? buttonText : "#0f172a"
+    };
+  }
+
+  function applyPortalThemeVars() {
+    const theme = getPortalTheme();
+    const root = document.documentElement;
+    root.style.setProperty("--portal-primary", theme.primary);
+    root.style.setProperty("--portal-secondary", theme.secondary);
+    root.style.setProperty("--portal-text", theme.text);
+    root.style.setProperty("--portal-button-bg", theme.buttonBg);
+    root.style.setProperty("--portal-button-text", theme.buttonText);
+  }
+
+  function applyPreviewTheme(theme) {
+    const root = document.documentElement;
+    root.style.setProperty("--campaign-preview-bg", theme.bg);
+    root.style.setProperty("--campaign-preview-bg-2", theme.bg2);
+    root.style.setProperty("--campaign-preview-text", theme.text);
+    root.style.setProperty("--campaign-preview-button-bg", theme.buttonBg);
+    root.style.setProperty("--campaign-preview-button-text", theme.buttonText);
+  }
+
   function resetForm() {
     campaignForm.reset();
     campaignId.value = "";
     campaignType.value = "portal";
     campaignActive.value = "true";
     campaignPriority.value = "0";
+
+    campaignBgColor.value = "#0f766e";
+    campaignTextColor.value = "#ffffff";
+    campaignButtonBgColor.value = "#ffffff";
+    campaignButtonTextColor.value = "#0f172a";
+    campaignUseCustomColors.checked = false;
+
     applyRenderConfigToForm(getDefaultRenderConfig());
     deleteCampaignBtn.classList.add("hidden");
     campaignModalTitle.textContent = "Nova campanha";
@@ -216,6 +303,7 @@
     if (contentType.includes("application/json")) {
       return response.json();
     }
+
     return null;
   }
 
@@ -238,6 +326,11 @@
       ends_at: item.ends_at || null,
       campaign_type: item.campaign_type || "portal",
       priority: Number(item.priority || 0),
+      bg_color: item.bg_color || "",
+      text_color: item.text_color || "",
+      button_bg_color: item.button_bg_color || "",
+      button_text_color: item.button_text_color || "",
+      use_custom_colors: !!item.bg_color || !!item.text_color || !!item.button_bg_color || !!item.button_text_color,
       render_config: {
         ...getDefaultRenderConfig(),
         ...safeJsonParse(item.render_config, {})
@@ -257,28 +350,35 @@
       return;
     }
 
-    campaignTable.innerHTML = items.map((item) => {
-      return `
-        <tr>
-          <td>${escapeHtml(item.title || "-")}</td>
-          <td>${typeBadge(item.campaign_type)}</td>
-          <td>${activeBadge(!!item.active)}</td>
-          <td>${escapeHtml(formatDateRange(item.starts_at, item.ends_at))}</td>
-          <td>${Number(item.priority || 0)}</td>
-          <td>
-            <button type="button" class="table-action" data-action="edit" data-id="${item.id}">Editar</button>
-            <button type="button" class="table-action" data-action="delete" data-id="${item.id}">Excluir</button>
-          </td>
-        </tr>
-      `;
-    }).join("");
+    campaignTable.innerHTML = items.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.title || "-")}</td>
+        <td>${typeBadge(item.campaign_type)}</td>
+        <td>${activeBadge(!!item.active)}</td>
+        <td>${escapeHtml(formatDateRange(item.starts_at, item.ends_at))}</td>
+        <td>${Number(item.priority || 0)}</td>
+        <td>
+          <button type="button" class="table-action" data-action="edit" data-id="${item.id}">Editar</button>
+          <button type="button" class="table-action" data-action="delete" data-id="${item.id}">Excluir</button>
+        </td>
+      </tr>
+    `).join("");
   }
 
   async function loadCampaigns() {
     if (!TENANT_ID) {
       campaignTable.innerHTML = `
         <tr>
-          <td colspan="6" class="muted-center">tenantId não configurado em window.PORTAL_SETTINGS.</td>
+          <td colspan="6" class="muted-center">tenantId não configurado em window.PORTAL_SETTINGS, data-tenant-id ou localStorage.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (!API_BASE) {
+      campaignTable.innerHTML = `
+        <tr>
+          <td colspan="6" class="muted-center">apiBase não configurado em window.PORTAL_SETTINGS, data-api-base ou localStorage.</td>
         </tr>
       `;
       return;
@@ -296,11 +396,12 @@
       );
 
       const items = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+
       campaignsCache = items
         .map(normalizeCampaign)
         .sort((a, b) => {
-          const p = Number(b.priority || 0) - Number(a.priority || 0);
-          if (p !== 0) return p;
+          const priorityDiff = Number(b.priority || 0) - Number(a.priority || 0);
+          if (priorityDiff !== 0) return priorityDiff;
           return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         });
 
@@ -333,6 +434,10 @@
       ends_at: toIsoDateTime(campaignEndsAt.value),
       campaign_type: campaignType.value || "portal",
       priority: Number(campaignPriority.value || 0),
+      bg_color: campaignUseCustomColors.checked ? campaignBgColor.value : null,
+      text_color: campaignUseCustomColors.checked ? campaignTextColor.value : null,
+      button_bg_color: campaignUseCustomColors.checked ? campaignButtonBgColor.value : null,
+      button_text_color: campaignUseCustomColors.checked ? campaignButtonTextColor.value : null,
       render_config: getRenderConfigFromForm()
     };
   }
@@ -340,6 +445,10 @@
   function validatePayload(payload) {
     if (!TENANT_ID) {
       return "tenantId não configurado.";
+    }
+
+    if (!API_BASE) {
+      return "apiBase não configurado.";
     }
 
     if (!payload.title) {
@@ -368,6 +477,22 @@
 
     if (payload.whatsapp_url && !isValidHttpUrl(payload.whatsapp_url)) {
       return "A URL do WhatsApp é inválida.";
+    }
+
+    if (payload.bg_color && !isValidHexColor(payload.bg_color)) {
+      return "A cor de fundo da campanha é inválida.";
+    }
+
+    if (payload.text_color && !isValidHexColor(payload.text_color)) {
+      return "A cor do texto da campanha é inválida.";
+    }
+
+    if (payload.button_bg_color && !isValidHexColor(payload.button_bg_color)) {
+      return "A cor de fundo do botão é inválida.";
+    }
+
+    if (payload.button_text_color && !isValidHexColor(payload.button_text_color)) {
+      return "A cor do texto do botão é inválida.";
     }
 
     if (payload.starts_at && payload.ends_at) {
@@ -399,7 +524,7 @@
     });
   }
 
-  async function deleteCampaign(id) {
+  async function removeCampaign(id) {
     return apiFetch(`${API_BASE}/api/admin/campaigns/${encodeURIComponent(id)}`, {
       method: "DELETE"
     });
@@ -425,6 +550,12 @@
     campaignEndsAt.value = inputDateTimeValue(item.ends_at);
     campaignPriority.value = String(Number(item.priority || 0));
 
+    campaignBgColor.value = isValidHexColor(item.bg_color) ? item.bg_color : "#0f766e";
+    campaignTextColor.value = isValidHexColor(item.text_color) ? item.text_color : "#ffffff";
+    campaignButtonBgColor.value = isValidHexColor(item.button_bg_color) ? item.button_bg_color : "#ffffff";
+    campaignButtonTextColor.value = isValidHexColor(item.button_text_color) ? item.button_text_color : "#0f172a";
+    campaignUseCustomColors.checked = !!item.use_custom_colors;
+
     applyRenderConfigToForm(item.render_config || getDefaultRenderConfig());
 
     deleteCampaignBtn.classList.remove("hidden");
@@ -449,6 +580,11 @@
       ends_at: toIsoDateTime(campaignEndsAt.value),
       campaign_type: campaignType.value || "portal",
       priority: Number(campaignPriority.value || 0),
+      bg_color: campaignUseCustomColors.checked ? campaignBgColor.value : "",
+      text_color: campaignUseCustomColors.checked ? campaignTextColor.value : "",
+      button_bg_color: campaignUseCustomColors.checked ? campaignButtonBgColor.value : "",
+      button_text_color: campaignUseCustomColors.checked ? campaignButtonTextColor.value : "",
+      use_custom_colors: campaignUseCustomColors.checked,
       render_config: getRenderConfigFromForm()
     };
   }
@@ -456,12 +592,35 @@
   function renderPreview() {
     const state = getFormState();
     const cfg = state.render_config || getDefaultRenderConfig();
+    const portalTheme = getPortalTheme();
+
+    const theme = state.use_custom_colors
+      ? {
+          bg: isValidHexColor(state.bg_color) ? state.bg_color : portalTheme.primary,
+          bg2: isValidHexColor(state.bg_color) ? state.bg_color : portalTheme.secondary,
+          text: isValidHexColor(state.text_color) ? state.text_color : portalTheme.text,
+          buttonBg: isValidHexColor(state.button_bg_color) ? state.button_bg_color : portalTheme.buttonBg,
+          buttonText: isValidHexColor(state.button_text_color) ? state.button_text_color : portalTheme.buttonText
+        }
+      : {
+          bg: portalTheme.primary,
+          bg2: portalTheme.secondary,
+          text: portalTheme.text,
+          buttonBg: portalTheme.buttonBg,
+          buttonText: portalTheme.buttonText
+        };
+
+    applyPreviewTheme(theme);
 
     const imageBlock = cfg.show_image
       ? (state.image_url && isValidHttpUrl(state.image_url)
           ? `
             <div class="preview-image">
-              <img src="${escapeHtml(state.image_url)}" alt="${escapeHtml(state.title || "Campanha")}">
+              <img
+                src="${escapeHtml(state.image_url)}"
+                alt="${escapeHtml(state.title || "Campanha")}"
+                onerror="this.parentElement.className='preview-image placeholder';this.parentElement.innerHTML='Não foi possível carregar a imagem';"
+              >
             </div>
           `
           : `
@@ -492,15 +651,9 @@
       : "";
 
     const socialLinks = [];
-    if (state.instagram_url) {
-      socialLinks.push(`<a href="#" onclick="return false;">Instagram</a>`);
-    }
-    if (state.facebook_url) {
-      socialLinks.push(`<a href="#" onclick="return false;">Facebook</a>`);
-    }
-    if (state.whatsapp_url) {
-      socialLinks.push(`<a href="#" onclick="return false;">WhatsApp</a>`);
-    }
+    if (state.instagram_url) socialLinks.push(`<a href="#" onclick="return false;">Instagram</a>`);
+    if (state.facebook_url) socialLinks.push(`<a href="#" onclick="return false;">Facebook</a>`);
+    if (state.whatsapp_url) socialLinks.push(`<a href="#" onclick="return false;">WhatsApp</a>`);
 
     const socialsBlock = cfg.show_socials && socialLinks.length
       ? `<div class="preview-socials">${socialLinks.join("")}</div>`
@@ -535,6 +688,7 @@
       <div class="meta-item"><span>Botão</span><strong>${cfg.show_button ? "Visível" : "Oculto"}</strong></div>
       <div class="meta-item"><span>Redes sociais</span><strong>${cfg.show_socials ? "Visíveis" : "Ocultas"}</strong></div>
       <div class="meta-item"><span>Imagem</span><strong>${cfg.show_image ? "Visível" : "Oculta"}</strong></div>
+      <div class="meta-item"><span>Tema</span><strong>${state.use_custom_colors ? "Cores próprias" : "Cores do portal"}</strong></div>
     `;
   }
 
@@ -578,7 +732,7 @@
     if (!confirmed) return;
 
     try {
-      await deleteCampaign(id);
+      await removeCampaign(id);
       closeModal();
       await loadCampaigns();
     } catch (err) {
@@ -604,6 +758,11 @@
       campaignStartsAt,
       campaignEndsAt,
       campaignPriority,
+      campaignBgColor,
+      campaignTextColor,
+      campaignButtonBgColor,
+      campaignButtonTextColor,
+      campaignUseCustomColors,
       cfgShowTitle,
       cfgShowSubtitle,
       cfgShowMessage,
@@ -669,6 +828,7 @@
     }
   });
 
+  applyPortalThemeVars();
   bindPreviewInputs();
   resetForm();
   loadCampaigns();
