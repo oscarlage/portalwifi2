@@ -16,41 +16,45 @@
         <p>Análise de acessos e comportamento dos clientes conectados ao Wi-Fi.</p>
       </header>
 
-      <div class="filters-bar">
-        <label>
-          <span>Período</span>
-          <select id="reportPeriod">
-            <option value="today">Hoje</option>
-            <option value="7d" selected>Últimos 7 dias</option>
-            <option value="30d">Últimos 30 dias</option>
-            <option value="custom">Personalizado</option>
-          </select>
-        </label>
+ <div class="filters-bar">
 
-        <label>
-          <span>Data inicial</span>
-          <input type="date" id="reportDateFrom">
-        </label>
+  <label>
+    <span>Período</span>
+    <select id="reportPeriod">
+      <option value="today">Hoje</option>
+      <option value="7d" selected>Últimos 7 dias</option>
+      <option value="30d">Últimos 30 dias</option>
+      <option value="custom">Personalizado</option>
+    </select>
+  </label>
 
-        <label>
-          <span>Data final</span>
-          <input type="date" id="reportDateTo">
-        </label>
+  <label>
+    <span>Data inicial</span>
+    <input type="date" id="reportDateFrom">
+  </label>
 
-        <label>
-          <span>Hora inicial</span>
-          <select id="reportHourFrom"></select>
-        </label>
+  <label>
+    <span>Data final</span>
+    <input type="date" id="reportDateTo">
+  </label>
 
-        <label>
-          <span>Hora final</span>
-          <select id="reportHourTo"></select>
-        </label>
+  <label>
+    <span>Hora inicial</span>
+    <select id="reportHourFrom"></select>
+  </label>
 
-        <div class="filter-actions compact">
-          <button type="button" class="btn-secondary" id="applyReportFilters">Aplicar filtros</button>
-        </div>
-      </div>
+  <label>
+    <span>Hora final</span>
+    <select id="reportHourTo"></select>
+  </label>
+
+  <div class="filter-actions compact">
+    <button type="button" class="btn-secondary" id="applyReportFilters">
+      Aplicar
+    </button>
+  </div>
+
+</div>
     </section>
 
     <section class="dashboard-grid">
