@@ -998,4 +998,16 @@ td{
 .btn-secondary:hover{
   background: var(--card-2);
 }
+.chart-box{
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+  margin-top: 12px;
+}
+
+.chart-box canvas{
+  width: 100% !important;
+  height: 260px !important;
+}
+  
 }
