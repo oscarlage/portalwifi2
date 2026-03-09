@@ -8,6 +8,14 @@
   <link rel="stylesheet" href="/assets/css/estabelecimento.css">
 
   <style>
+    :root {
+      --portal-primary: #0f766e;
+      --portal-secondary: #1e293b;
+      --portal-text: #ffffff;
+      --portal-button-bg: #ffffff;
+      --portal-button-text: #0f172a;
+    }
+
     .toolbar {
       display: flex;
       justify-content: flex-end;
@@ -125,7 +133,7 @@
 
     .modal-card {
       width: 100%;
-      max-width: 1100px;
+      max-width: 1120px;
       max-height: calc(100vh - 32px);
       overflow: auto;
       background: #fff;
@@ -136,7 +144,6 @@
     .modal-header,
     .modal-footer {
       padding: 18px 20px;
-      border-bottom: 1px solid #e5e7eb;
       background: #fff;
       position: sticky;
       z-index: 2;
@@ -147,11 +154,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 1px solid #e5e7eb;
     }
 
     .modal-footer {
       bottom: 0;
-      border-bottom: 0;
       border-top: 1px solid #e5e7eb;
       display: flex;
       justify-content: space-between;
@@ -238,6 +245,12 @@
       resize: vertical;
     }
 
+    .form-group input[type="color"] {
+      height: 46px;
+      padding: 6px;
+      cursor: pointer;
+    }
+
     .input-help {
       font-size: 12px;
       color: #64748b;
@@ -263,7 +276,7 @@
       font-size: 14px;
     }
 
-    .check-item input {
+    .check-item input[type="checkbox"] {
       width: 16px;
       height: 16px;
       accent-color: #0f766e;
@@ -278,9 +291,13 @@
 
     .preview-card {
       background:
-        linear-gradient(180deg, rgba(15,23,42,.25), rgba(15,23,42,.55)),
-        linear-gradient(135deg, #0f766e, #1e293b);
-      color: #fff;
+        linear-gradient(180deg, rgba(15,23,42,.18), rgba(15,23,42,.38)),
+        linear-gradient(
+          135deg,
+          var(--campaign-preview-bg, var(--portal-primary, #0f766e)),
+          var(--campaign-preview-bg-2, var(--portal-secondary, #1e293b))
+        );
+      color: var(--campaign-preview-text, var(--portal-text, #ffffff));
       border-radius: 24px;
       padding: 22px;
       min-height: 520px;
@@ -315,7 +332,7 @@
 
     .preview-image.placeholder {
       border: 1px dashed rgba(255,255,255,.35);
-      color: rgba(255,255,255,.8);
+      color: rgba(255,255,255,.85);
       font-size: 14px;
       padding: 24px;
     }
@@ -356,8 +373,8 @@
 
     .preview-button {
       display: inline-block;
-      background: #fff;
-      color: #0f172a;
+      background: var(--campaign-preview-button-bg, #ffffff);
+      color: var(--campaign-preview-button-text, #0f172a);
       font-weight: 800;
       text-decoration: none;
       border-radius: 12px;
@@ -380,7 +397,7 @@
       padding: 9px 12px;
       border-radius: 999px;
       text-decoration: none;
-      color: #fff;
+      color: inherit;
       border: 1px solid rgba(255,255,255,.22);
       background: rgba(255,255,255,.08);
       font-size: 13px;
@@ -453,7 +470,16 @@
   </style>
 </head>
 
-<body class="frame-page">
+<body
+  class="frame-page"
+  data-api-base=""
+  data-tenant-id=""
+  data-primary-color=""
+  data-secondary-color=""
+  data-text-color=""
+  data-button-color=""
+  data-button-text-color=""
+>
   <div class="page-content">
     <section class="panel-card">
       <header class="section-header">
@@ -672,6 +698,57 @@
           </div>
 
           <div class="section-block">
+            <h3>Cores da campanha</h3>
+            <p class="section-hint">Se deixar no padrão do portal, a campanha herda automaticamente a identidade visual do tenant.</p>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="campaignBgColor">Cor de fundo</label>
+                <input type="color" id="campaignBgColor" value="#0f766e">
+                <div class="input-help">
+                  Cor principal do card da campanha.<br>
+                  Use para destacar promoções específicas, quando necessário.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignTextColor">Cor do texto</label>
+                <input type="color" id="campaignTextColor" value="#ffffff">
+                <div class="input-help">
+                  Cor dos títulos, mensagens e textos do preview da campanha.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignButtonBgColor">Cor do botão</label>
+                <input type="color" id="campaignButtonBgColor" value="#ffffff">
+                <div class="input-help">
+                  Cor de fundo do botão principal da campanha.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="campaignButtonTextColor">Cor do texto do botão</label>
+                <input type="color" id="campaignButtonTextColor" value="#0f172a">
+                <div class="input-help">
+                  Cor do texto exibido no botão principal.
+                </div>
+              </div>
+
+              <div class="form-group full">
+                <label class="check-item">
+                  <input type="checkbox" id="campaignUseCustomColors">
+                  Usar cores próprias nesta campanha
+                </label>
+                <div class="input-help">
+                  Desmarcado: a campanha usa as cores do portal.<br>
+                  Marcado: a campanha usa as cores escolhidas acima apenas para este conteúdo.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-block">
             <h3>Elementos visíveis no portal</h3>
             <p class="section-hint">Marque apenas os blocos que devem ser renderizados para o cliente.</p>
 
@@ -721,12 +798,19 @@
       </form>
     </div>
   </div>
-<script>
-  window.PORTAL_SETTINGS = {
-    apiBase: "https://portalwifi-api.oscar-lage.workers.dev",
-    tenantId: "8814c725-ff72-41f2-be86-e9671bcc6c7b"
-  };
-</script>
+
+  <script>
+    window.PORTAL_SETTINGS = window.PORTAL_SETTINGS || {
+      apiBase: "",
+      tenantId: "",
+      primaryColor: "",
+      secondaryColor: "",
+      textColor: "",
+      buttonColor: "",
+      buttonTextColor: ""
+    };
+  </script>
+
   <script src="/assets/js/campanhas.js"></script>
 </body>
 </html>
