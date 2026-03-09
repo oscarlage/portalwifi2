@@ -1,56 +1,161 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Painel do Estabelecimento</title>
-  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portal WiFi</title>
+  <style>
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      background:#f6f7fb;
+      color:#0f172a;
+    }
+    .box{
+      width:min(92vw,560px);
+      background:#fff;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:16px;
+      padding:24px;
+      box-shadow:0 10px 24px rgba(15,23,42,.06);
+    }
+    h1{margin:0 0 8px}
+    p{margin:0;color:#475569}
+    pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#0b1020;
+      color:#e5e7eb;
+      border-radius:12px;
+      padding:12px;
+      font-size:12px;
+      max-height:260px;
+      overflow:auto;
+      margin-top:16px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div>
-        <div class="brand-title" id="tenantName">Estabelecimento</div>
-        <div class="brand-sub" id="tenantSlug">Tenant ativo</div>
-      </div>
-
-      <nav class="side-nav">
-        <button class="nav-item active" data-page="/estabelecimento/home.html">Dashboard</button>
-        <button class="nav-item" data-page="/estabelecimento/clientes.html">Clientes</button>
-        <button class="nav-item" data-page="/estabelecimento/campanhas.html">Campanhas</button>
-        <button class="nav-item" data-page="/estabelecimento/configuracoes.html">Configurações</button>
-        <button class="nav-item" data-page="/estabelecimento/relatorios.html">Relatórios</button>
-      </nav>
-
-      <div class="side-footer">
-        <div class="side-tenant-box">
-          <div class="side-tenant-label">Tenant ativo</div>
-          <div class="side-tenant-value" id="tenantNameFooter">Estabelecimento</div>
-        </div>
-
-        <a href="/platform.html">Voltar à plataforma</a>
-      </div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
-        <div>
-          <h1 id="pageTitle">Dashboard</h1>
-          <p id="pageSubtitle">Visão geral do estabelecimento.</p>
-        </div>
-      </div>
-
-      <div class="frame-wrap">
-        <iframe id="contentFrame" src="/estabelecimento/home.html"></iframe>
-      </div>
-    </main>
+  <div class="box">
+    <h1>Portal WiFi</h1>
+    <p id="status">Verificando acesso...</p>
+    <pre id="log"></pre>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
-    window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
+    const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function addLog(obj) {
+      const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+      $("log").textContent += ($("log").textContent ? "\n" : "") + s;
+      console.log(obj);
+    }
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function clearAndGoLogin(reason) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error("Erro ao sair:", e);
+      }
+
+      sessionStorage.removeItem("tenant_id");
+      sessionStorage.removeItem("tenant_role");
+
+      const qs = reason ? "?erro=" + encodeURIComponent(reason) : "";
+      window.location.replace("/login.html" + qs);
+    }
+
+    async function main() {
+      try {
+        setStatus("Lendo sessão...");
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        addLog({ step: "session", sessionError, hasSession: !!sessionData?.session });
+
+        if (sessionError) {
+          await clearAndGoLogin("sessao_invalida");
+          return;
+        }
+
+        const session = sessionData.session;
+
+        if (!session || !session.user) {
+          window.location.replace("/login.html");
+          return;
+        }
+
+        const userId = session.user.id;
+
+        setStatus("Consultando perfil...");
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_id, email, status, is_platform_user, platform_role")
+          .eq("user_id", userId)
+          .single();
+
+        addLog({ step: "profile", profile, profileError });
+
+        if (profileError || !profile) {
+          await clearAndGoLogin("perfil_nao_encontrado");
+          return;
+        }
+
+        if (profile.status !== "active") {
+          await clearAndGoLogin("usuario_inativo");
+          return;
+        }
+
+        if (profile.is_platform_user === true) {
+          sessionStorage.removeItem("tenant_id");
+          sessionStorage.removeItem("tenant_role");
+          setStatus("Redirecionando para a plataforma...");
+          window.location.replace("/platform.html");
+          return;
+        }
+
+        setStatus("Consultando vínculo do tenant...");
+        const { data: memberships, error: membershipError } = await supabase
+          .from("tenant_members")
+          .select("tenant_id, role, is_active")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .limit(1);
+
+        addLog({ step: "membership", memberships, membershipError });
+
+        if (membershipError || !memberships || memberships.length === 0) {
+          await clearAndGoLogin("sem_vinculo_ativo");
+          return;
+        }
+
+        const membership = memberships[0];
+
+        sessionStorage.setItem("tenant_id", membership.tenant_id);
+        sessionStorage.setItem("tenant_role", membership.role);
+
+        setStatus("Redirecionando para o estabelecimento...");
+        window.location.replace("/estabelecimento/index.html");
+      } catch (err) {
+        addLog({ step: "fatal", message: err.message, stack: err.stack });
+        await clearAndGoLogin("falha_autenticacao");
+      }
+    }
+
+    main();
   </script>
-  <script src="/assets/js/estabelecimento.js"></script>
 </body>
 </html>
