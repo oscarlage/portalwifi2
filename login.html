@@ -202,13 +202,6 @@
           window.location.href = "/";
         }
 
-        async function tryAutoRedirectIfLogged() {
-          const session = await refreshSession();
-          if (session?.user) {
-            setMsg("Sessão ativa encontrada. Redirecionando...");
-            await goToRootRouter();
-          }
-        }
 
         $("btnSignIn").onclick = async () => {
           try {
@@ -292,12 +285,12 @@
           }
         };
 
-        supabase.auth.onAuthStateChange((event, session) => {
-          log({ auth_event: event, hasSession: !!session });
-          render(session);
-        });
+supabase.auth.onAuthStateChange((event, session) => {
+  log({ auth_event: event, hasSession: !!session });
+  render(session);
+});
 
-        tryAutoRedirectIfLogged();
+refreshSession();
       }
     }
   </script>
