@@ -1,57 +1,303 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campanhas</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campanhas</title>
+  <link rel="stylesheet" href="/assets/css/estabelecimento.css">
+  <style>
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
 
-<link rel="stylesheet" href="/assets/css/estabelecimento.css">
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 760px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .modal-close {
+      border: 0;
+      background: transparent;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
+
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #0f766e;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status-rascunho {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .status-agendada {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-enviada {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .table-action {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body class="frame-page">
+  <div class="page-content">
+    <section class="panel-card">
+      <header class="section-header">
+        <h1>Campanhas</h1>
+        <p>Crie campanhas de marketing para seus clientes do Wi-Fi.</p>
+      </header>
 
-<div class="page-content">
+      <div class="toolbar">
+        <button class="btn-primary" id="openCampaignModal">Nova campanha</button>
+      </div>
 
-<section class="panel-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Clientes</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
 
-  <header class="section-header">
-    <h1>Campanhas</h1>
-    <p>Crie campanhas de marketing para seus clientes do Wi-Fi.</p>
-  </header>
-
-  <div class="toolbar">
-    <button class="btn-secondary">Nova campanha</button>
+          <tbody id="campaignTable">
+            <tr>
+              <td colspan="6" class="muted">Nenhuma campanha criada ainda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
-  <div class="table-wrap">
-    <table>
+  <div class="modal-backdrop" id="campaignModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="campaignModalTitle">Nova campanha</h2>
+        <button class="modal-close" id="closeCampaignModal" aria-label="Fechar">&times;</button>
+      </div>
 
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Tipo</th>
-          <th>Status</th>
-          <th>Clientes</th>
-          <th>Data</th>
-        </tr>
-      </thead>
+      <form id="campaignForm">
+        <div class="modal-body">
+          <input type="hidden" id="campaignId">
 
-      <tbody id="campaignTable">
-        <tr>
-          <td colspan="5" class="muted">
-            Nenhuma campanha criada ainda.
-          </td>
-        </tr>
-      </tbody>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="campaignName">Nome da campanha</label>
+              <input type="text" id="campaignName" placeholder="Ex.: Promoção de almoço da semana" required>
+            </div>
 
-    </table>
+            <div class="form-group">
+              <label for="campaignType">Tipo</label>
+              <select id="campaignType" required>
+                <option value="">Selecione</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="sms">SMS</option>
+                <option value="email">E-mail</option>
+                <option value="cupom">Cupom promocional</option>
+                <option value="reengajamento">Reengajamento</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="campaignStatus">Status</label>
+              <select id="campaignStatus" required>
+                <option value="rascunho">Rascunho</option>
+                <option value="agendada">Agendada</option>
+                <option value="enviada">Enviada</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="campaignAudience">Público</label>
+              <select id="campaignAudience" required>
+                <option value="">Selecione</option>
+                <option value="todos">Todos os clientes</option>
+                <option value="novos">Novos clientes</option>
+                <option value="recorrentes">Clientes recorrentes</option>
+                <option value="inativos30">Inativos há 30 dias</option>
+                <option value="inativos60">Inativos há 60 dias</option>
+                <option value="aniversariantes">Aniversariantes</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="campaignClients">Qtd. estimada de clientes</label>
+              <input type="number" id="campaignClients" min="0" placeholder="Ex.: 250">
+            </div>
+
+            <div class="form-group">
+              <label for="campaignDate">Data de envio</label>
+              <input type="datetime-local" id="campaignDate">
+            </div>
+
+            <div class="form-group full">
+              <label for="campaignMessage">Mensagem</label>
+              <textarea id="campaignMessage" placeholder="Escreva a mensagem da campanha..."></textarea>
+              <div class="hint">Depois podemos integrar modelos prontos e personalização com nome do cliente.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar campanha</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-</section>
-
-</div>
-
-<script src="/assets/js/campanhas.js"></script>
-
+  <script src="/assets/js/campanhas.js"></script>
 </body>
 </html>
