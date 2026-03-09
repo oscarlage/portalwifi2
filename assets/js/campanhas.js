@@ -1,5 +1,7 @@
 (function () {
-  const STORAGE_KEY = "portalwifi_campaigns";
+  const SETTINGS = window.PORTAL_SETTINGS || {};
+  const API_BASE = (SETTINGS.apiBase || "").replace(/\/$/, "");
+  const TENANT_ID = SETTINGS.tenantId || "";
 
   const campaignTable = document.getElementById("campaignTable");
   const campaignModal = document.getElementById("campaignModal");
@@ -18,19 +20,7 @@
   const campaignDate = document.getElementById("campaignDate");
   const campaignMessage = document.getElementById("campaignMessage");
 
-  function loadCampaigns() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      console.error("Erro ao carregar campanhas:", err);
-      return [];
-    }
-  }
-
-  function saveCampaigns(campaigns) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
-  }
+  let campaignsCache = [];
 
   function openModal(editMode = false) {
     campaignModal.classList.add("show");
@@ -43,8 +33,13 @@
     campaignId.value = "";
   }
 
-  function generateId() {
-    return "camp_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function formatType(type) {
@@ -58,17 +53,6 @@
     return map[type] || type || "-";
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return "-";
-
-    return date.toLocaleString("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short"
-    });
-  }
-
   function formatStatus(status) {
     const labels = {
       rascunho: "Rascunho",
@@ -78,50 +62,114 @@
 
     return `
       <span class="status-badge status-${status || "rascunho"}">
-        ${labels[status] || "Rascunho"}
+        ${labels[status] || status || "Rascunho"}
       </span>
     `;
   }
 
-  function renderCampaigns() {
-    const campaigns = loadCampaigns();
+  function formatDate(dateStr) {
+    if (!dateStr) return "-";
 
-    if (!campaigns.length) {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleString("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+  }
+
+  function toInputDateTime(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "";
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hour = String(d.getHours()).padStart(2, "0");
+    const minute = String(d.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  }
+
+  function fromInputDateTime(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
+  }
+
+  function renderCampaigns(campaigns) {
+    if (!campaigns || !campaigns.length) {
       campaignTable.innerHTML = `
         <tr>
-          <td colspan="6" class="muted">Nenhuma campanha criada ainda.</td>
+          <td colspan="6" class="loading-row">Nenhuma campanha criada ainda.</td>
         </tr>
       `;
       return;
     }
 
-    campaignTable.innerHTML = campaigns
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .map(campaign => `
-        <tr>
-          <td>${escapeHtml(campaign.name)}</td>
-          <td>${formatType(campaign.type)}</td>
-          <td>${formatStatus(campaign.status)}</td>
-          <td>${campaign.clients || 0}</td>
-          <td>${formatDate(campaign.date)}</td>
-          <td>
-            <div class="actions-cell">
-              <button class="table-action" data-action="edit" data-id="${campaign.id}">Editar</button>
-              <button class="table-action" data-action="delete" data-id="${campaign.id}">Excluir</button>
-            </div>
-          </td>
-        </tr>
-      `)
-      .join("");
+    campaignTable.innerHTML = campaigns.map(campaign => `
+      <tr>
+        <td>${escapeHtml(campaign.name)}</td>
+        <td>${formatType(campaign.type)}</td>
+        <td>${formatStatus(campaign.status)}</td>
+        <td>${campaign.estimated_clients || 0}</td>
+        <td>${formatDate(campaign.scheduled_at)}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="table-action" data-action="edit" data-id="${campaign.id}">Editar</button>
+            <button class="table-action" data-action="delete" data-id="${campaign.id}">Excluir</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
   }
 
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  async function apiFetch(url, options = {}) {
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      ...options
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `Erro HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return response.json();
+    }
+
+    return null;
+  }
+
+  async function loadCampaigns() {
+    try {
+      campaignTable.innerHTML = `
+        <tr>
+          <td colspan="6" class="loading-row">Carregando campanhas...</td>
+        </tr>
+      `;
+
+      const data = await apiFetch(`${API_BASE}/api/admin/campaigns?tenant_id=${encodeURIComponent(TENANT_ID)}`);
+
+      campaignsCache = Array.isArray(data) ? data : (data.items || []);
+      campaignsCache.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      renderCampaigns(campaignsCache);
+    } catch (error) {
+      console.error("Erro ao carregar campanhas:", error);
+      campaignTable.innerHTML = `
+        <tr>
+          <td colspan="6" class="error-row">Erro ao carregar campanhas.</td>
+        </tr>
+      `;
+    }
   }
 
   function fillForm(campaign) {
@@ -130,23 +178,42 @@
     campaignType.value = campaign.type || "";
     campaignStatus.value = campaign.status || "rascunho";
     campaignAudience.value = campaign.audience || "";
-    campaignClients.value = campaign.clients ?? "";
-    campaignDate.value = campaign.date || "";
+    campaignClients.value = campaign.estimated_clients ?? "";
+    campaignDate.value = toInputDateTime(campaign.scheduled_at);
     campaignMessage.value = campaign.message || "";
   }
 
-  function getFormData() {
+  function getFormPayload() {
     return {
-      id: campaignId.value || generateId(),
+      tenant_id: TENANT_ID,
       name: campaignName.value.trim(),
       type: campaignType.value,
       status: campaignStatus.value,
-      audience: campaignAudience.value,
-      clients: Number(campaignClients.value || 0),
-      date: campaignDate.value || "",
-      message: campaignMessage.value.trim(),
-      created_at: new Date().toISOString()
+      audience: campaignAudience.value || null,
+      estimated_clients: Number(campaignClients.value || 0),
+      scheduled_at: fromInputDateTime(campaignDate.value),
+      message: campaignMessage.value.trim() || null
     };
+  }
+
+  async function createCampaign(payload) {
+    return apiFetch(`${API_BASE}/api/admin/campaigns`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async function updateCampaign(id, payload) {
+    return apiFetch(`${API_BASE}/api/admin/campaigns/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async function deleteCampaign(id) {
+    return apiFetch(`${API_BASE}/api/admin/campaigns/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    });
   }
 
   openCampaignModalBtn.addEventListener("click", () => {
@@ -164,40 +231,45 @@
     }
   });
 
-  campaignForm.addEventListener("submit", (e) => {
+  campaignForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const data = getFormData();
+    try {
+      const payload = getFormPayload();
 
-    if (!data.name || !data.type || !data.status || !data.audience) {
-      alert("Preencha os campos obrigatórios.");
-      return;
+      if (!TENANT_ID) {
+        alert("tenantId não configurado.");
+        return;
+      }
+
+      if (!payload.name || !payload.type || !payload.status) {
+        alert("Preencha os campos obrigatórios.");
+        return;
+      }
+
+      const id = campaignId.value;
+
+      if (id) {
+        await updateCampaign(id, payload);
+      } else {
+        await createCampaign(payload);
+      }
+
+      closeModal();
+      await loadCampaigns();
+    } catch (error) {
+      console.error("Erro ao salvar campanha:", error);
+      alert("Não foi possível salvar a campanha.");
     }
-
-    const campaigns = loadCampaigns();
-    const index = campaigns.findIndex(item => item.id === data.id);
-
-    if (index >= 0) {
-      data.created_at = campaigns[index].created_at || data.created_at;
-      campaigns[index] = data;
-    } else {
-      campaigns.push(data);
-    }
-
-    saveCampaigns(campaigns);
-    renderCampaigns();
-    closeModal();
   });
 
-  campaignTable.addEventListener("click", (e) => {
+  campaignTable.addEventListener("click", async (e) => {
     const button = e.target.closest("button[data-action]");
     if (!button) return;
 
     const action = button.dataset.action;
     const id = button.dataset.id;
-
-    const campaigns = loadCampaigns();
-    const campaign = campaigns.find(item => item.id === id);
+    const campaign = campaignsCache.find(item => String(item.id) === String(id));
 
     if (!campaign) return;
 
@@ -211,11 +283,15 @@
       const confirmed = confirm(`Deseja excluir a campanha "${campaign.name}"?`);
       if (!confirmed) return;
 
-      const updated = campaigns.filter(item => item.id !== id);
-      saveCampaigns(updated);
-      renderCampaigns();
+      try {
+        await deleteCampaign(id);
+        await loadCampaigns();
+      } catch (error) {
+        console.error("Erro ao excluir campanha:", error);
+        alert("Não foi possível excluir a campanha.");
+      }
     }
   });
 
-  renderCampaigns();
+  loadCampaigns();
 })();
