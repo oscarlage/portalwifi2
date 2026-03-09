@@ -16,12 +16,12 @@
         <p>Análise de acessos e comportamento dos clientes conectados ao Wi-Fi.</p>
       </header>
 
-      <div class="filters-grid">
+      <div class="filters-bar">
         <label>
           <span>Período</span>
           <select id="reportPeriod">
             <option value="today">Hoje</option>
-            <option value="7d">Últimos 7 dias</option>
+            <option value="7d" selected>Últimos 7 dias</option>
             <option value="30d">Últimos 30 dias</option>
             <option value="custom">Personalizado</option>
           </select>
@@ -47,7 +47,7 @@
           <select id="reportHourTo"></select>
         </label>
 
-        <div class="filter-actions">
+        <div class="filter-actions compact">
           <button type="button" class="btn-secondary" id="applyReportFilters">Aplicar filtros</button>
         </div>
       </div>
@@ -70,13 +70,24 @@
       </div>
     </section>
 
-    <section class="panel-card">
-      <h2>Horários de pico</h2>
-      <p class="muted">O gráfico é atualizado conforme período, datas e faixa horária.</p>
+    <section class="reports-grid">
+      <section class="panel-card">
+        <h2>Horários de pico</h2>
+        <p class="muted">Distribuição das conexões por faixa de horário no período filtrado.</p>
 
-      <div class="chart-box">
-        <canvas id="peakHoursCanvas"></canvas>
-      </div>
+        <div class="chart-box">
+          <canvas id="peakHoursCanvas"></canvas>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <h2>Novos clientes x recorrentes</h2>
+        <p class="muted">Comparativo do perfil da base no recorte selecionado.</p>
+
+        <div class="chart-box">
+          <canvas id="customersMixCanvas"></canvas>
+        </div>
+      </section>
     </section>
 
     <section class="panel-card" style="margin-top:20px;">
