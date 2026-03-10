@@ -1,20 +1,20 @@
 (function () {
   const SUPABASE_URL = window.PORTAL_SUPABASE_URL;
-const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
+  const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
-  console.warn("Supabase não configurado em window.PORTAL_SUPABASE_URL / window.PORTAL_SUPABASE_ANON_KEY");
-  return;
-}
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
+    console.warn("Supabase não configurado em window.PORTAL_SUPABASE_URL / window.PORTAL_SUPABASE_ANON_KEY");
+    return;
+  }
 
-if (!window.__PORTAL_SUPABASE_CLIENT__) {
-  window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
-}
+  if (!window.__PORTAL_SUPABASE_CLIENT__) {
+    window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+  }
 
-const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
+  const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
   const navLinks = document.querySelectorAll(".nav-link");
   const sections = document.querySelectorAll(".section");
@@ -51,6 +51,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
   const btnDisableTenantConfirm = document.getElementById("btnDisableTenantConfirm");
   const btnCopyAccessMessage = document.getElementById("btnCopyAccessMessage");
   const btnAddMembership = document.getElementById("btnAddMembership");
+  const btnGeneratePassword = document.getElementById("btnGeneratePassword");
 
   const accessResultText = document.getElementById("accessResultText");
 
@@ -121,7 +122,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
   function userRoleLabel(row) {
     if (row.platform_role) return row.platform_role;
     const memberships = Array.isArray(row.memberships) ? row.memberships : [];
-    const roles = memberships.map(m => m.role).filter(Boolean);
+    const roles = memberships.map((m) => m.role).filter(Boolean);
     return roles.length ? [...new Set(roles)].join(", ") : "-";
   }
 
@@ -136,21 +137,51 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
   }
 
   function setSection(name) {
-    navLinks.forEach(btn => {
+    navLinks.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.section === name);
     });
 
-    sections.forEach(sec => {
+    sections.forEach((sec) => {
       const id = sec.id.replace("section-", "");
       sec.classList.toggle("active", id === name);
     });
   }
 
+  function generatePassword(length = 8) {
+    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lower = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const all = upper + lower + numbers;
+
+    let password =
+      upper[Math.floor(Math.random() * upper.length)] +
+      lower[Math.floor(Math.random() * lower.length)] +
+      numbers[Math.floor(Math.random() * numbers.length)];
+
+    for (let i = password.length; i < length; i++) {
+      password += all[Math.floor(Math.random() * all.length)];
+    }
+
+    return password
+      .split("")
+      .sort(() => 0.5 - Math.random())
+      .join("");
+  }
+
+  function validatePassword(password) {
+    if (!password || password.length < 6) return false;
+    if (!/[A-Z]/.test(password)) return false;
+    if (!/[a-z]/.test(password)) return false;
+    if (!/[0-9]/.test(password)) return false;
+    if (/[^A-Za-z0-9]/.test(password)) return false;
+    return true;
+  }
+
   function renderTenantMetrics(rows) {
     const total = rows.length;
-    const active = rows.filter(r => r.status === "active").length;
-    const disabled = rows.filter(r => r.status === "disabled").length;
-    const admins = rows.filter(r => !!r.admin_email).length;
+    const active = rows.filter((r) => r.status === "active").length;
+    const disabled = rows.filter((r) => r.status === "disabled").length;
+    const admins = rows.filter((r) => !!r.admin_email).length;
 
     const totalEl = document.getElementById("metricTotalTenants");
     const activeEl = document.getElementById("metricActiveTenants");
@@ -165,9 +196,9 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
   function renderUserMetrics(rows) {
     const total = rows.length;
-    const globalUsers = rows.filter(r => r.scope === "global").length;
-    const tenantUsers = rows.filter(r => (r.tenant_count || 0) > 0).length;
-    const blocked = rows.filter(r => r.status === "blocked").length;
+    const globalUsers = rows.filter((r) => r.scope === "global").length;
+    const tenantUsers = rows.filter((r) => (r.tenant_count || 0) > 0).length;
+    const blocked = rows.filter((r) => r.status === "blocked").length;
 
     const totalEl = document.getElementById("metricTotalUsers");
     const globalEl = document.getElementById("metricGlobalUsers");
@@ -240,7 +271,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       return;
     }
 
-    allUsers = (data || []).map(row => ({
+    allUsers = (data || []).map((row) => ({
       ...row,
       memberships: Array.isArray(row.memberships) ? row.memberships : []
     }));
@@ -253,7 +284,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     const q = (tenantSearch?.value || "").trim().toLowerCase();
     const status = tenantStatusFilter?.value || "";
 
-    return allTenants.filter(row => {
+    return allTenants.filter((row) => {
       const text = [
         row.name,
         row.slug,
@@ -273,7 +304,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     const type = userTypeFilter?.value || "";
     const tenantId = userTenantFilter?.value || "";
 
-    return allUsers.filter(row => {
+    return allUsers.filter((row) => {
       const haystack = [
         row.full_name,
         row.email,
@@ -290,12 +321,12 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       } else if (type === "platform_admin") {
         okType = row.platform_role === "platform_admin";
       } else if (["tenant_admin", "tenant_viewer", "tenant_marketing"].includes(type)) {
-        okType = row.memberships.some(m => m.role === type);
+        okType = row.memberships.some((m) => m.role === type);
       }
 
       let okTenant = true;
       if (tenantId) {
-        okTenant = row.memberships.some(m => String(m.tenant_id) === String(tenantId));
+        okTenant = row.memberships.some((m) => String(m.tenant_id) === String(tenantId));
       }
 
       return okSearch && okStatus && okType && okTenant;
@@ -317,7 +348,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       return;
     }
 
-    tenantsTableBody.innerHTML = rows.map(row => {
+    tenantsTableBody.innerHTML = rows.map((row) => {
       const isActive = String(row.id) === String(activeTenantId);
 
       return `
@@ -376,7 +407,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       return;
     }
 
-    usersTableBody.innerHTML = rows.map(row => `
+    usersTableBody.innerHTML = rows.map((row) => `
       <tr>
         <td>
           <strong>${escapeHtml(row.full_name || "-")}</strong>
@@ -427,12 +458,12 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     select.innerHTML = `
       <option value="">Sem vínculo</option>
-      ${allTenants.map(t => `
+      ${allTenants.map((t) => `
         <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
       `).join("")}
     `;
 
-    if ([...select.options].some(opt => opt.value === current)) {
+    if ([...select.options].some((opt) => opt.value === current)) {
       select.value = current;
     }
   }
@@ -445,12 +476,12 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     select.innerHTML = `
       <option value="">Selecione</option>
-      ${allTenants.map(t => `
+      ${allTenants.map((t) => `
         <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
       `).join("")}
     `;
 
-    if ([...select.options].some(opt => opt.value === current)) {
+    if ([...select.options].some((opt) => opt.value === current)) {
       select.value = current;
     }
   }
@@ -463,17 +494,17 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     select.innerHTML = `
       <option value="">Todos os tenants</option>
-      ${allTenants.map(t => `
+      ${allTenants.map((t) => `
         <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
       `).join("")}
     `;
 
-    if ([...select.options].some(opt => opt.value === current)) {
+    if ([...select.options].some((opt) => opt.value === current)) {
       select.value = current;
     }
   }
 
-  function buildTenantAccessMessage(tenant, adminEmail, adminName) {
+  function buildTenantAccessMessage(tenant, adminEmail, adminName, password = "[gerar/definir]") {
     return [
       `Olá, ${adminName || "Administrador(a)"}.`,
       ``,
@@ -481,9 +512,9 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       ``,
       `Tenant: ${tenant.name || "-"}`,
       `Slug: ${tenant.slug || "-"}`,
-      `Painel: https://portalwifi2.pages.dev/estabelecimento/?tenant=${tenant.slug || ""}`,
+      `Painel: https://portalwifi2.pages.dev/estabelecimento/index.html?tenant=${tenant.slug || ""}`,
       `Usuário: ${adminEmail || "-"}`,
-      `Senha provisória: [gerar/definir]`,
+      `Senha provisória: ${password}`,
       ``,
       `Recomendamos alterar a senha no primeiro acesso.`,
       ``,
@@ -491,7 +522,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     ].join("\n");
   }
 
-  function buildUserAccessMessage(user) {
+  function buildUserAccessMessage(user, password = "[gerar/definir]") {
     return [
       `Olá, ${user.full_name || "Usuário(a)"}.`,
       ``,
@@ -502,7 +533,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       `Tenant(s): ${user.tenant_names || "-"}`,
       `Painel: https://portalwifi2.pages.dev/platform.html`,
       `Usuário: ${user.email || "-"}`,
-      `Senha provisória: [gerar/definir]`,
+      `Senha provisória: ${password}`,
       ``,
       `Recomendamos alterar a senha no primeiro acesso.`,
       ``,
@@ -511,7 +542,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
   }
 
   function resetCreateUserForm() {
-    ["userName", "userEmail", "userPhone"].forEach(id => {
+    ["userName", "userEmail", "userPhone", "userPassword", "userPasswordConfirm"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -523,6 +554,15 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     if (userType) userType.value = "tenant_admin";
     if (userStatus) userStatus.value = "active";
     if (userTenantId) userTenantId.value = "";
+  }
+
+  function fillGeneratedPassword() {
+    const pwd = generatePassword(8);
+    const pwdEl = document.getElementById("userPassword");
+    const pwdConfirmEl = document.getElementById("userPasswordConfirm");
+
+    if (pwdEl) pwdEl.value = pwd;
+    if (pwdConfirmEl) pwdConfirmEl.value = pwd;
   }
 
   async function handleCreateTenant() {
@@ -558,7 +598,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     closeModal(modalCreateTenant);
     await loadTenants();
 
-    const tenant = allTenants.find(t => t.slug === slug) || payload;
+    const tenant = allTenants.find((t) => t.slug === slug) || payload;
     accessResultText.textContent = buildTenantAccessMessage(tenant, admin_email, admin_name);
     openModal(modalAccessResult);
   }
@@ -570,9 +610,26 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     const selectedType = document.getElementById("userType")?.value;
     const status = document.getElementById("userStatus")?.value;
     const tenantId = document.getElementById("userTenantId")?.value;
+    const password = document.getElementById("userPassword")?.value.trim();
+    const passwordConfirm = document.getElementById("userPasswordConfirm")?.value.trim();
 
     if (!full_name || !email || !selectedType || !status) {
       alert("Preencha nome, e-mail, tipo e status.");
+      return;
+    }
+
+    if (!password || !passwordConfirm) {
+      alert("Informe a senha provisória e a confirmação.");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      alert("Senha e confirmação não conferem.");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      alert("A senha deve ter no mínimo 6 caracteres, com letra maiúscula, minúscula e número, sem caracteres especiais.");
       return;
     }
 
@@ -625,7 +682,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
     closeModal(modalCreateUser);
     await loadUsers();
 
-    const createdUser = allUsers.find(u => u.user_id === generatedUserId) || {
+    const createdUser = allUsers.find((u) => u.user_id === generatedUserId) || {
       full_name,
       email,
       scope,
@@ -633,7 +690,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       tenant_names: "-"
     };
 
-    accessResultText.textContent = buildUserAccessMessage(createdUser);
+    accessResultText.textContent = buildUserAccessMessage(createdUser, password);
     openModal(modalAccessResult);
   }
 
@@ -781,8 +838,8 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       return;
     }
 
-    wrap.innerHTML = membershipSnapshot.map(item => {
-      const tenant = allTenants.find(t => String(t.id) === String(item.tenant_id));
+    wrap.innerHTML = membershipSnapshot.map((item) => {
+      const tenant = allTenants.find((t) => String(t.id) === String(item.tenant_id));
       const tenantName = tenant?.name || item.tenant_id;
 
       return `
@@ -817,7 +874,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       return;
     }
 
-    const existing = membershipSnapshot.find(m => String(m.tenant_id) === String(tenantId));
+    const existing = membershipSnapshot.find((m) => String(m.tenant_id) === String(tenantId));
 
     if (existing) {
       const { error } = await supabaseClient
@@ -848,7 +905,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       }
     }
 
-    const user = allUsers.find(u => String(u.user_id) === String(userId));
+    const user = allUsers.find((u) => String(u.user_id) === String(userId));
     if (user) {
       await openMembershipModal(user);
     }
@@ -865,7 +922,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     if (!userId || !tenantId) return;
 
-    const current = membershipSnapshot.find(m => String(m.tenant_id) === String(tenantId));
+    const current = membershipSnapshot.find((m) => String(m.tenant_id) === String(tenantId));
     if (!current) return;
 
     if (action === "toggle") {
@@ -896,7 +953,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       }
     }
 
-    const user = allUsers.find(u => String(u.user_id) === String(userId));
+    const user = allUsers.find((u) => String(u.user_id) === String(userId));
     if (user) {
       await openMembershipModal(user);
     }
@@ -909,7 +966,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     const action = btn.dataset.action;
     const id = btn.dataset.id;
-    const tenant = allTenants.find(t => String(t.id) === String(id));
+    const tenant = allTenants.find((t) => String(t.id) === String(id));
     if (!tenant) return;
 
     if (action === "select") {
@@ -960,7 +1017,7 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
     const action = btn.dataset.userAction;
     const userId = btn.dataset.userId;
-    const user = allUsers.find(u => String(u.user_id) === String(userId));
+    const user = allUsers.find((u) => String(u.user_id) === String(userId));
     if (!user) return;
 
     if (action === "edit") {
@@ -1001,19 +1058,22 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
   }
 
   function bindEvents() {
-    navLinks.forEach(btn => {
+    navLinks.forEach((btn) => {
       btn.addEventListener("click", () => setSection(btn.dataset.section));
     });
 
-    [btnOpenCreateTenant, btnOpenCreateTenant2].forEach(btn => {
+    [btnOpenCreateTenant, btnOpenCreateTenant2].forEach((btn) => {
       btn?.addEventListener("click", () => openModal(modalCreateTenant));
     });
 
     btnOpenCreateUser?.addEventListener("click", () => {
       resetCreateUserForm();
       populateUserTenantOptions();
+      fillGeneratedPassword();
       openModal(modalCreateUser);
     });
+
+    btnGeneratePassword?.addEventListener("click", fillGeneratedPassword);
 
     btnReloadTenants?.addEventListener("click", loadTenants);
 
@@ -1022,24 +1082,24 @@ const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
       await loadUsers();
     });
 
-btnLogout?.addEventListener("click", async () => {
-  try {
-    await supabaseClient.auth.signOut();
+    btnLogout?.addEventListener("click", async () => {
+      try {
+        await supabaseClient.auth.signOut();
 
-    sessionStorage.removeItem("tenant_id");
-    sessionStorage.removeItem("tenant_role");
-    sessionStorage.removeItem("tenant_slug_preview");
+        sessionStorage.removeItem("tenant_id");
+        sessionStorage.removeItem("tenant_role");
+        sessionStorage.removeItem("tenant_slug_preview");
 
-    localStorage.removeItem(ACTIVE_TENANT_ID_KEY);
-    localStorage.removeItem(ACTIVE_TENANT_NAME_KEY);
-    localStorage.removeItem(ACTIVE_TENANT_SLUG_KEY);
+        localStorage.removeItem(ACTIVE_TENANT_ID_KEY);
+        localStorage.removeItem(ACTIVE_TENANT_NAME_KEY);
+        localStorage.removeItem(ACTIVE_TENANT_SLUG_KEY);
 
-    window.location.replace("/login.html");
-  } catch (error) {
-    console.error("Erro ao sair:", error);
-    alert(`Não foi possível sair: ${error.message}`);
-  }
-});
+        window.location.replace("/login.html");
+      } catch (error) {
+        console.error("Erro ao sair:", error);
+        alert(`Não foi possível sair: ${error.message}`);
+      }
+    });
 
     tenantSearch?.addEventListener("input", renderTenants);
     tenantStatusFilter?.addEventListener("change", renderTenants);
@@ -1070,7 +1130,7 @@ btnLogout?.addEventListener("click", async () => {
       }
     });
 
-    document.querySelectorAll("[data-close]").forEach(btn => {
+    document.querySelectorAll("[data-close]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-close");
         closeModal(document.getElementById(id));
