@@ -1,207 +1,157 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Portal WiFi</title>
-  <h1>INDEX NOVO DA RAIZ</h1>
-
-<style>
-body{
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
-  background:#f6f7fb;
-  color:#0f172a;
-}
-
-.box{
-  width:min(92vw,520px);
-  background:#fff;
-  border:1px solid rgba(15,23,42,.12);
-  border-radius:16px;
-  padding:24px;
-  box-shadow:0 10px 24px rgba(15,23,42,.06);
-  text-align:center;
-}
-
-pre{
-  text-align:left;
-  white-space:pre-wrap;
-  word-break:break-word;
-  background:#0b1020;
-  color:#e5e7eb;
-  border-radius:12px;
-  padding:12px;
-  font-size:12px;
-  max-height:240px;
-  overflow:auto;
-  margin-top:16px;
-}
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Portal WiFi</title>
+  <style>
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      background:#f6f7fb;
+      color:#0f172a;
+    }
+    .box{
+      width:min(92vw,620px);
+      background:#fff;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:16px;
+      padding:24px;
+      box-shadow:0 10px 24px rgba(15,23,42,.06);
+    }
+    h2{margin:0 0 8px}
+    p{margin:0;color:#475569}
+    pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#0b1020;
+      color:#e5e7eb;
+      border-radius:12px;
+      padding:12px;
+      font-size:12px;
+      max-height:320px;
+      overflow:auto;
+      margin-top:16px;
+    }
+    .ok{color:#16a34a;font-weight:700}
+    .err{color:#dc2626;font-weight:700}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
+  <div class="box">
+    <h2>Portal WiFi</h2>
+    <p id="status">Verificando autenticação...</p>
+    <pre id="log"></pre>
+  </div>
 
-<div class="box">
-<h2>Portal WiFi</h2>
-<p id="status">Verificando autenticação...</p>
-<pre id="log"></pre>
-</div>
+  <script>
+    const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
 
-<script>
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const logBox = document.getElementById("log");
+    const statusBox = document.getElementById("status");
 
-const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+    function setStatus(text, cls = "") {
+      statusBox.textContent = text;
+      statusBox.className = cls;
+    }
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+    function addLog(obj) {
+      const txt = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+      logBox.textContent += (logBox.textContent ? "\n" : "") + txt;
+      console.log(obj);
+    }
 
-const logBox = document.getElementById("log");
-const status = document.getElementById("status");
+    async function init() {
+      try {
+        setStatus("Verificando sessão...");
 
-function log(obj){
-  const txt = typeof obj === "string"
-    ? obj
-    : JSON.stringify(obj,null,2);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        addLog({ step: "session", hasSession: !!sessionData?.session, sessionError });
 
-  logBox.textContent += (logBox.textContent ? "\n" : "") + txt;
-  console.log(obj);
-}
+        if (sessionError) {
+          setStatus("Falha ao ler sessão", "err");
+          return;
+        }
 
-function setStatus(t){
-  status.textContent = t;
-}
+        const session = sessionData.session;
 
-async function goLogin(reason){
+        if (!session || !session.user) {
+          setStatus("Sem sessão. Redirecionando para login...");
+          setTimeout(() => {
+            window.location.replace("/login.html");
+          }, 500);
+          return;
+        }
 
-  try{
-    await supabase.auth.signOut();
-  }catch(e){}
+        const userId = session.user.id;
 
-  sessionStorage.removeItem("tenant_id");
-  sessionStorage.removeItem("tenant_role");
+        setStatus("Consultando perfil...");
 
-  if(reason){
-    window.location.replace("/login.html?erro="+encodeURIComponent(reason));
-  }else{
-    window.location.replace("/login.html");
-  }
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_id,email,full_name,status,is_platform_user,platform_role")
+          .eq("user_id", userId)
+          .single();
 
-}
+        addLog({ step: "profile", profile, profileError });
 
-async function init(){
+        if (profileError || !profile) {
+          setStatus("Falha: perfil não encontrado", "err");
+          return;
+        }
 
-try{
+        if (profile.status !== "active") {
+          setStatus("Falha: usuário inativo, status = " + profile.status, "err");
+          return;
+        }
 
-setStatus("Verificando sessão...");
+        if (profile.is_platform_user === true) {
+          setStatus("Usuário global detectado. Redirecionando para platform.html...", "ok");
+          setTimeout(() => {
+            window.location.replace("/platform.html");
+          }, 800);
+          return;
+        }
 
-const { data:sessionData, error:sessionError } =
-  await supabase.auth.getSession();
+        setStatus("Consultando vínculo do tenant...");
 
-log({ step:"session", sessionError, hasSession:!!sessionData?.session });
+        const { data: memberships, error: membershipError } = await supabase
+          .from("tenant_members")
+          .select("tenant_id,role,is_active")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .limit(1);
 
-if(sessionError){
-  await goLogin("sessao_invalida");
-  return;
-}
+        addLog({ step: "membership", memberships, membershipError });
 
-const session = sessionData.session;
+        if (membershipError || !memberships || memberships.length === 0) {
+          setStatus("Falha: sem vínculo ativo de tenant", "err");
+          return;
+        }
 
-if(!session || !session.user){
-  window.location.replace("/login.html");
-  return;
-}
+        const membership = memberships[0];
+        sessionStorage.setItem("tenant_id", membership.tenant_id);
+        sessionStorage.setItem("tenant_role", membership.role);
 
-const userId = session.user.id;
+        setStatus("Usuário tenant detectado. Redirecionando para estabelecimento...", "ok");
+        setTimeout(() => {
+          window.location.replace("/estabelecimento/index.html");
+        }, 800);
 
-setStatus("Consultando perfil...");
+      } catch (err) {
+        addLog({ step: "fatal_error", message: err.message, stack: err.stack });
+        setStatus("Erro fatal: " + err.message, "err");
+      }
+    }
 
-const { data:profile, error:profileError } =
-await supabase
-.from("profiles")
-.select("user_id,email,status,is_platform_user,platform_role")
-.eq("user_id",userId)
-.single();
-
-log({ step:"profile", profile, profileError });
-
-if(profileError || !profile){
-  await goLogin("perfil_nao_encontrado");
-  return;
-}
-
-if(profile.status !== "active"){
-  await goLogin("usuario_inativo");
-  return;
-}
-
-/* ---------- USUÁRIO GLOBAL ---------- */
-
-if(profile.is_platform_user === true){
-
-  sessionStorage.removeItem("tenant_id");
-  sessionStorage.removeItem("tenant_role");
-
-  setStatus("Redirecionando para plataforma...");
-
-  window.location.replace("/platform.html");
-  return;
-
-}
-
-/* ---------- USUÁRIO TENANT ---------- */
-
-setStatus("Consultando vínculo do tenant...");
-
-const { data:memberships, error:membershipError } =
-await supabase
-.from("tenant_members")
-.select("tenant_id,role,is_active")
-.eq("user_id",userId)
-.eq("is_active",true)
-.limit(1);
-
-log({ step:"membership", memberships, membershipError });
-
-if(membershipError || !memberships || memberships.length===0){
-  await goLogin("sem_vinculo_ativo");
-  return;
-}
-
-const membership = memberships[0];
-
-sessionStorage.setItem("tenant_id",membership.tenant_id);
-sessionStorage.setItem("tenant_role",membership.role);
-
-setStatus("Redirecionando para estabelecimento...");
-
-window.location.replace("/estabelecimento/index.html");
-
-}catch(err){
-
-log({
-  step:"fatal_error",
-  message:err.message,
-  stack:err.stack
-});
-
-await goLogin("falha_autenticacao");
-
-}
-
-}
-
-init();
-
-</script>
-
+    init();
+  </script>
 </body>
 </html>
