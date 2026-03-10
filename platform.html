@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portal WiFi</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal WiFi</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/assets/css/platform.css">
+  <link rel="stylesheet" href="/assets/css/platform.css">
 </head>
 <body>
 
@@ -50,11 +50,11 @@
     <div class="platform-sidebox">
       <div class="sidebox-title">Ações rápidas</div>
 
-      <button class="btn btn-primary full" id="btnOpenCreateTenant">
+      <button class="btn btn-primary full" id="btnOpenCreateTenant" type="button">
         Novo tenant
       </button>
 
-      <button class="btn btn-light full" id="btnReloadTenants">
+      <button class="btn btn-light full" id="btnReloadTenants" type="button">
         Recarregar lista
       </button>
     </div>
@@ -126,7 +126,7 @@
         </div>
 
         <div class="section-actions">
-          <button class="btn btn-primary" id="btnOpenCreateTenant2">
+          <button class="btn btn-primary" id="btnOpenCreateTenant2" type="button">
             Novo tenant
           </button>
         </div>
@@ -162,7 +162,6 @@
                 <th style="width:320px;">Ações</th>
               </tr>
             </thead>
-
             <tbody id="tenantsTableBody">
               <tr>
                 <td colspan="7" class="empty-row">Carregando...</td>
@@ -182,7 +181,7 @@
         </div>
 
         <div class="section-actions">
-          <button class="btn btn-primary" id="btnOpenCreateUser">
+          <button class="btn btn-primary" id="btnOpenCreateUser" type="button">
             Novo usuário
           </button>
         </div>
@@ -234,7 +233,6 @@
                 <th style="width:360px;">Ações</th>
               </tr>
             </thead>
-
             <tbody id="usersTableBody">
               <tr>
                 <td colspan="8" class="empty-row">Carregando usuários...</td>
@@ -245,7 +243,90 @@
       </div>
     </section>
 
+    <!-- LOGS -->
+    <section class="section" id="section-logs">
+      <div class="section-head">
+        <div>
+          <h2>Logs</h2>
+          <p>Área reservada para auditoria e eventos operacionais.</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="empty-row">Módulo em preparação.</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="section" id="section-settings">
+      <div class="section-head">
+        <div>
+          <h2>Configurações</h2>
+          <p>Preferências e parâmetros globais da plataforma.</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="empty-row">Módulo em preparação.</div>
+      </div>
+    </section>
+
   </main>
+</div>
+
+<!-- MODAL NOVO TENANT -->
+<div class="modal-backdrop hidden" id="modalCreateTenant">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>Novo tenant</h3>
+      <button class="icon-btn" data-close="modalCreateTenant" type="button" aria-label="Fechar modal">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-section">
+        <h4>Dados do tenant</h4>
+
+        <label class="field">
+          <span>Nome do tenant</span>
+          <input type="text" id="tenantName" class="input" placeholder="Ex.: Restaurante Central">
+        </label>
+
+        <label class="field">
+          <span>Slug</span>
+          <input type="text" id="tenantSlug" class="input" placeholder="Ex.: restaurante-central">
+        </label>
+
+        <label class="field">
+          <span>Status</span>
+          <select id="tenantStatus" class="input select">
+            <option value="active">Ativo</option>
+            <option value="pending">Pendente</option>
+            <option value="disabled">Desabilitado</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Nome do administrador</span>
+          <input type="text" id="tenantAdminName" class="input" placeholder="Nome do responsável">
+        </label>
+
+        <label class="field">
+          <span>E-mail do administrador</span>
+          <input type="email" id="tenantAdminEmail" class="input" placeholder="email@empresa.com">
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-light" data-close="modalCreateTenant" type="button">
+        Cancelar
+      </button>
+
+      <button class="btn btn-primary" id="btnCreateTenantConfirm" type="button">
+        Criar tenant
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL NOVO USUÁRIO -->
@@ -258,6 +339,7 @@
 
     <div class="modal-body">
       <div class="form-grid">
+
         <div class="form-section">
           <h4>Dados do usuário</h4>
 
@@ -323,7 +405,6 @@
               class="input"
               placeholder="Senha inicial"
             >
-
             <button
               type="button"
               class="btn btn-light"
