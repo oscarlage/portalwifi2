@@ -1,13 +1,20 @@
 (function () {
   const SUPABASE_URL = window.PORTAL_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
+const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
-    console.warn("Supabase não configurado em window.PORTAL_SUPABASE_URL / window.PORTAL_SUPABASE_ANON_KEY");
-    return;
-  }
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
+  console.warn("Supabase não configurado em window.PORTAL_SUPABASE_URL / window.PORTAL_SUPABASE_ANON_KEY");
+  return;
+}
 
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!window.__PORTAL_SUPABASE_CLIENT__) {
+  window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+}
+
+const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
 
   const navLinks = document.querySelectorAll(".nav-link");
   const sections = document.querySelectorAll(".section");
@@ -915,7 +922,7 @@
     if (action === "open-panel") {
       setActiveTenant(tenant);
       renderTenants();
-      window.location.href = `/estabelecimento/?tenant=${encodeURIComponent(tenant.slug || "")}`;
+      window.location.href = `/estabelecimento/index.html?tenant=${encodeURIComponent(tenant.slug || "")}`;
       return;
     }
 
@@ -1015,9 +1022,24 @@
       await loadUsers();
     });
 
-    btnLogout?.addEventListener("click", () => {
-      alert("Fluxo de logout ainda será integrado.");
-    });
+btnLogout?.addEventListener("click", async () => {
+  try {
+    await supabaseClient.auth.signOut();
+
+    sessionStorage.removeItem("tenant_id");
+    sessionStorage.removeItem("tenant_role");
+    sessionStorage.removeItem("tenant_slug_preview");
+
+    localStorage.removeItem(ACTIVE_TENANT_ID_KEY);
+    localStorage.removeItem(ACTIVE_TENANT_NAME_KEY);
+    localStorage.removeItem(ACTIVE_TENANT_SLUG_KEY);
+
+    window.location.replace("/login.html");
+  } catch (error) {
+    console.error("Erro ao sair:", error);
+    alert(`Não foi possível sair: ${error.message}`);
+  }
+});
 
     tenantSearch?.addEventListener("input", renderTenants);
     tenantStatusFilter?.addEventListener("change", renderTenants);
