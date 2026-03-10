@@ -9,418 +9,358 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="/assets/css/platform.css">
-
 </head>
 <body>
 
 <header class="platform-topbar">
 
-<div class="topbar-left">
-<div class="platform-title">Portal WiFi — Plataforma</div>
-<div class="platform-subtitle">Gestão de tenants, acessos e operação SaaS</div>
-</div>
+  <div class="topbar-left">
+    <div class="platform-title">Portal WiFi — Plataforma</div>
+    <div class="platform-subtitle">Gestão de tenants, acessos e operação SaaS</div>
+  </div>
 
-<div class="topbar-right">
+  <div class="topbar-right">
+    <div class="session-pill">
+      <span class="dot"></span>
+      <span>Sessão ativa</span>
+    </div>
 
-<div class="session-pill">
-<span class="dot"></span>
-<span>Sessão ativa</span>
-</div>
+    <button class="btn btn-light" id="btnRefreshPlatform" type="button">
+      Atualizar
+    </button>
 
-<button class="btn btn-light" id="btnRefreshPlatform" type="button">
-Atualizar
-</button>
-
-<button class="btn btn-dark" id="btnLogout" type="button">
-Sair
-</button>
-
-</div>
+    <button class="btn btn-dark" id="btnLogout" type="button">
+      Sair
+    </button>
+  </div>
 </header>
 
 <div class="platform-shell">
 
-<aside class="platform-sidebar">
+  <aside class="platform-sidebar">
 
-<nav class="platform-nav">
-<button class="nav-link active" data-section="overview">Visão geral</button>
-<button class="nav-link" data-section="tenants">Tenants</button>
-<button class="nav-link" data-section="users">Usuários</button>
-<button class="nav-link" data-section="logs">Logs</button>
-<button class="nav-link" data-section="settings">Configurações</button>
-</nav>
+    <nav class="platform-nav">
+      <button class="nav-link active" data-section="overview">Visão geral</button>
+      <button class="nav-link" data-section="tenants">Tenants</button>
+      <button class="nav-link" data-section="users">Usuários</button>
+      <button class="nav-link" data-section="logs">Logs</button>
+      <button class="nav-link" data-section="settings">Configurações</button>
+    </nav>
 
-<div class="platform-sidebox">
-<div class="sidebox-title">Ações rápidas</div>
+    <div class="platform-sidebox">
+      <div class="sidebox-title">Ações rápidas</div>
 
-<button class="btn btn-primary full" id="btnOpenCreateTenant">
-Novo tenant
-</button>
+      <button class="btn btn-primary full" id="btnOpenCreateTenant">
+        Novo tenant
+      </button>
 
-<button class="btn btn-light full" id="btnReloadTenants">
-Recarregar lista
-</button>
+      <button class="btn btn-light full" id="btnReloadTenants">
+        Recarregar lista
+      </button>
+    </div>
 
+  </aside>
+
+  <main class="platform-main">
+
+    <!-- OVERVIEW -->
+    <section class="section active" id="section-overview">
+      <div class="section-head">
+        <div>
+          <h1>Visão geral</h1>
+          <p>Resumo operacional da plataforma multitenant.</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="metric-card">
+          <div class="metric-label">Total de tenants</div>
+          <div class="metric-value" id="metricTotalTenants">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Tenants ativos</div>
+          <div class="metric-value" id="metricActiveTenants">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Tenants desabilitados</div>
+          <div class="metric-value" id="metricDisabledTenants">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Admins principais</div>
+          <div class="metric-value" id="metricAdmins">0</div>
+        </article>
+      </div>
+
+      <div class="cards-grid cards-grid-spaced">
+        <article class="metric-card">
+          <div class="metric-label">Total de usuários</div>
+          <div class="metric-value" id="metricTotalUsers">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Usuários globais</div>
+          <div class="metric-value" id="metricGlobalUsers">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Usuários com tenant</div>
+          <div class="metric-value" id="metricTenantUsers">0</div>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Usuários bloqueados</div>
+          <div class="metric-value" id="metricBlockedUsers">0</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- TENANTS -->
+    <section class="section" id="section-tenants">
+      <div class="section-head">
+        <div>
+          <h2>Tenants</h2>
+          <p>Gerencie tenants e administradores.</p>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn btn-primary" id="btnOpenCreateTenant2">
+            Novo tenant
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="toolbar">
+          <input
+            type="text"
+            id="tenantSearch"
+            class="input"
+            placeholder="Buscar por nome, slug ou admin"
+          >
+
+          <select id="tenantStatusFilter" class="input select">
+            <option value="">Todos</option>
+            <option value="active">Ativo</option>
+            <option value="disabled">Desabilitado</option>
+            <option value="pending">Pendente</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tenant</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Admin</th>
+                <th>Email</th>
+                <th>Criado</th>
+                <th style="width:320px;">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody id="tenantsTableBody">
+              <tr>
+                <td colspan="7" class="empty-row">Carregando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="section" id="section-users">
+      <div class="section-head">
+        <div>
+          <h2>Usuários</h2>
+          <p>Gestão de usuários globais e dos tenants.</p>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn btn-primary" id="btnOpenCreateUser">
+            Novo usuário
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="toolbar">
+          <input
+            type="text"
+            id="userSearch"
+            class="input"
+            placeholder="Buscar usuário"
+          >
+
+          <select id="userStatusFilter" class="input select">
+            <option value="">Todos status</option>
+            <option value="active">Ativo</option>
+            <option value="pending">Pendente</option>
+            <option value="blocked">Bloqueado</option>
+            <option value="disabled">Desabilitado</option>
+          </select>
+
+          <select id="userTypeFilter" class="input select">
+            <option value="">Todos tipos</option>
+            <option value="global">Global</option>
+            <option value="tenant">Tenant</option>
+            <option value="platform_admin">Platform admin</option>
+            <option value="tenant_admin">Tenant admin</option>
+            <option value="tenant_viewer">Tenant viewer</option>
+            <option value="tenant_marketing">Tenant marketing</option>
+          </select>
+
+          <select id="userTenantFilter" class="input select">
+            <option value="">Todos tenants</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Email</th>
+                <th>Escopo</th>
+                <th>Papel</th>
+                <th>Tenant(s)</th>
+                <th>Status</th>
+                <th>Último acesso</th>
+                <th style="width:360px;">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="8" class="empty-row">Carregando usuários...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
 </div>
-
-</aside>
-
-<main class="platform-main">
-
-<!-- OVERVIEW -->
-
-<section class="section active" id="section-overview">
-
-<div class="section-head">
-<div>
-<h1>Visão geral</h1>
-<p>Resumo operacional da plataforma multitenant.</p>
-</div>
-</div>
-
-<div class="cards-grid">
-
-<article class="metric-card">
-<div class="metric-label">Total de tenants</div>
-<div class="metric-value" id="metricTotalTenants">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Tenants ativos</div>
-<div class="metric-value" id="metricActiveTenants">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Tenants desabilitados</div>
-<div class="metric-value" id="metricDisabledTenants">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Admins principais</div>
-<div class="metric-value" id="metricAdmins">0</div>
-</article>
-
-</div>
-
-<div class="cards-grid" style="margin-top:20px;">
-
-<article class="metric-card">
-<div class="metric-label">Total de usuários</div>
-<div class="metric-value" id="metricTotalUsers">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Usuários globais</div>
-<div class="metric-value" id="metricGlobalUsers">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Usuários com tenant</div>
-<div class="metric-value" id="metricTenantUsers">0</div>
-</article>
-
-<article class="metric-card">
-<div class="metric-label">Usuários bloqueados</div>
-<div class="metric-value" id="metricBlockedUsers">0</div>
-</article>
-
-</div>
-
-</section>
-
-
-<!-- TENANTS -->
-
-<section class="section" id="section-tenants">
-
-<div class="section-head">
-
-<div>
-<h2>Tenants</h2>
-<p>Gerencie tenants e administradores.</p>
-</div>
-
-<div class="section-actions">
-<button class="btn btn-primary" id="btnOpenCreateTenant2">
-Novo tenant
-</button>
-</div>
-
-</div>
-
-<div class="panel-card">
-
-<div class="toolbar">
-
-<input type="text"
-id="tenantSearch"
-class="input"
-placeholder="Buscar por nome, slug ou admin">
-
-<select id="tenantStatusFilter" class="input select">
-<option value="">Todos</option>
-<option value="active">Ativo</option>
-<option value="disabled">Desabilitado</option>
-<option value="pending">Pendente</option>
-</select>
-
-</div>
-
-<div class="table-wrap">
-
-<table class="data-table">
-
-<thead>
-<tr>
-<th>Tenant</th>
-<th>Slug</th>
-<th>Status</th>
-<th>Admin</th>
-<th>Email</th>
-<th>Criado</th>
-<th style="width:320px;">Ações</th>
-</tr>
-</thead>
-
-<tbody id="tenantsTableBody">
-<tr>
-<td colspan="7" class="empty-row">Carregando...</td>
-</tr>
-</tbody>
-
-</table>
-
-</div>
-</div>
-</section>
-
-
-<!-- USERS -->
-
-<section class="section" id="section-users">
-
-<div class="section-head">
-
-<div>
-<h2>Usuários</h2>
-<p>Gestão de usuários globais e dos tenants.</p>
-</div>
-
-<div class="section-actions">
-<button class="btn btn-primary" id="btnOpenCreateUser">
-Novo usuário
-</button>
-</div>
-
-</div>
-
-<div class="panel-card">
-
-<div class="toolbar">
-
-<input type="text"
-id="userSearch"
-class="input"
-placeholder="Buscar usuário">
-
-<select id="userStatusFilter" class="input select">
-<option value="">Todos status</option>
-<option value="active">Ativo</option>
-<option value="pending">Pendente</option>
-<option value="blocked">Bloqueado</option>
-<option value="disabled">Desabilitado</option>
-</select>
-
-<select id="userTypeFilter" class="input select">
-<option value="">Todos tipos</option>
-<option value="global">Global</option>
-<option value="tenant">Tenant</option>
-<option value="platform_admin">Platform admin</option>
-<option value="tenant_admin">Tenant admin</option>
-<option value="tenant_viewer">Tenant viewer</option>
-<option value="tenant_marketing">Tenant marketing</option>
-</select>
-
-<select id="userTenantFilter" class="input select">
-<option value="">Todos tenants</option>
-</select>
-
-</div>
-
-<div class="table-wrap">
-
-<table class="data-table">
-
-<thead>
-<tr>
-<th>Usuário</th>
-<th>Email</th>
-<th>Escopo</th>
-<th>Papel</th>
-<th>Tenant(s)</th>
-<th>Status</th>
-<th>Último acesso</th>
-<th style="width:360px;">Ações</th>
-</tr>
-</thead>
-
-<tbody id="usersTableBody">
-<tr>
-<td colspan="8" class="empty-row">Carregando usuários...</td>
-</tr>
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-</section>
-
-</main>
-
-</div>
-
 
 <!-- MODAL NOVO USUÁRIO -->
-
 <div class="modal-backdrop hidden" id="modalCreateUser">
+  <div class="modal modal-user">
+    <div class="modal-head">
+      <h3>Novo usuário</h3>
+      <button class="icon-btn" data-close="modalCreateUser" type="button" aria-label="Fechar modal">×</button>
+    </div>
 
-<div class="modal">
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section">
+          <h4>Dados do usuário</h4>
 
-<div class="modal-head">
-<h3>Novo usuário</h3>
-<button class="icon-btn" data-close="modalCreateUser">×</button>
+          <label class="field">
+            <span>Nome</span>
+            <input type="text" id="userName" class="input">
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input type="email" id="userEmail" class="input">
+          </label>
+
+          <label class="field">
+            <span>Telefone</span>
+            <input type="text" id="userPhone" class="input">
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Acesso</h4>
+
+          <label class="field">
+            <span>Tipo de usuário</span>
+            <select id="userType" class="input select">
+              <option value="tenant_admin">Tenant admin</option>
+              <option value="tenant_viewer">Tenant viewer</option>
+              <option value="tenant_marketing">Tenant marketing</option>
+              <option value="platform_admin">Platform admin</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Status</span>
+            <select id="userStatus" class="input select">
+              <option value="active">Ativo</option>
+              <option value="pending">Pendente</option>
+              <option value="blocked">Bloqueado</option>
+              <option value="disabled">Desabilitado</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Tenant</span>
+            <select id="userTenantId" class="input select">
+              <option value="">Sem vínculo</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-section form-section-password">
+        <h4>Senha provisória</h4>
+
+        <label class="field">
+          <span>Senha</span>
+          <div class="password-row">
+            <input
+              type="text"
+              id="userPassword"
+              class="input"
+              placeholder="Senha inicial"
+            >
+
+            <button
+              type="button"
+              class="btn btn-light"
+              id="btnGeneratePassword">
+              Gerar
+            </button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Confirmar senha</span>
+          <input type="text" id="userPasswordConfirm" class="input">
+        </label>
+
+        <p class="muted">
+          A senha será provisória. O usuário será obrigado a alterá-la no primeiro login.
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-light" data-close="modalCreateUser" type="button">
+        Cancelar
+      </button>
+
+      <button class="btn btn-primary" id="btnCreateUserConfirm" type="button">
+        Criar usuário
+      </button>
+    </div>
+  </div>
 </div>
-
-<div class="modal-body">
-
-<div class="form-grid">
-
-<div class="form-section">
-
-<h4>Dados do usuário</h4>
-
-<label class="field">
-<span>Nome</span>
-<input type="text" id="userName" class="input">
-</label>
-
-<label class="field">
-<span>Email</span>
-<input type="email" id="userEmail" class="input">
-</label>
-
-<label class="field">
-<span>Telefone</span>
-<input type="text" id="userPhone" class="input">
-</label>
-
-</div>
-
-
-<div class="form-section">
-
-<h4>Acesso</h4>
-
-<label class="field">
-<span>Tipo de usuário</span>
-<select id="userType" class="input select">
-<option value="tenant_admin">Tenant admin</option>
-<option value="tenant_viewer">Tenant viewer</option>
-<option value="tenant_marketing">Tenant marketing</option>
-<option value="platform_admin">Platform admin</option>
-</select>
-</label>
-
-<label class="field">
-<span>Status</span>
-<select id="userStatus" class="input select">
-<option value="active">Ativo</option>
-<option value="pending">Pendente</option>
-<option value="blocked">Bloqueado</option>
-<option value="disabled">Desabilitado</option>
-</select>
-</label>
-
-<label class="field">
-<span>Tenant</span>
-<select id="userTenantId" class="input select">
-<option value="">Sem vínculo</option>
-</select>
-</label>
-
-</div>
-
-</div>
-
-<hr style="margin:20px 0;">
-
-
-<div class="form-section">
-
-<h4>Senha provisória</h4>
-
-<label class="field">
-<span>Senha</span>
-
-<div style="display:flex; gap:10px;">
-
-<input type="text"
-id="userPassword"
-class="input"
-placeholder="Senha inicial">
-
-<button
-type="button"
-class="btn btn-light"
-id="btnGeneratePassword">
-
-Gerar
-
-</button>
-
-</div>
-
-</label>
-
-<label class="field">
-<span>Confirmar senha</span>
-<input type="text" id="userPasswordConfirm" class="input">
-</label>
-
-<p class="muted">
-A senha será provisória. O usuário será obrigado a alterá-la no primeiro login.
-</p>
-
-</div>
-
-</div>
-
-<div class="modal-foot">
-
-<button class="btn btn-light" data-close="modalCreateUser">
-Cancelar
-</button>
-
-<button class="btn btn-primary" id="btnCreateUserConfirm">
-Criar usuário
-</button>
-
-</div>
-
-</div>
-</div>
-
-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-window.PORTAL_SUPABASE_URL="https://kedmyfxtxcfnyftkasfg.supabase.co";
-
-window.PORTAL_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
+window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
 </script>
 
 <script src="/assets/js/platform.js"></script>
