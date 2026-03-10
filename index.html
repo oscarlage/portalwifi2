@@ -50,108 +50,122 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+    if (window.__PORTALWIFI_ROOT_INIT__) {
+      console.warn("Root router já inicializado.");
+    } else {
+      window.__PORTALWIFI_ROOT_INIT__ = true;
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const logBox = document.getElementById("log");
-    const statusBox = document.getElementById("status");
+      const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
 
-    function setStatus(text, cls = "") {
-      statusBox.textContent = text;
-      statusBox.className = cls;
-    }
+      const logBox = document.getElementById("log");
+      const statusBox = document.getElementById("status");
 
-    function addLog(obj) {
-      const txt = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-      logBox.textContent += (logBox.textContent ? "\n" : "") + txt;
-      console.log(obj);
-    }
-
-    async function init() {
-      try {
-        setStatus("Verificando sessão...");
-
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        addLog({ step: "session", hasSession: !!sessionData?.session, sessionError });
-
-        if (sessionError) {
-          setStatus("Falha ao ler sessão", "err");
-          return;
-        }
-
-        const session = sessionData.session;
-
-        if (!session || !session.user) {
-          setStatus("Sem sessão. Redirecionando para login...");
-          setTimeout(() => {
-            window.location.replace("/login.html");
-          }, 500);
-          return;
-        }
-
-        const userId = session.user.id;
-
-        setStatus("Consultando perfil...");
-
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("user_id,email,full_name,status,is_platform_user,platform_role")
-          .eq("user_id", userId)
-          .single();
-
-        addLog({ step: "profile", profile, profileError });
-
-        if (profileError || !profile) {
-          setStatus("Falha: perfil não encontrado", "err");
-          return;
-        }
-
-        if (profile.status !== "active") {
-          setStatus("Falha: usuário inativo, status = " + profile.status, "err");
-          return;
-        }
-
-        if (profile.is_platform_user === true) {
-          setStatus("Usuário global detectado. Redirecionando para platform.html...", "ok");
-          setTimeout(() => {
-            window.location.replace("/platform.html");
-          }, 800);
-          return;
-        }
-
-        setStatus("Consultando vínculo do tenant...");
-
-        const { data: memberships, error: membershipError } = await supabase
-          .from("tenant_members")
-          .select("tenant_id,role,is_active")
-          .eq("user_id", userId)
-          .eq("is_active", true)
-          .limit(1);
-
-        addLog({ step: "membership", memberships, membershipError });
-
-        if (membershipError || !memberships || memberships.length === 0) {
-          setStatus("Falha: sem vínculo ativo de tenant", "err");
-          return;
-        }
-
-        const membership = memberships[0];
-        sessionStorage.setItem("tenant_id", membership.tenant_id);
-        sessionStorage.setItem("tenant_role", membership.role);
-
-        setStatus("Usuário tenant detectado. Redirecionando para estabelecimento...", "ok");
-        setTimeout(() => {
-          window.location.replace("/estabelecimento/index.html");
-        }, 800);
-
-      } catch (err) {
-        addLog({ step: "fatal_error", message: err.message, stack: err.stack });
-        setStatus("Erro fatal: " + err.message, "err");
+      function setStatus(text, cls = "") {
+        statusBox.textContent = text;
+        statusBox.className = cls;
       }
-    }
 
-    init();
+      function addLog(obj) {
+        const txt = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+        logBox.textContent += (logBox.textContent ? "\n" : "") + txt;
+        console.log(obj);
+      }
+
+      if (!window.__PORTAL_SUPABASE_CLIENT__) {
+        window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_ANON_KEY
+        );
+      }
+
+      const sb = window.__PORTAL_SUPABASE_CLIENT__;
+
+      async function init() {
+        try {
+          setStatus("Verificando sessão...");
+
+          const { data: sessionData, error: sessionError } = await sb.auth.getSession();
+          addLog({ step: "session", hasSession: !!sessionData?.session, sessionError });
+
+          if (sessionError) {
+            setStatus("Falha ao ler sessão", "err");
+            return;
+          }
+
+          const session = sessionData.session;
+
+          if (!session || !session.user) {
+            setStatus("Sem sessão. Redirecionando para login...");
+            setTimeout(() => {
+              window.location.replace("/login.html");
+            }, 500);
+            return;
+          }
+
+          const userId = session.user.id;
+
+          setStatus("Consultando perfil...");
+
+          const { data: profile, error: profileError } = await sb
+            .from("profiles")
+            .select("user_id,email,full_name,status,is_platform_user,platform_role")
+            .eq("user_id", userId)
+            .single();
+
+          addLog({ step: "profile", profile, profileError });
+
+          if (profileError || !profile) {
+            setStatus("Falha: perfil não encontrado", "err");
+            return;
+          }
+
+          if (profile.status !== "active") {
+            setStatus("Falha: usuário inativo, status = " + profile.status, "err");
+            return;
+          }
+
+          if (profile.is_platform_user === true) {
+            setStatus("Usuário global detectado. Redirecionando para platform.html...", "ok");
+            setTimeout(() => {
+              window.location.replace("/platform.html");
+            }, 800);
+            return;
+          }
+
+          setStatus("Consultando vínculo do tenant...");
+
+          const { data: memberships, error: membershipError } = await sb
+            .from("tenant_members")
+            .select("tenant_id,role,is_active")
+            .eq("user_id", userId)
+            .eq("is_active", true)
+            .limit(1);
+
+          addLog({ step: "membership", memberships, membershipError });
+
+          if (membershipError || !memberships || memberships.length === 0) {
+            setStatus("Falha: sem vínculo ativo de tenant", "err");
+            return;
+          }
+
+          const membership = memberships[0];
+          sessionStorage.setItem("tenant_id", membership.tenant_id);
+          sessionStorage.setItem("tenant_role", membership.role);
+
+          setStatus("Usuário tenant detectado. Redirecionando para estabelecimento...", "ok");
+          setTimeout(() => {
+            window.location.replace("/estabelecimento/index.html");
+          }, 800);
+
+        } catch (err) {
+          addLog({ step: "fatal_error", message: err.message, stack: err.stack });
+          setStatus("Erro fatal: " + err.message, "err");
+        }
+      }
+
+      init();
+    }
   </script>
 </body>
 </html>
