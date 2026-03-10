@@ -1,78 +1,77 @@
 (function () {
+  "use strict";
+
   const SUPABASE_URL = window.PORTAL_SUPABASE_URL;
   const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
-    console.warn("Supabase não configurado em window.PORTAL_SUPABASE_URL / window.PORTAL_SUPABASE_ANON_KEY");
+    console.error("Supabase não configurado.");
     return;
   }
 
-  if (!window.__PORTAL_SUPABASE_CLIENT__) {
-    window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
-  }
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabaseClient = window.__PORTAL_SUPABASE_CLIENT__;
+  const state = {
+    tenants: [],
+    users: []
+  };
 
-  const navLinks = document.querySelectorAll(".nav-link");
-  const sections = document.querySelectorAll(".section");
+  const els = {
+    navLinks: document.querySelectorAll(".nav-link"),
+    sections: document.querySelectorAll(".section"),
 
-  const modalCreateTenant = document.getElementById("modalCreateTenant");
-  const modalCreateUser = document.getElementById("modalCreateUser");
-  const modalEditUser = document.getElementById("modalEditUser");
-  const modalManageMemberships = document.getElementById("modalManageMemberships");
-  const modalChangeAdmin = document.getElementById("modalChangeAdmin");
-  const modalDisableTenant = document.getElementById("modalDisableTenant");
-  const modalAccessResult = document.getElementById("modalAccessResult");
+    btnRefreshPlatform: document.getElementById("btnRefreshPlatform"),
+    btnReloadTenants: document.getElementById("btnReloadTenants"),
+    btnLogout: document.getElementById("btnLogout"),
 
-  const tenantsTableBody = document.getElementById("tenantsTableBody");
-  const tenantSearch = document.getElementById("tenantSearch");
-  const tenantStatusFilter = document.getElementById("tenantStatusFilter");
+    btnOpenCreateTenant: document.getElementById("btnOpenCreateTenant"),
+    btnOpenCreateTenant2: document.getElementById("btnOpenCreateTenant2"),
+    btnCreateTenantConfirm: document.getElementById("btnCreateTenantConfirm"),
 
-  const usersTableBody = document.getElementById("usersTableBody");
-  const userSearch = document.getElementById("userSearch");
-  const userStatusFilter = document.getElementById("userStatusFilter");
-  const userTypeFilter = document.getElementById("userTypeFilter");
-  const userTenantFilter = document.getElementById("userTenantFilter");
+    btnOpenCreateUser: document.getElementById("btnOpenCreateUser"),
+    btnCreateUserConfirm: document.getElementById("btnCreateUserConfirm"),
+    btnGeneratePassword: document.getElementById("btnGeneratePassword"),
 
-  const btnOpenCreateTenant = document.getElementById("btnOpenCreateTenant");
-  const btnOpenCreateTenant2 = document.getElementById("btnOpenCreateTenant2");
-  const btnOpenCreateUser = document.getElementById("btnOpenCreateUser");
-  const btnReloadTenants = document.getElementById("btnReloadTenants");
-  const btnRefreshPlatform = document.getElementById("btnRefreshPlatform");
-  const btnLogout = document.getElementById("btnLogout");
+    modalCreateTenant: document.getElementById("modalCreateTenant"),
+    modalCreateUser: document.getElementById("modalCreateUser"),
 
-  const btnCreateTenantConfirm = document.getElementById("btnCreateTenantConfirm");
-  const btnCreateUserConfirm = document.getElementById("btnCreateUserConfirm");
-  const btnSaveUserEdit = document.getElementById("btnSaveUserEdit");
-  const btnChangeAdminConfirm = document.getElementById("btnChangeAdminConfirm");
-  const btnDisableTenantConfirm = document.getElementById("btnDisableTenantConfirm");
-  const btnCopyAccessMessage = document.getElementById("btnCopyAccessMessage");
-  const btnAddMembership = document.getElementById("btnAddMembership");
-  const btnGeneratePassword = document.getElementById("btnGeneratePassword");
+    tenantName: document.getElementById("tenantName"),
+    tenantSlug: document.getElementById("tenantSlug"),
+    tenantStatus: document.getElementById("tenantStatus"),
+    tenantAdminName: document.getElementById("tenantAdminName"),
+    tenantAdminEmail: document.getElementById("tenantAdminEmail"),
 
-  const accessResultText = document.getElementById("accessResultText");
+    userName: document.getElementById("userName"),
+    userEmail: document.getElementById("userEmail"),
+    userPhone: document.getElementById("userPhone"),
+    userType: document.getElementById("userType"),
+    userStatus: document.getElementById("userStatus"),
+    userTenantId: document.getElementById("userTenantId"),
+    userPassword: document.getElementById("userPassword"),
+    userPasswordConfirm: document.getElementById("userPasswordConfirm"),
 
-  const ACTIVE_TENANT_ID_KEY = "portalwifi.activeTenantId";
-  const ACTIVE_TENANT_NAME_KEY = "portalwifi.activeTenantName";
-  const ACTIVE_TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
+    tenantSearch: document.getElementById("tenantSearch"),
+    tenantStatusFilter: document.getElementById("tenantStatusFilter"),
+    userSearch: document.getElementById("userSearch"),
+    userStatusFilter: document.getElementById("userStatusFilter"),
+    userTypeFilter: document.getElementById("userTypeFilter"),
+    userTenantFilter: document.getElementById("userTenantFilter"),
 
-  let allTenants = [];
-  let allUsers = [];
-  let membershipSnapshot = [];
+    tenantsTableBody: document.getElementById("tenantsTableBody"),
+    usersTableBody: document.getElementById("usersTableBody"),
 
-  function openModal(el) {
-    if (el) el.classList.remove("hidden");
-  }
+    metricTotalTenants: document.getElementById("metricTotalTenants"),
+    metricActiveTenants: document.getElementById("metricActiveTenants"),
+    metricDisabledTenants: document.getElementById("metricDisabledTenants"),
+    metricAdmins: document.getElementById("metricAdmins"),
+    metricTotalUsers: document.getElementById("metricTotalUsers"),
+    metricGlobalUsers: document.getElementById("metricGlobalUsers"),
+    metricTenantUsers: document.getElementById("metricTenantUsers"),
+    metricBlockedUsers: document.getElementById("metricBlockedUsers")
+  };
 
-  function closeModal(el) {
-    if (el) el.classList.add("hidden");
-  }
-
-  function escapeHtml(str) {
-    return String(str ?? "")
+  function escapeHtml(value) {
+    return String(value ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -80,267 +79,195 @@
       .replaceAll("'", "&#039;");
   }
 
-  function formatDateBR(iso) {
-    if (!iso) return "-";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "-";
+  function formatDateTime(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("pt-BR");
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("pt-BR");
   }
 
   function statusBadge(status) {
-    const cls = status || "pending";
-    const label =
-      cls === "active" ? "Ativo" :
-      cls === "disabled" ? "Desabilitado" :
-      "Pendente";
-
-    return `<span class="badge ${cls}">${label}</span>`;
+    const safe = String(status || "").toLowerCase();
+    const labelMap = {
+      active: "Ativo",
+      pending: "Pendente",
+      disabled: "Desabilitado",
+      blocked: "Bloqueado"
+    };
+    const label = labelMap[safe] || safe || "—";
+    return `<span class="badge ${escapeHtml(safe)}">${escapeHtml(label)}</span>`;
   }
 
-  function userStatusBadge(status) {
-    const cls = status || "pending";
-    const label =
-      cls === "active" ? "Ativo" :
-      cls === "blocked" ? "Bloqueado" :
-      cls === "disabled" ? "Desabilitado" :
-      "Pendente";
-
-    return `<span class="badge ${cls}">${label}</span>`;
+  function makeSlug(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   }
 
-  function activeBadge(isActive) {
-    if (!isActive) return "";
-    return `<div style="margin-top:6px;"><span class="badge active">Tenant ativo</span></div>`;
-  }
-
-  function userScopeLabel(scope) {
-    if (scope === "global") return "Global";
-    if (scope === "hybrid") return "Híbrido";
-    return "Tenant";
-  }
-
-  function userRoleLabel(row) {
-    if (row.platform_role) return row.platform_role;
-    const memberships = Array.isArray(row.memberships) ? row.memberships : [];
-    const roles = memberships.map((m) => m.role).filter(Boolean);
-    return roles.length ? [...new Set(roles)].join(", ") : "-";
-  }
-
-  function getActiveTenantId() {
-    return localStorage.getItem(ACTIVE_TENANT_ID_KEY) || "";
-  }
-
-  function setActiveTenant(tenant) {
-    localStorage.setItem(ACTIVE_TENANT_ID_KEY, tenant.id || "");
-    localStorage.setItem(ACTIVE_TENANT_NAME_KEY, tenant.name || "");
-    localStorage.setItem(ACTIVE_TENANT_SLUG_KEY, tenant.slug || "");
-  }
-
-  function setSection(name) {
-    navLinks.forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.section === name);
-    });
-
-    sections.forEach((sec) => {
-      const id = sec.id.replace("section-", "");
-      sec.classList.toggle("active", id === name);
-    });
-  }
-
-  function generatePassword(length = 8) {
-    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const lower = "abcdefghijklmnopqrstuvwxyz";
-    const numbers = "0123456789";
-    const all = upper + lower + numbers;
-
-    let password =
-      upper[Math.floor(Math.random() * upper.length)] +
-      lower[Math.floor(Math.random() * lower.length)] +
-      numbers[Math.floor(Math.random() * numbers.length)];
-
-    for (let i = password.length; i < length; i++) {
-      password += all[Math.floor(Math.random() * all.length)];
+  function generatePassword(length = 10) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#*!";
+    let out = "";
+    for (let i = 0; i < length; i += 1) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    return out;
+  }
 
-    return password
-      .split("")
-      .sort(() => 0.5 - Math.random())
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.add("hidden");
+    if (![...document.querySelectorAll(".modal-backdrop")].some(el => !el.classList.contains("hidden"))) {
+      document.body.style.overflow = "";
+    }
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll(".modal-backdrop").forEach((modal) => {
+      modal.classList.add("hidden");
+    });
+    document.body.style.overflow = "";
+  }
+
+  function setActiveSection(sectionName) {
+    els.navLinks.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.section === sectionName);
+    });
+
+    els.sections.forEach((section) => {
+      section.classList.toggle("active", section.id === `section-${sectionName}`);
+    });
+  }
+
+  function resetTenantModal() {
+    if (els.tenantName) els.tenantName.value = "";
+    if (els.tenantSlug) {
+      els.tenantSlug.value = "";
+      delete els.tenantSlug.dataset.editedManually;
+    }
+    if (els.tenantStatus) els.tenantStatus.value = "active";
+    if (els.tenantAdminName) els.tenantAdminName.value = "";
+    if (els.tenantAdminEmail) els.tenantAdminEmail.value = "";
+  }
+
+  function resetUserModal() {
+    if (els.userName) els.userName.value = "";
+    if (els.userEmail) els.userEmail.value = "";
+    if (els.userPhone) els.userPhone.value = "";
+    if (els.userType) els.userType.value = "tenant_admin";
+    if (els.userStatus) els.userStatus.value = "active";
+    if (els.userTenantId) els.userTenantId.value = "";
+    const pwd = generatePassword();
+    if (els.userPassword) els.userPassword.value = pwd;
+    if (els.userPasswordConfirm) els.userPasswordConfirm.value = pwd;
+  }
+
+  function renderTenantFilters() {
+    if (!els.userTenantFilter || !els.userTenantId) return;
+
+    const currentFilter = els.userTenantFilter.value;
+    const currentCreate = els.userTenantId.value;
+
+    const options = [`<option value="">Todos tenants</option>`]
+      .concat(
+        state.tenants.map((tenant) => (
+          `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.name || tenant.slug || tenant.id)}</option>`
+        ))
+      )
       .join("");
-  }
 
-  function validatePassword(password) {
-    if (!password || password.length < 6) return false;
-    if (!/[A-Z]/.test(password)) return false;
-    if (!/[a-z]/.test(password)) return false;
-    if (!/[0-9]/.test(password)) return false;
-    if (/[^A-Za-z0-9]/.test(password)) return false;
-    return true;
-  }
+    els.userTenantFilter.innerHTML = options;
 
-  function renderTenantMetrics(rows) {
-    const total = rows.length;
-    const active = rows.filter((r) => r.status === "active").length;
-    const disabled = rows.filter((r) => r.status === "disabled").length;
-    const admins = rows.filter((r) => !!r.admin_email).length;
+    const createOptions = [`<option value="">Sem vínculo</option>`]
+      .concat(
+        state.tenants.map((tenant) => (
+          `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.name || tenant.slug || tenant.id)}</option>`
+        ))
+      )
+      .join("");
 
-    const totalEl = document.getElementById("metricTotalTenants");
-    const activeEl = document.getElementById("metricActiveTenants");
-    const disabledEl = document.getElementById("metricDisabledTenants");
-    const adminsEl = document.getElementById("metricAdmins");
+    els.userTenantId.innerHTML = createOptions;
 
-    if (totalEl) totalEl.textContent = String(total);
-    if (activeEl) activeEl.textContent = String(active);
-    if (disabledEl) disabledEl.textContent = String(disabled);
-    if (adminsEl) adminsEl.textContent = String(admins);
-  }
-
-  function renderUserMetrics(rows) {
-    const total = rows.length;
-    const globalUsers = rows.filter((r) => r.scope === "global").length;
-    const tenantUsers = rows.filter((r) => (r.tenant_count || 0) > 0).length;
-    const blocked = rows.filter((r) => r.status === "blocked").length;
-
-    const totalEl = document.getElementById("metricTotalUsers");
-    const globalEl = document.getElementById("metricGlobalUsers");
-    const tenantEl = document.getElementById("metricTenantUsers");
-    const blockedEl = document.getElementById("metricBlockedUsers");
-
-    if (totalEl) totalEl.textContent = String(total);
-    if (globalEl) globalEl.textContent = String(globalUsers);
-    if (tenantEl) tenantEl.textContent = String(tenantUsers);
-    if (blockedEl) blockedEl.textContent = String(blocked);
-  }
-
-  async function loadTenants() {
-    if (tenantsTableBody) {
-      tenantsTableBody.innerHTML = `
-        <tr>
-          <td colspan="7" class="empty-row">Carregando tenants...</td>
-        </tr>
-      `;
+    if ([...els.userTenantFilter.options].some(o => o.value === currentFilter)) {
+      els.userTenantFilter.value = currentFilter;
     }
 
-    const { data, error } = await supabaseClient
-      .from("tenants")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erro ao carregar tenants:", error);
-      if (tenantsTableBody) {
-        tenantsTableBody.innerHTML = `
-          <tr>
-            <td colspan="7" class="empty-row">Erro ao carregar tenants.</td>
-          </tr>
-        `;
-      }
-      return;
+    if ([...els.userTenantId.options].some(o => o.value === currentCreate)) {
+      els.userTenantId.value = currentCreate;
     }
-
-    allTenants = data || [];
-    renderTenantMetrics(allTenants);
-    renderTenants();
-    populateUserTenantOptions();
-    populateMembershipTenantOptions();
-    populateUserTenantFilter();
   }
 
-  async function loadUsers() {
-    if (usersTableBody) {
-      usersTableBody.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty-row">Carregando usuários...</td>
-        </tr>
-      `;
-    }
+  function getFilteredTenants() {
+    const search = (els.tenantSearch?.value || "").trim().toLowerCase();
+    const status = (els.tenantStatusFilter?.value || "").trim().toLowerCase();
 
-    const { data, error } = await supabaseClient
-      .from("v_platform_users")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erro ao carregar usuários:", error);
-      if (usersTableBody) {
-        usersTableBody.innerHTML = `
-          <tr>
-            <td colspan="8" class="empty-row">Erro ao carregar usuários.</td>
-          </tr>
-        `;
-      }
-      return;
-    }
-
-    allUsers = (data || []).map((row) => ({
-      ...row,
-      memberships: Array.isArray(row.memberships) ? row.memberships : []
-    }));
-
-    renderUserMetrics(allUsers);
-    renderUsers();
-  }
-
-  function filteredTenants() {
-    const q = (tenantSearch?.value || "").trim().toLowerCase();
-    const status = tenantStatusFilter?.value || "";
-
-    return allTenants.filter((row) => {
-      const text = [
-        row.name,
-        row.slug,
-        row.admin_name,
-        row.admin_email
+    return state.tenants.filter((tenant) => {
+      const haystack = [
+        tenant.name,
+        tenant.slug,
+        tenant.admin_name,
+        tenant.admin_email
       ].join(" ").toLowerCase();
 
-      const okSearch = !q || text.includes(q);
-      const okStatus = !status || row.status === status;
+      const okSearch = !search || haystack.includes(search);
+      const okStatus = !status || String(tenant.status || "").toLowerCase() === status;
+
       return okSearch && okStatus;
     });
   }
 
-  function filteredUsers() {
-    const q = (userSearch?.value || "").trim().toLowerCase();
-    const status = userStatusFilter?.value || "";
-    const type = userTypeFilter?.value || "";
-    const tenantId = userTenantFilter?.value || "";
+  function getFilteredUsers() {
+    const search = (els.userSearch?.value || "").trim().toLowerCase();
+    const status = (els.userStatusFilter?.value || "").trim().toLowerCase();
+    const type = (els.userTypeFilter?.value || "").trim().toLowerCase();
+    const tenantId = (els.userTenantFilter?.value || "").trim();
 
-    return allUsers.filter((row) => {
+    return state.users.filter((user) => {
       const haystack = [
-        row.full_name,
-        row.email,
-        row.tenant_names,
-        row.platform_role
+        user.full_name,
+        user.email,
+        user.phone,
+        user.scope,
+        user.platform_role,
+        user.user_type,
+        user.tenant_name
       ].join(" ").toLowerCase();
 
-      const okSearch = !q || haystack.includes(q);
-      const okStatus = !status || row.status === status;
+      const userType = String(user.user_type || user.platform_role || "").toLowerCase();
+      const userStatus = String(user.status || "").toLowerCase();
 
-      let okType = true;
-      if (type === "global" || type === "tenant" || type === "hybrid") {
-        okType = row.scope === type;
-      } else if (type === "platform_admin") {
-        okType = row.platform_role === "platform_admin";
-      } else if (["tenant_admin", "tenant_viewer", "tenant_marketing"].includes(type)) {
-        okType = row.memberships.some((m) => m.role === type);
-      }
-
-      let okTenant = true;
-      if (tenantId) {
-        okTenant = row.memberships.some((m) => String(m.tenant_id) === String(tenantId));
-      }
+      const okSearch = !search || haystack.includes(search);
+      const okStatus = !status || userStatus === status;
+      const okType = !type || userType === type || String(user.platform_role || "").toLowerCase() === type;
+      const okTenant = !tenantId || String(user.tenant_id || "") === tenantId;
 
       return okSearch && okStatus && okType && okTenant;
     });
   }
 
-  function renderTenants() {
-    if (!tenantsTableBody) return;
+  function renderTenantsTable() {
+    if (!els.tenantsTableBody) return;
 
-    const rows = filteredTenants();
-    const activeTenantId = getActiveTenantId();
+    const rows = getFilteredTenants();
 
     if (!rows.length) {
-      tenantsTableBody.innerHTML = `
+      els.tenantsTableBody.innerHTML = `
         <tr>
           <td colspan="7" class="empty-row">Nenhum tenant encontrado.</td>
         </tr>
@@ -348,58 +275,31 @@
       return;
     }
 
-    tenantsTableBody.innerHTML = rows.map((row) => {
-      const isActive = String(row.id) === String(activeTenantId);
-
-      return `
-        <tr>
-          <td>
-            <strong>${escapeHtml(row.name || "-")}</strong><br>
-            <small class="muted">${escapeHtml(row.id || "-")}</small>
-            ${activeBadge(isActive)}
-          </td>
-          <td>${escapeHtml(row.slug || "-")}</td>
-          <td>${statusBadge(row.status)}</td>
-          <td>${escapeHtml(row.admin_name || "-")}</td>
-          <td>${escapeHtml(row.admin_email || "-")}</td>
-          <td>${escapeHtml(formatDateBR(row.created_at))}</td>
-          <td>
-            <div class="actions">
-              <button class="btn btn-light btn-sm" data-action="select" data-id="${row.id}">
-                ${isActive ? "Selecionado" : "Selecionar"}
-              </button>
-
-              <button class="btn btn-primary btn-sm" data-action="open-panel" data-id="${row.id}">
-                Abrir painel
-              </button>
-
-              <button class="btn btn-light btn-sm" data-action="change-admin" data-id="${row.id}">
-                Alterar admin
-              </button>
-
-              <button class="btn btn-light btn-sm" data-action="resend-access" data-id="${row.id}">
-                Reenviar acesso
-              </button>
-
-              ${
-                row.status === "disabled"
-                  ? `<button class="btn btn-primary btn-sm" data-action="enable" data-id="${row.id}">Habilitar</button>`
-                  : `<button class="btn btn-danger btn-sm" data-action="disable" data-id="${row.id}">Desabilitar</button>`
-              }
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
+    els.tenantsTableBody.innerHTML = rows.map((tenant) => `
+      <tr>
+        <td>${escapeHtml(tenant.name || "—")}</td>
+        <td>${escapeHtml(tenant.slug || "—")}</td>
+        <td>${statusBadge(tenant.status)}</td>
+        <td>${escapeHtml(tenant.admin_name || "—")}</td>
+        <td>${escapeHtml(tenant.admin_email || "—")}</td>
+        <td>${formatDate(tenant.created_at)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
+            <button class="btn btn-light btn-sm" type="button" data-tenant-action="users" data-id="${escapeHtml(tenant.id)}">Usuários</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
   }
 
-  function renderUsers() {
-    if (!usersTableBody) return;
+  function renderUsersTable() {
+    if (!els.usersTableBody) return;
 
-    const rows = filteredUsers();
+    const rows = getFilteredUsers();
 
     if (!rows.length) {
-      usersTableBody.innerHTML = `
+      els.usersTableBody.innerHTML = `
         <tr>
           <td colspan="8" class="empty-row">Nenhum usuário encontrado.</td>
         </tr>
@@ -407,173 +307,158 @@
       return;
     }
 
-    usersTableBody.innerHTML = rows.map((row) => `
-      <tr>
-        <td>
-          <strong>${escapeHtml(row.full_name || "-")}</strong>
-          ${row.phone ? `<br><small class="muted">${escapeHtml(row.phone)}</small>` : ""}
-        </td>
-        <td>${escapeHtml(row.email || "-")}</td>
-        <td>${escapeHtml(userScopeLabel(row.scope))}</td>
-        <td>${escapeHtml(userRoleLabel(row))}</td>
-        <td>${escapeHtml(row.tenant_names || "-")}</td>
-        <td>${userStatusBadge(row.status)}</td>
-        <td>${escapeHtml(formatDateBR(row.last_login_at))}</td>
-        <td>
-          <div class="actions">
-            <button class="btn btn-light btn-sm" data-user-action="edit" data-user-id="${row.user_id}">
-              Editar
-            </button>
+    els.usersTableBody.innerHTML = rows.map((user) => {
+      const type = user.user_type || user.platform_role || "—";
+      const scope = user.scope || (user.tenant_id ? "tenant" : "global");
+      const tenantsLabel = user.tenant_name || (user.tenant_id ? user.tenant_id : "—");
 
-            <button class="btn btn-light btn-sm" data-user-action="memberships" data-user-id="${row.user_id}">
-              Vínculos
-            </button>
-
-            <button class="btn btn-light btn-sm" data-user-action="resend-access" data-user-id="${row.user_id}">
-              Reenviar acesso
-            </button>
-
-            ${
-              row.status === "blocked"
-                ? `<button class="btn btn-primary btn-sm" data-user-action="unblock" data-user-id="${row.user_id}">Desbloquear</button>`
-                : `<button class="btn btn-light btn-sm" data-user-action="block" data-user-id="${row.user_id}">Bloquear</button>`
-            }
-
-            ${
-              row.status === "disabled"
-                ? `<button class="btn btn-primary btn-sm" data-user-action="enable" data-user-id="${row.user_id}">Habilitar</button>`
-                : `<button class="btn btn-danger btn-sm" data-user-action="disable" data-user-id="${row.user_id}">Desabilitar</button>`
-            }
-          </div>
-        </td>
-      </tr>
-    `).join("");
+      return `
+        <tr>
+          <td>${escapeHtml(user.full_name || "—")}</td>
+          <td>${escapeHtml(user.email || "—")}</td>
+          <td>${escapeHtml(scope)}</td>
+          <td>${escapeHtml(type)}</td>
+          <td>${escapeHtml(tenantsLabel)}</td>
+          <td>${statusBadge(user.status)}</td>
+          <td>${formatDateTime(user.last_login_at)}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.id || user.user_id || "")}">Editar</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.id || user.user_id || "")}">Vínculos</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
   }
 
-  function populateUserTenantOptions() {
-    const select = document.getElementById("userTenantId");
-    if (!select) return;
+  function renderMetrics() {
+    const totalTenants = state.tenants.length;
+    const activeTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "active").length;
+    const disabledTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "disabled").length;
+    const admins = state.tenants.filter(t => t.admin_email || t.admin_name).length;
 
-    const current = select.value || "";
+    const totalUsers = state.users.length;
+    const globalUsers = state.users.filter(u => !u.tenant_id).length;
+    const tenantUsers = state.users.filter(u => !!u.tenant_id).length;
+    const blockedUsers = state.users.filter(u => String(u.status || "").toLowerCase() === "blocked").length;
 
-    select.innerHTML = `
-      <option value="">Sem vínculo</option>
-      ${allTenants.map((t) => `
-        <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
-      `).join("")}
+    if (els.metricTotalTenants) els.metricTotalTenants.textContent = String(totalTenants);
+    if (els.metricActiveTenants) els.metricActiveTenants.textContent = String(activeTenants);
+    if (els.metricDisabledTenants) els.metricDisabledTenants.textContent = String(disabledTenants);
+    if (els.metricAdmins) els.metricAdmins.textContent = String(admins);
+
+    if (els.metricTotalUsers) els.metricTotalUsers.textContent = String(totalUsers);
+    if (els.metricGlobalUsers) els.metricGlobalUsers.textContent = String(globalUsers);
+    if (els.metricTenantUsers) els.metricTenantUsers.textContent = String(tenantUsers);
+    if (els.metricBlockedUsers) els.metricBlockedUsers.textContent = String(blockedUsers);
+  }
+
+  async function loadTenants() {
+    if (!els.tenantsTableBody) return;
+
+    els.tenantsTableBody.innerHTML = `
+      <tr><td colspan="7" class="empty-row">Carregando...</td></tr>
     `;
 
-    if ([...select.options].some((opt) => opt.value === current)) {
-      select.value = current;
+    const { data, error } = await sb
+      .from("tenants")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao carregar tenants:", error);
+      els.tenantsTableBody.innerHTML = `
+        <tr><td colspan="7" class="empty-row">Erro ao carregar tenants.</td></tr>
+      `;
+      state.tenants = [];
+      renderMetrics();
+      renderTenantFilters();
+      return;
     }
+
+    state.tenants = Array.isArray(data) ? data : [];
+    renderTenantsTable();
+    renderTenantFilters();
+    renderMetrics();
   }
 
-  function populateMembershipTenantOptions() {
-    const select = document.getElementById("membershipTenantId");
-    if (!select) return;
+  async function loadUsers() {
+    if (!els.usersTableBody) return;
 
-    const current = select.value || "";
-
-    select.innerHTML = `
-      <option value="">Selecione</option>
-      ${allTenants.map((t) => `
-        <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
-      `).join("")}
+    els.usersTableBody.innerHTML = `
+      <tr><td colspan="8" class="empty-row">Carregando usuários...</td></tr>
     `;
 
-    if ([...select.options].some((opt) => opt.value === current)) {
-      select.value = current;
+    let usersData = [];
+    let usersError = null;
+
+    const attemptProfiles = await sb
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!attemptProfiles.error) {
+      usersData = attemptProfiles.data || [];
+    } else {
+      usersError = attemptProfiles.error;
+
+      const attemptUsers = await sb
+        .from("platform_users")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!attemptUsers.error) {
+        usersData = attemptUsers.data || [];
+        usersError = null;
+      } else {
+        usersError = attemptUsers.error;
+      }
     }
-  }
 
-  function populateUserTenantFilter() {
-    const select = document.getElementById("userTenantFilter");
-    if (!select) return;
-
-    const current = select.value || "";
-
-    select.innerHTML = `
-      <option value="">Todos os tenants</option>
-      ${allTenants.map((t) => `
-        <option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>
-      `).join("")}
-    `;
-
-    if ([...select.options].some((opt) => opt.value === current)) {
-      select.value = current;
+    if (usersError) {
+      console.error("Erro ao carregar usuários:", usersError);
+      els.usersTableBody.innerHTML = `
+        <tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>
+      `;
+      state.users = [];
+      renderMetrics();
+      return;
     }
+
+    const tenantMap = new Map(state.tenants.map(t => [String(t.id), t.name || t.slug || t.id]));
+
+    state.users = usersData.map((user) => ({
+      ...user,
+      id: user.id || user.user_id,
+      tenant_name: user.tenant_name || tenantMap.get(String(user.tenant_id || "")) || ""
+    }));
+
+    renderUsersTable();
+    renderMetrics();
   }
 
-  function buildTenantAccessMessage(tenant, adminEmail, adminName, password = "[gerar/definir]") {
-    return [
-      `Olá, ${adminName || "Administrador(a)"}.`,
-      ``,
-      `Seu acesso ao painel do tenant foi criado/atualizado com sucesso.`,
-      ``,
-      `Tenant: ${tenant.name || "-"}`,
-      `Slug: ${tenant.slug || "-"}`,
-      `Painel: https://portalwifi2.pages.dev/estabelecimento/index.html?tenant=${tenant.slug || ""}`,
-      `Usuário: ${adminEmail || "-"}`,
-      `Senha provisória: ${password}`,
-      ``,
-      `Recomendamos alterar a senha no primeiro acesso.`,
-      ``,
-      `Equipe Portal WiFi`
-    ].join("\n");
+  async function refreshAll() {
+    await loadTenants();
+    await loadUsers();
   }
 
-  function buildUserAccessMessage(user, password = "[gerar/definir]") {
-    return [
-      `Olá, ${user.full_name || "Usuário(a)"}.`,
-      ``,
-      `Seu acesso à plataforma Portal WiFi foi criado/atualizado com sucesso.`,
-      ``,
-      `Escopo: ${userScopeLabel(user.scope)}`,
-      `Papel global: ${user.platform_role || "-"}`,
-      `Tenant(s): ${user.tenant_names || "-"}`,
-      `Painel: https://portalwifi2.pages.dev/platform.html`,
-      `Usuário: ${user.email || "-"}`,
-      `Senha provisória: ${password}`,
-      ``,
-      `Recomendamos alterar a senha no primeiro acesso.`,
-      ``,
-      `Equipe Portal WiFi`
-    ].join("\n");
-  }
+  async function createTenant() {
+    const name = (els.tenantName?.value || "").trim();
+    const slug = makeSlug(els.tenantSlug?.value || "");
+    const status = (els.tenantStatus?.value || "active").trim();
+    const adminName = (els.tenantAdminName?.value || "").trim();
+    const adminEmail = (els.tenantAdminEmail?.value || "").trim().toLowerCase();
 
-  function resetCreateUserForm() {
-    ["userName", "userEmail", "userPhone", "userPassword", "userPasswordConfirm"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.value = "";
-    });
+    if (!name) {
+      alert("Informe o nome do tenant.");
+      els.tenantName?.focus();
+      return;
+    }
 
-    const userType = document.getElementById("userType");
-    const userStatus = document.getElementById("userStatus");
-    const userTenantId = document.getElementById("userTenantId");
-
-    if (userType) userType.value = "tenant_admin";
-    if (userStatus) userStatus.value = "active";
-    if (userTenantId) userTenantId.value = "";
-  }
-
-  function fillGeneratedPassword() {
-    const pwd = generatePassword(8);
-    const pwdEl = document.getElementById("userPassword");
-    const pwdConfirmEl = document.getElementById("userPasswordConfirm");
-
-    if (pwdEl) pwdEl.value = pwd;
-    if (pwdConfirmEl) pwdConfirmEl.value = pwd;
-  }
-
-  async function handleCreateTenant() {
-    const name = document.getElementById("tenantName")?.value.trim();
-    const slug = document.getElementById("tenantSlug")?.value.trim();
-    const status = document.getElementById("tenantStatus")?.value;
-    const admin_name = document.getElementById("adminName")?.value.trim();
-    const admin_email = document.getElementById("adminEmail")?.value.trim().toLowerCase();
-
-    if (!name || !slug || !status || !admin_name || !admin_email) {
-      alert("Preencha os dados obrigatórios do tenant.");
+    if (!slug) {
+      alert("Informe um slug válido.");
+      els.tenantSlug?.focus();
       return;
     }
 
@@ -581,568 +466,223 @@
       name,
       slug,
       status,
-      admin_name,
-      admin_email
+      admin_name: adminName || null,
+      admin_email: adminEmail || null
     };
 
-    const { error } = await supabaseClient
-      .from("tenants")
-      .insert(payload);
+    const { error } = await sb.from("tenants").insert(payload);
 
     if (error) {
-      console.error(error);
+      console.error("Erro ao criar tenant:", error);
       alert(`Erro ao criar tenant: ${error.message}`);
       return;
     }
 
-    closeModal(modalCreateTenant);
-    await loadTenants();
-
-    const tenant = allTenants.find((t) => t.slug === slug) || payload;
-    accessResultText.textContent = buildTenantAccessMessage(tenant, admin_email, admin_name);
-    openModal(modalAccessResult);
+    closeModal(els.modalCreateTenant);
+    resetTenantModal();
+    await refreshAll();
+    setActiveSection("tenants");
   }
 
-  async function handleCreateUser() {
-    const full_name = document.getElementById("userName")?.value.trim();
-    const email = document.getElementById("userEmail")?.value.trim().toLowerCase();
-    const phone = document.getElementById("userPhone")?.value.trim();
-    const selectedType = document.getElementById("userType")?.value;
-    const status = document.getElementById("userStatus")?.value;
-    const tenantId = document.getElementById("userTenantId")?.value;
-    const password = document.getElementById("userPassword")?.value.trim();
-    const passwordConfirm = document.getElementById("userPasswordConfirm")?.value.trim();
+  async function createUser() {
+    const fullName = (els.userName?.value || "").trim();
+    const email = (els.userEmail?.value || "").trim().toLowerCase();
+    const phone = (els.userPhone?.value || "").trim();
+    const userType = (els.userType?.value || "tenant_admin").trim();
+    const status = (els.userStatus?.value || "active").trim();
+    const tenantId = (els.userTenantId?.value || "").trim() || null;
+    const password = (els.userPassword?.value || "").trim();
+    const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
 
-    if (!full_name || !email || !selectedType || !status) {
-      alert("Preencha nome, e-mail, tipo e status.");
+    if (!fullName) {
+      alert("Informe o nome do usuário.");
+      els.userName?.focus();
       return;
     }
 
-    if (!password || !passwordConfirm) {
-      alert("Informe a senha provisória e a confirmação.");
+    if (!email) {
+      alert("Informe o e-mail do usuário.");
+      els.userEmail?.focus();
+      return;
+    }
+
+    if (!password) {
+      alert("Informe a senha provisória.");
+      els.userPassword?.focus();
       return;
     }
 
     if (password !== passwordConfirm) {
-      alert("Senha e confirmação não conferem.");
+      alert("A confirmação de senha não confere.");
+      els.userPasswordConfirm?.focus();
       return;
     }
 
-    if (!validatePassword(password)) {
-      alert("A senha deve ter no mínimo 6 caracteres, com letra maiúscula, minúscula e número, sem caracteres especiais.");
-      return;
-    }
+    const scope = tenantId ? "tenant" : "global";
 
-    const isPlatform = selectedType === "platform_admin";
-    const scope = isPlatform ? "global" : "tenant";
-    const platform_role = isPlatform ? "platform_admin" : null;
-    const generatedUserId = crypto.randomUUID();
-
-    const { error: profileError } = await supabaseClient
-      .from("profiles")
-      .insert({
-        user_id: generatedUserId,
-        full_name,
-        email,
-        phone: phone || null,
-        scope,
-        platform_role,
-        status,
-        is_platform_user: isPlatform
-      });
-
-    if (profileError) {
-      console.error(profileError);
-      alert(`Erro ao criar usuário: ${profileError.message}`);
-      return;
-    }
-
-    if (!isPlatform && tenantId) {
-      const tenantRole =
-        selectedType === "tenant_admin" ? "tenant_admin" :
-        selectedType === "tenant_marketing" ? "tenant_marketing" :
-        "tenant_viewer";
-
-      const { error: memberError } = await supabaseClient
-        .from("tenant_members")
-        .insert({
-          tenant_id: tenantId,
-          user_id: generatedUserId,
-          role: tenantRole,
-          is_active: true
-        });
-
-      if (memberError) {
-        console.error(memberError);
-        alert(`Usuário criado, mas houve erro ao vincular ao tenant: ${memberError.message}`);
-      }
-    }
-
-    resetCreateUserForm();
-    closeModal(modalCreateUser);
-    await loadUsers();
-
-    const createdUser = allUsers.find((u) => u.user_id === generatedUserId) || {
-      full_name,
+    const authCreate = await sb.auth.signUp({
       email,
+      password,
+      options: {
+        data: {
+          full_name: fullName
+        }
+      }
+    });
+
+    if (authCreate.error) {
+      console.error("Erro ao criar autenticação do usuário:", authCreate.error);
+      alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
+      return;
+    }
+
+    const authUserId = authCreate.data?.user?.id || null;
+
+    const profilePayload = {
+      user_id: authUserId,
+      full_name: fullName,
+      email,
+      phone: phone || null,
       scope,
-      platform_role,
-      tenant_names: "-"
+      platform_role: userType,
+      user_type: userType,
+      status,
+      tenant_id: tenantId,
+      is_platform_user: userType === "platform_admin"
     };
 
-    accessResultText.textContent = buildUserAccessMessage(createdUser, password);
-    openModal(modalAccessResult);
-  }
+    let insertOk = false;
 
-  function fillEditUserForm(user) {
-    document.getElementById("editUserId").value = user.user_id || "";
-    document.getElementById("editUserName").value = user.full_name || "";
-    document.getElementById("editUserEmail").value = user.email || "";
-    document.getElementById("editUserPhone").value = user.phone || "";
-    document.getElementById("editUserScope").value = user.scope || "tenant";
-    document.getElementById("editUserPlatformRole").value = user.platform_role || "";
-    document.getElementById("editUserStatus").value = user.status || "pending";
-    document.getElementById("editIsPlatformUser").checked = !!user.is_platform_user;
-  }
-
-  async function handleSaveUserEdit() {
-    const user_id = document.getElementById("editUserId")?.value;
-    const full_name = document.getElementById("editUserName")?.value.trim();
-    const email = document.getElementById("editUserEmail")?.value.trim().toLowerCase();
-    const phone = document.getElementById("editUserPhone")?.value.trim();
-    const scope = document.getElementById("editUserScope")?.value;
-    const platform_role = document.getElementById("editUserPlatformRole")?.value || null;
-    const status = document.getElementById("editUserStatus")?.value;
-    const is_platform_user = !!document.getElementById("editIsPlatformUser")?.checked;
-
-    if (!user_id || !full_name || !email || !scope || !status) {
-      alert("Preencha os campos obrigatórios.");
-      return;
-    }
-
-    const { error } = await supabaseClient
-      .from("profiles")
-      .update({
-        full_name,
-        email,
-        phone: phone || null,
-        scope,
-        platform_role,
-        status,
-        is_platform_user
-      })
-      .eq("user_id", user_id);
-
-    if (error) {
-      console.error(error);
-      alert(`Erro ao salvar usuário: ${error.message}`);
-      return;
-    }
-
-    closeModal(modalEditUser);
-    await loadUsers();
-    alert("Usuário atualizado com sucesso.");
-  }
-
-  async function updateUserStatus(userId, status) {
-    const { error } = await supabaseClient
-      .from("profiles")
-      .update({ status })
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error(error);
-      alert(`Erro ao atualizar status: ${error.message}`);
-      return;
-    }
-
-    await loadUsers();
-  }
-
-  async function updateTenantStatus(tenantId, status) {
-    const { error } = await supabaseClient
-      .from("tenants")
-      .update({ status })
-      .eq("id", tenantId);
-
-    if (error) {
-      console.error(error);
-      alert(`Erro ao atualizar tenant: ${error.message}`);
-      return;
-    }
-
-    await loadTenants();
-  }
-
-  async function handleConfirmChangeAdmin() {
-    const tenantId = document.getElementById("changeAdminTenantId")?.value;
-    const admin_name = document.getElementById("newAdminName")?.value.trim();
-    const admin_email = document.getElementById("newAdminEmail")?.value.trim().toLowerCase();
-
-    if (!tenantId || !admin_name || !admin_email) {
-      alert("Informe nome e e-mail do novo admin.");
-      return;
-    }
-
-    const { error } = await supabaseClient
-      .from("tenants")
-      .update({ admin_name, admin_email })
-      .eq("id", tenantId);
-
-    if (error) {
-      console.error(error);
-      alert(`Erro ao atualizar administrador: ${error.message}`);
-      return;
-    }
-
-    closeModal(modalChangeAdmin);
-    await loadTenants();
-  }
-
-  async function handleConfirmDisableTenant() {
-    const tenantId = document.getElementById("disableTenantId")?.value;
-    if (!tenantId) return;
-
-    await updateTenantStatus(tenantId, "disabled");
-    closeModal(modalDisableTenant);
-  }
-
-  async function openMembershipModal(user) {
-    document.getElementById("membershipUserId").value = user.user_id || "";
-    document.getElementById("membershipUserSummary").textContent =
-      `${user.full_name || "-"} • ${user.email || "-"} • ${user.tenant_names || "Sem vínculos"}`;
-
-    const { data, error } = await supabaseClient
-      .from("tenant_members")
-      .select("tenant_id, user_id, role, is_active, created_at")
-      .eq("user_id", user.user_id);
-
-    if (error) {
-      console.error(error);
-      alert(`Erro ao carregar vínculos: ${error.message}`);
-      return;
-    }
-
-    membershipSnapshot = data || [];
-    renderMembershipList();
-    populateMembershipTenantOptions();
-    openModal(modalManageMemberships);
-  }
-
-  function renderMembershipList() {
-    const wrap = document.getElementById("membershipList");
-    if (!wrap) return;
-
-    if (!membershipSnapshot.length) {
-      wrap.innerHTML = `<p class="muted">Nenhum vínculo encontrado.</p>`;
-      return;
-    }
-
-    wrap.innerHTML = membershipSnapshot.map((item) => {
-      const tenant = allTenants.find((t) => String(t.id) === String(item.tenant_id));
-      const tenantName = tenant?.name || item.tenant_id;
-
-      return `
-        <div class="panel-card" style="margin-bottom:10px; padding:12px;">
-          <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-            <div>
-              <strong>${escapeHtml(tenantName)}</strong><br>
-              <small class="muted">Role: ${escapeHtml(item.role || "-")} • ${item.is_active ? "Ativo" : "Inativo"}</small>
-            </div>
-
-            <div class="actions">
-              <button class="btn btn-light btn-sm" data-membership-action="toggle" data-tenant-id="${item.tenant_id}">
-                ${item.is_active ? "Inativar" : "Ativar"}
-              </button>
-              <button class="btn btn-danger btn-sm" data-membership-action="remove" data-tenant-id="${item.tenant_id}">
-                Remover
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-
-  async function addMembership() {
-    const userId = document.getElementById("membershipUserId")?.value;
-    const tenantId = document.getElementById("membershipTenantId")?.value;
-    const role = document.getElementById("membershipRole")?.value;
-
-    if (!userId || !tenantId || !role) {
-      alert("Selecione tenant e papel.");
-      return;
-    }
-
-    const existing = membershipSnapshot.find((m) => String(m.tenant_id) === String(tenantId));
-
-    if (existing) {
-      const { error } = await supabaseClient
-        .from("tenant_members")
-        .update({ role, is_active: true })
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantId);
-
-      if (error) {
-        console.error(error);
-        alert(`Erro ao atualizar vínculo: ${error.message}`);
-        return;
-      }
+    const insertProfiles = await sb.from("profiles").insert(profilePayload);
+    if (!insertProfiles.error) {
+      insertOk = true;
     } else {
-      const { error } = await supabaseClient
-        .from("tenant_members")
-        .insert({
-          user_id: userId,
-          tenant_id: tenantId,
-          role,
-          is_active: true
-        });
+      console.warn("Insert em profiles falhou, tentando platform_users:", insertProfiles.error);
 
-      if (error) {
-        console.error(error);
-        alert(`Erro ao criar vínculo: ${error.message}`);
+      const fallbackPayload = {
+        ...profilePayload,
+        id: authUserId
+      };
+
+      const insertPlatformUsers = await sb.from("platform_users").insert(fallbackPayload);
+      if (!insertPlatformUsers.error) {
+        insertOk = true;
+      } else {
+        console.error("Erro ao persistir usuário:", insertPlatformUsers.error);
+        alert(`Usuário autenticado criado, mas falhou ao gravar perfil: ${insertPlatformUsers.error.message}`);
         return;
       }
     }
 
-    const user = allUsers.find((u) => String(u.user_id) === String(userId));
-    if (user) {
-      await openMembershipModal(user);
-    }
-    await loadUsers();
-  }
-
-  async function handleMembershipListClick(e) {
-    const btn = e.target.closest("[data-membership-action]");
-    if (!btn) return;
-
-    const action = btn.dataset.membershipAction;
-    const tenantId = btn.dataset.tenantId;
-    const userId = document.getElementById("membershipUserId")?.value;
-
-    if (!userId || !tenantId) return;
-
-    const current = membershipSnapshot.find((m) => String(m.tenant_id) === String(tenantId));
-    if (!current) return;
-
-    if (action === "toggle") {
-      const { error } = await supabaseClient
-        .from("tenant_members")
-        .update({ is_active: !current.is_active })
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantId);
-
-      if (error) {
-        console.error(error);
-        alert(`Erro ao atualizar vínculo: ${error.message}`);
-        return;
-      }
-    }
-
-    if (action === "remove") {
-      const { error } = await supabaseClient
-        .from("tenant_members")
-        .delete()
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantId);
-
-      if (error) {
-        console.error(error);
-        alert(`Erro ao remover vínculo: ${error.message}`);
-        return;
-      }
-    }
-
-    const user = allUsers.find((u) => String(u.user_id) === String(userId));
-    if (user) {
-      await openMembershipModal(user);
-    }
-    await loadUsers();
-  }
-
-  async function handleTenantTableClick(e) {
-    const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-
-    const action = btn.dataset.action;
-    const id = btn.dataset.id;
-    const tenant = allTenants.find((t) => String(t.id) === String(id));
-    if (!tenant) return;
-
-    if (action === "select") {
-      setActiveTenant(tenant);
-      renderTenants();
-      alert(`Tenant ativo selecionado: ${tenant.name}`);
+    if (!insertOk) {
+      alert("Não foi possível concluir o cadastro do usuário.");
       return;
     }
 
-    if (action === "open-panel") {
-      setActiveTenant(tenant);
-      renderTenants();
-      window.location.href = `/estabelecimento/index.html?tenant=${encodeURIComponent(tenant.slug || "")}`;
-      return;
-    }
-
-    if (action === "change-admin") {
-      document.getElementById("changeAdminTenantId").value = tenant.id || "";
-      document.getElementById("changeAdminTenantName").value = tenant.name || "";
-      document.getElementById("newAdminName").value = tenant.admin_name || "";
-      document.getElementById("newAdminEmail").value = tenant.admin_email || "";
-      openModal(modalChangeAdmin);
-      return;
-    }
-
-    if (action === "resend-access") {
-      accessResultText.textContent = buildTenantAccessMessage(tenant, tenant.admin_email, tenant.admin_name);
-      openModal(modalAccessResult);
-      return;
-    }
-
-    if (action === "disable") {
-      document.getElementById("disableTenantId").value = tenant.id || "";
-      document.getElementById("disableTenantName").textContent = tenant.name || "-";
-      document.getElementById("disableReason").value = "";
-      openModal(modalDisableTenant);
-      return;
-    }
-
-    if (action === "enable") {
-      await updateTenantStatus(tenant.id, "active");
-    }
-  }
-
-  async function handleUsersTableClick(e) {
-    const btn = e.target.closest("[data-user-action]");
-    if (!btn) return;
-
-    const action = btn.dataset.userAction;
-    const userId = btn.dataset.userId;
-    const user = allUsers.find((u) => String(u.user_id) === String(userId));
-    if (!user) return;
-
-    if (action === "edit") {
-      fillEditUserForm(user);
-      openModal(modalEditUser);
-      return;
-    }
-
-    if (action === "memberships") {
-      await openMembershipModal(user);
-      return;
-    }
-
-    if (action === "resend-access") {
-      accessResultText.textContent = buildUserAccessMessage(user);
-      openModal(modalAccessResult);
-      return;
-    }
-
-    if (action === "block") {
-      await updateUserStatus(userId, "blocked");
-      return;
-    }
-
-    if (action === "unblock") {
-      await updateUserStatus(userId, "active");
-      return;
-    }
-
-    if (action === "disable") {
-      await updateUserStatus(userId, "disabled");
-      return;
-    }
-
-    if (action === "enable") {
-      await updateUserStatus(userId, "active");
-    }
+    closeModal(els.modalCreateUser);
+    resetUserModal();
+    await refreshAll();
+    setActiveSection("users");
   }
 
   function bindEvents() {
-    navLinks.forEach((btn) => {
-      btn.addEventListener("click", () => setSection(btn.dataset.section));
+    els.navLinks.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setActiveSection(btn.dataset.section);
+      });
     });
 
-    [btnOpenCreateTenant, btnOpenCreateTenant2].forEach((btn) => {
-      btn?.addEventListener("click", () => openModal(modalCreateTenant));
+    els.btnOpenCreateTenant?.addEventListener("click", () => {
+      resetTenantModal();
+      openModal(els.modalCreateTenant);
     });
 
-    btnOpenCreateUser?.addEventListener("click", () => {
-      resetCreateUserForm();
-      populateUserTenantOptions();
-      fillGeneratedPassword();
-      openModal(modalCreateUser);
+    els.btnOpenCreateTenant2?.addEventListener("click", () => {
+      resetTenantModal();
+      openModal(els.modalCreateTenant);
     });
 
-    btnGeneratePassword?.addEventListener("click", fillGeneratedPassword);
-
-    btnReloadTenants?.addEventListener("click", loadTenants);
-
-    btnRefreshPlatform?.addEventListener("click", async () => {
-      await loadTenants();
-      await loadUsers();
+    els.btnOpenCreateUser?.addEventListener("click", () => {
+      resetUserModal();
+      openModal(els.modalCreateUser);
     });
 
-    btnLogout?.addEventListener("click", async () => {
+    els.btnCreateTenantConfirm?.addEventListener("click", createTenant);
+    els.btnCreateUserConfirm?.addEventListener("click", createUser);
+
+    els.btnGeneratePassword?.addEventListener("click", () => {
+      const pwd = generatePassword();
+      if (els.userPassword) els.userPassword.value = pwd;
+      if (els.userPasswordConfirm) els.userPasswordConfirm.value = pwd;
+    });
+
+    els.btnRefreshPlatform?.addEventListener("click", refreshAll);
+    els.btnReloadTenants?.addEventListener("click", loadTenants);
+
+    els.btnLogout?.addEventListener("click", async () => {
       try {
-        await supabaseClient.auth.signOut();
-
-        sessionStorage.removeItem("tenant_id");
-        sessionStorage.removeItem("tenant_role");
-        sessionStorage.removeItem("tenant_slug_preview");
-
-        localStorage.removeItem(ACTIVE_TENANT_ID_KEY);
-        localStorage.removeItem(ACTIVE_TENANT_NAME_KEY);
-        localStorage.removeItem(ACTIVE_TENANT_SLUG_KEY);
-
-        window.location.replace("/login.html");
-      } catch (error) {
-        console.error("Erro ao sair:", error);
-        alert(`Não foi possível sair: ${error.message}`);
+        await sb.auth.signOut();
+      } catch (err) {
+        console.error(err);
       }
-    });
-
-    tenantSearch?.addEventListener("input", renderTenants);
-    tenantStatusFilter?.addEventListener("change", renderTenants);
-
-    userSearch?.addEventListener("input", renderUsers);
-    userStatusFilter?.addEventListener("change", renderUsers);
-    userTypeFilter?.addEventListener("change", renderUsers);
-    userTenantFilter?.addEventListener("change", renderUsers);
-
-    tenantsTableBody?.addEventListener("click", handleTenantTableClick);
-    usersTableBody?.addEventListener("click", handleUsersTableClick);
-
-    btnCreateTenantConfirm?.addEventListener("click", handleCreateTenant);
-    btnCreateUserConfirm?.addEventListener("click", handleCreateUser);
-    btnSaveUserEdit?.addEventListener("click", handleSaveUserEdit);
-    btnChangeAdminConfirm?.addEventListener("click", handleConfirmChangeAdmin);
-    btnDisableTenantConfirm?.addEventListener("click", handleConfirmDisableTenant);
-    btnAddMembership?.addEventListener("click", addMembership);
-
-    document.getElementById("membershipList")?.addEventListener("click", handleMembershipListClick);
-
-    btnCopyAccessMessage?.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(accessResultText.textContent || "");
-        alert("Mensagem copiada.");
-      } catch {
-        alert("Não foi possível copiar a mensagem.");
-      }
+      window.location.href = "/login.html";
     });
 
     document.querySelectorAll("[data-close]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-close");
-        closeModal(document.getElementById(id));
+        const modalId = btn.getAttribute("data-close");
+        closeModal(document.getElementById(modalId));
       });
+    });
+
+    document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
+      backdrop.addEventListener("click", (event) => {
+        if (event.target === backdrop) {
+          closeModal(backdrop);
+        }
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeAllModals();
+      }
+    });
+
+    els.tenantName?.addEventListener("input", () => {
+      if (!els.tenantSlug?.dataset.editedManually) {
+        els.tenantSlug.value = makeSlug(els.tenantName.value);
+      }
+    });
+
+    els.tenantSlug?.addEventListener("input", () => {
+      els.tenantSlug.value = makeSlug(els.tenantSlug.value);
+      els.tenantSlug.dataset.editedManually = "1";
+    });
+
+    [
+      els.tenantSearch,
+      els.tenantStatusFilter
+    ].forEach((el) => {
+      el?.addEventListener("input", renderTenantsTable);
+      el?.addEventListener("change", renderTenantsTable);
+    });
+
+    [
+      els.userSearch,
+      els.userStatusFilter,
+      els.userTypeFilter,
+      els.userTenantFilter
+    ].forEach((el) => {
+      el?.addEventListener("input", renderUsersTable);
+      el?.addEventListener("change", renderUsersTable);
     });
   }
 
   async function init() {
     bindEvents();
-    setSection("overview");
-    await loadTenants();
-    await loadUsers();
+    resetUserModal();
+    await refreshAll();
   }
 
   init();
