@@ -11,6 +11,13 @@
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const ALLOWED_PLATFORM_ROLES = [
+    "platform_admin",
+    "platform_support",
+    "platform_operations",
+    "platform_readonly"
+  ];
+
   const state = {
     tenants: [],
     users: []
@@ -34,14 +41,15 @@
 
     modalCreateTenant: document.getElementById("modalCreateTenant"),
     modalCreateUser: document.getElementById("modalCreateUser"),
+    modalEditTenant: document.getElementById("modalEditTenant"),
+    modalEditUser: document.getElementById("modalEditUser"),
 
     tenantName: document.getElementById("tenantName"),
     tenantSlug: document.getElementById("tenantSlug"),
     tenantStatus: document.getElementById("tenantStatus"),
     tenantAdminName: document.getElementById("tenantAdminName"),
     tenantAdminEmail: document.getElementById("tenantAdminEmail"),
-    
-    modalEditTenant: document.getElementById("modalEditTenant"),
+
     btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
 
     editTenantId: document.getElementById("editTenantId"),
@@ -57,6 +65,15 @@
     userTenantId: document.getElementById("userTenantId"),
     userPassword: document.getElementById("userPassword"),
     userPasswordConfirm: document.getElementById("userPasswordConfirm"),
+
+    btnUpdateUserConfirm: document.getElementById("btnUpdateUserConfirm"),
+    editUserId: document.getElementById("editUserId"),
+    editUserName: document.getElementById("editUserName"),
+    editUserEmail: document.getElementById("editUserEmail"),
+    editUserPhone: document.getElementById("editUserPhone"),
+    editUserType: document.getElementById("editUserType"),
+    editUserStatus: document.getElementById("editUserStatus"),
+    editUserTenantId: document.getElementById("editUserTenantId"),
 
     tenantSearch: document.getElementById("tenantSearch"),
     tenantStatusFilter: document.getElementById("tenantStatusFilter"),
@@ -132,6 +149,11 @@
     return out;
   }
 
+  function normalizePlatformRole(value) {
+    const role = String(value || "").trim().toLowerCase();
+    return ALLOWED_PLATFORM_ROLES.includes(role) ? role : null;
+  }
+
   function openModal(modal) {
     if (!modal) return;
     modal.classList.remove("hidden");
@@ -178,12 +200,32 @@
     if (els.userName) els.userName.value = "";
     if (els.userEmail) els.userEmail.value = "";
     if (els.userPhone) els.userPhone.value = "";
-    if (els.userType) els.userType.value = "tenant_admin";
+    if (els.userType) els.userType.value = "platform_readonly";
     if (els.userStatus) els.userStatus.value = "active";
     if (els.userTenantId) els.userTenantId.value = "";
     const pwd = generatePassword();
     if (els.userPassword) els.userPassword.value = pwd;
     if (els.userPasswordConfirm) els.userPasswordConfirm.value = pwd;
+  }
+
+  function resetEditTenantModal() {
+    if (els.editTenantId) els.editTenantId.value = "";
+    if (els.editTenantName) els.editTenantName.value = "";
+    if (els.editTenantSlug) {
+      els.editTenantSlug.value = "";
+      delete els.editTenantSlug.dataset.editedManually;
+    }
+    if (els.editTenantStatus) els.editTenantStatus.value = "active";
+  }
+
+  function resetEditUserModal() {
+    if (els.editUserId) els.editUserId.value = "";
+    if (els.editUserName) els.editUserName.value = "";
+    if (els.editUserEmail) els.editUserEmail.value = "";
+    if (els.editUserPhone) els.editUserPhone.value = "";
+    if (els.editUserType) els.editUserType.value = "platform_readonly";
+    if (els.editUserStatus) els.editUserStatus.value = "active";
+    if (els.editUserTenantId) els.editUserTenantId.value = "";
   }
 
   function renderTenantFilters() {
@@ -192,7 +234,7 @@
     const currentFilter = els.userTenantFilter.value;
     const currentCreate = els.userTenantId.value;
 
-    const options = [`<option value="">Todos tenants</option>`]
+    const filterOptions = [`<option value="">Todos tenants</option>`]
       .concat(
         state.tenants.map((tenant) => (
           `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.name || tenant.slug || tenant.id)}</option>`
@@ -200,7 +242,7 @@
       )
       .join("");
 
-    els.userTenantFilter.innerHTML = options;
+    els.userTenantFilter.innerHTML = filterOptions;
 
     const createOptions = [`<option value="">Sem vínculo</option>`]
       .concat(
@@ -219,15 +261,26 @@
     if ([...els.userTenantId.options].some(o => o.value === currentCreate)) {
       els.userTenantId.value = currentCreate;
     }
+
+    renderEditUserTenantOptions(els.editUserTenantId?.value || "");
   }
-  function resetEditTenantModal() {
-    if (els.editTenantId) els.editTenantId.value = "";
-    if (els.editTenantName) els.editTenantName.value = "";
-    if (els.editTenantSlug) {
-      els.editTenantSlug.value = "";
-      delete els.editTenantSlug.dataset.editedManually;
+
+  function renderEditUserTenantOptions(selectedTenantId = "") {
+    if (!els.editUserTenantId) return;
+
+    const options = [`<option value="">Sem vínculo</option>`]
+      .concat(
+        state.tenants.map((tenant) => (
+          `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.name || tenant.slug || tenant.id)}</option>`
+        ))
+      )
+      .join("");
+
+    els.editUserTenantId.innerHTML = options;
+
+    if ([...els.editUserTenantId.options].some(o => o.value === selectedTenantId)) {
+      els.editUserTenantId.value = selectedTenantId;
     }
-    if (els.editTenantStatus) els.editTenantStatus.value = "active";
   }
 
   function openEditTenantModal(tenantId) {
@@ -248,49 +301,51 @@
     openModal(els.modalEditTenant);
   }
 
-  async function updateTenant() {
-    const tenantId = (els.editTenantId?.value || "").trim();
-    const name = (els.editTenantName?.value || "").trim();
-    const slug = makeSlug(els.editTenantSlug?.value || "");
-    const status = (els.editTenantStatus?.value || "active").trim();
+  function openEditUserModal(userId) {
+    const user = state.users.find(u => String(u.user_id) === String(userId));
 
-    if (!tenantId) {
-      alert("Tenant inválido.");
+    if (!user) {
+      alert("Usuário não encontrado.");
       return;
     }
 
-    if (!name) {
-      alert("Informe o nome do tenant.");
-      els.editTenantName?.focus();
-      return;
-    }
+    const memberships = Array.isArray(user.memberships) ? user.memberships : [];
+    const firstTenantId = memberships.length ? String(memberships[0].tenant_id || "") : "";
 
-    if (!slug) {
-      alert("Informe um slug válido.");
-      els.editTenantSlug?.focus();
-      return;
-    }
+    if (els.editUserId) els.editUserId.value = user.user_id || "";
+    if (els.editUserName) els.editUserName.value = user.full_name || "";
+    if (els.editUserEmail) els.editUserEmail.value = user.email || "";
+    if (els.editUserPhone) els.editUserPhone.value = user.phone || "";
+    if (els.editUserType) els.editUserType.value = user.platform_role || "platform_readonly";
+    if (els.editUserStatus) els.editUserStatus.value = user.status || "pending";
 
-    const { error } = await sb
-      .from("tenants")
-      .update({
-        name,
-        slug,
-        status
-      })
-      .eq("id", tenantId);
+    renderEditUserTenantOptions(firstTenantId);
 
-    if (error) {
-      console.error("Erro ao atualizar tenant:", error);
-      alert(`Erro ao atualizar tenant: ${error.message}`);
-      return;
-    }
-
-    closeModal(els.modalEditTenant);
-    resetEditTenantModal();
-    await refreshAll();
-    setActiveSection("tenants");
+    openModal(els.modalEditUser);
   }
+
+  function openUserLinksModal(userId) {
+    const user = state.users.find(u => String(u.user_id) === String(userId));
+
+    if (!user) {
+      alert("Usuário não encontrado.");
+      return;
+    }
+
+    const memberships = Array.isArray(user.memberships) ? user.memberships : [];
+
+    if (!memberships.length) {
+      alert(`O usuário "${user.full_name || user.email}" ainda não possui vínculos com tenant.`);
+      return;
+    }
+
+    const tenantNames = memberships
+      .map(m => m.tenant_name || m.tenant_id || "—")
+      .join("\n");
+
+    alert(`Vínculos do usuário:\n\n${tenantNames}`);
+  }
+
   function getFilteredTenants() {
     const search = (els.tenantSearch?.value || "").trim().toLowerCase();
     const status = (els.tenantStatusFilter?.value || "").trim().toLowerCase();
@@ -533,109 +588,234 @@
     setActiveSection("tenants");
   }
 
-  async function createUser() {
-  const fullName = (els.userName?.value || "").trim();
-  const email = (els.userEmail?.value || "").trim().toLowerCase();
-  const phone = (els.userPhone?.value || "").trim();
-  const userType = (els.userType?.value || "tenant_admin").trim();
-  const status = (els.userStatus?.value || "active").trim();
-  const tenantId = (els.userTenantId?.value || "").trim() || null;
-  const password = (els.userPassword?.value || "").trim();
-  const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
+  async function updateTenant() {
+    const tenantId = (els.editTenantId?.value || "").trim();
+    const name = (els.editTenantName?.value || "").trim();
+    const slug = makeSlug(els.editTenantSlug?.value || "");
+    const status = (els.editTenantStatus?.value || "active").trim();
 
-  if (!fullName) {
-    alert("Informe o nome do usuário.");
-    els.userName?.focus();
-    return;
-  }
-
-  if (!email) {
-    alert("Informe o e-mail do usuário.");
-    els.userEmail?.focus();
-    return;
-  }
-
-  if (!password) {
-    alert("Informe a senha provisória.");
-    els.userPassword?.focus();
-    return;
-  }
-
-  if (password !== passwordConfirm) {
-    alert("A confirmação de senha não confere.");
-    els.userPasswordConfirm?.focus();
-    return;
-  }
-
-  const scope = tenantId ? "tenant" : "global";
-
-  const authCreate = await sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName
-      }
-    }
-  });
-
-  if (authCreate.error) {
-    console.error("Erro ao criar autenticação do usuário:", authCreate.error);
-    alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
-    return;
-  }
-
-  const authUserId = authCreate.data?.user?.id || null;
-
-  if (!authUserId) {
-    alert("Não foi possível obter o ID do usuário criado.");
-    return;
-  }
-
-  // O trigger do banco já cria o registro em public.profiles.
-  // Aqui apenas atualizamos os campos complementares.
-  const updateProfile = await sb
-    .from("profiles")
-    .update({
-      full_name: fullName,
-      email,
-      phone: phone || null,
-      scope,
-      platform_role: userType,
-      status,
-      is_platform_user: userType === "platform_admin",
-      updated_at: new Date().toISOString()
-    })
-    .eq("user_id", authUserId);
-
-  if (updateProfile.error) {
-    console.error("Erro ao atualizar profile:", updateProfile.error);
-    alert(`Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`);
-    return;
-  }
-
-  if (tenantId) {
-    const memberPayload = {
-      tenant_id: tenantId,
-      user_id: authUserId,
-      role: userType,
-      is_active: status === "active"
-    };
-
-    const insertMembership = await sb.from("tenant_members").insert(memberPayload);
-
-    if (insertMembership.error) {
-      console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
-      alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
+    if (!tenantId) {
+      alert("Tenant inválido.");
       return;
     }
+
+    if (!name) {
+      alert("Informe o nome do tenant.");
+      els.editTenantName?.focus();
+      return;
+    }
+
+    if (!slug) {
+      alert("Informe um slug válido.");
+      els.editTenantSlug?.focus();
+      return;
+    }
+
+    const { error } = await sb
+      .from("tenants")
+      .update({
+        name,
+        slug,
+        status
+      })
+      .eq("id", tenantId);
+
+    if (error) {
+      console.error("Erro ao atualizar tenant:", error);
+      alert(`Erro ao atualizar tenant: ${error.message}`);
+      return;
+    }
+
+    closeModal(els.modalEditTenant);
+    resetEditTenantModal();
+    await refreshAll();
+    setActiveSection("tenants");
   }
 
-  closeModal(els.modalCreateUser);
-  resetUserModal();
-  await refreshAll();
-  setActiveSection("users");
-}
+  async function createUser() {
+    const fullName = (els.userName?.value || "").trim();
+    const email = (els.userEmail?.value || "").trim().toLowerCase();
+    const phone = (els.userPhone?.value || "").trim();
+    const userType = (els.userType?.value || "platform_readonly").trim();
+    const status = (els.userStatus?.value || "active").trim();
+    const tenantId = (els.userTenantId?.value || "").trim() || null;
+    const password = (els.userPassword?.value || "").trim();
+    const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
+
+    if (!fullName) {
+      alert("Informe o nome do usuário.");
+      els.userName?.focus();
+      return;
+    }
+
+    if (!email) {
+      alert("Informe o e-mail do usuário.");
+      els.userEmail?.focus();
+      return;
+    }
+
+    if (!password) {
+      alert("Informe a senha provisória.");
+      els.userPassword?.focus();
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      alert("A confirmação de senha não confere.");
+      els.userPasswordConfirm?.focus();
+      return;
+    }
+
+    const scope = tenantId ? "tenant" : "global";
+    const profilePlatformRole = normalizePlatformRole(userType);
+
+    const authCreate = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName
+        }
+      }
+    });
+
+    if (authCreate.error) {
+      console.error("Erro ao criar autenticação do usuário:", authCreate.error);
+      alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
+      return;
+    }
+
+    const authUserId = authCreate.data?.user?.id || null;
+
+    if (!authUserId) {
+      alert("Não foi possível obter o ID do usuário criado.");
+      return;
+    }
+
+    const updateProfile = await sb
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        email,
+        phone: phone || null,
+        scope,
+        platform_role: profilePlatformRole,
+        status,
+        is_platform_user: Boolean(profilePlatformRole),
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", authUserId);
+
+    if (updateProfile.error) {
+      console.error("Erro ao atualizar profile:", updateProfile.error);
+      alert(`Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`);
+      return;
+    }
+
+    if (tenantId) {
+      const memberPayload = {
+        tenant_id: tenantId,
+        user_id: authUserId,
+        role: userType,
+        is_active: status === "active"
+      };
+
+      const insertMembership = await sb.from("tenant_members").insert(memberPayload);
+
+      if (insertMembership.error) {
+        console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
+        alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
+        return;
+      }
+    }
+
+    closeModal(els.modalCreateUser);
+    resetUserModal();
+    await refreshAll();
+    setActiveSection("users");
+  }
+
+  async function updateUser() {
+    const userId = (els.editUserId?.value || "").trim();
+    const fullName = (els.editUserName?.value || "").trim();
+    const email = (els.editUserEmail?.value || "").trim().toLowerCase();
+    const phone = (els.editUserPhone?.value || "").trim();
+    const userType = (els.editUserType?.value || "platform_readonly").trim();
+    const status = (els.editUserStatus?.value || "active").trim();
+    const tenantId = (els.editUserTenantId?.value || "").trim() || null;
+    const scope = tenantId ? "tenant" : "global";
+    const profilePlatformRole = normalizePlatformRole(userType);
+
+    if (!userId) {
+      alert("Usuário inválido.");
+      return;
+    }
+
+    if (!fullName) {
+      alert("Informe o nome do usuário.");
+      els.editUserName?.focus();
+      return;
+    }
+
+    if (!email) {
+      alert("Informe o e-mail do usuário.");
+      els.editUserEmail?.focus();
+      return;
+    }
+
+    const updateProfile = await sb
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        email,
+        phone: phone || null,
+        scope,
+        platform_role: profilePlatformRole,
+        status,
+        is_platform_user: Boolean(profilePlatformRole),
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", userId);
+
+    if (updateProfile.error) {
+      console.error("Erro ao atualizar perfil do usuário:", updateProfile.error);
+      alert(`Erro ao atualizar usuário: ${updateProfile.error.message}`);
+      return;
+    }
+
+    const removeMemberships = await sb
+      .from("tenant_members")
+      .delete()
+      .eq("user_id", userId);
+
+    if (removeMemberships.error) {
+      console.error("Erro ao remover vínculos antigos:", removeMemberships.error);
+      alert(`Usuário atualizado, mas falhou ao limpar vínculos antigos: ${removeMemberships.error.message}`);
+      return;
+    }
+
+    if (tenantId) {
+      const insertMembership = await sb
+        .from("tenant_members")
+        .insert({
+          tenant_id: tenantId,
+          user_id: userId,
+          role: userType,
+          is_active: status === "active"
+        });
+
+      if (insertMembership.error) {
+        console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
+        alert(`Usuário atualizado, mas falhou ao recriar vínculo: ${insertMembership.error.message}`);
+        return;
+      }
+    }
+
+    closeModal(els.modalEditUser);
+    resetEditUserModal();
+    await refreshAll();
+    setActiveSection("users");
+  }
 
   function bindEvents() {
     els.navLinks.forEach((btn) => {
@@ -653,16 +833,16 @@
       resetTenantModal();
       openModal(els.modalCreateTenant);
     });
-    
-    els.btnUpdateTenantConfirm?.addEventListener("click", updateTenant);
-    
+
     els.btnOpenCreateUser?.addEventListener("click", () => {
       resetUserModal();
       openModal(els.modalCreateUser);
     });
 
     els.btnCreateTenantConfirm?.addEventListener("click", createTenant);
+    els.btnUpdateTenantConfirm?.addEventListener("click", updateTenant);
     els.btnCreateUserConfirm?.addEventListener("click", createUser);
+    els.btnUpdateUserConfirm?.addEventListener("click", updateUser);
 
     els.btnGeneratePassword?.addEventListener("click", () => {
       const pwd = generatePassword();
@@ -719,9 +899,24 @@
           return;
         }
       }
+
+      const userActionBtn = event.target.closest("[data-user-action]");
+      if (userActionBtn) {
+        const action = userActionBtn.getAttribute("data-user-action");
+        const userId = userActionBtn.getAttribute("data-id");
+
+        if (action === "edit") {
+          openEditUserModal(userId);
+          return;
+        }
+
+        if (action === "link") {
+          openUserLinksModal(userId);
+        }
+      }
     });
 
-        els.editTenantName?.addEventListener("input", () => {
+    els.editTenantName?.addEventListener("input", () => {
       if (!els.editTenantSlug?.dataset.editedManually) {
         els.editTenantSlug.value = makeSlug(els.editTenantName.value);
       }
@@ -732,8 +927,6 @@
       els.editTenantSlug.dataset.editedManually = "1";
     });
 
-    
-    
     els.tenantName?.addEventListener("input", () => {
       if (!els.tenantSlug?.dataset.editedManually) {
         els.tenantSlug.value = makeSlug(els.tenantName.value);
@@ -759,6 +952,7 @@
   async function init() {
     bindEvents();
     resetUserModal();
+    resetEditUserModal();
     await refreshAll();
   }
 
