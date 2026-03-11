@@ -40,6 +40,14 @@
     tenantStatus: document.getElementById("tenantStatus"),
     tenantAdminName: document.getElementById("tenantAdminName"),
     tenantAdminEmail: document.getElementById("tenantAdminEmail"),
+    
+    modalEditTenant: document.getElementById("modalEditTenant"),
+    btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
+
+    editTenantId: document.getElementById("editTenantId"),
+    editTenantName: document.getElementById("editTenantName"),
+    editTenantSlug: document.getElementById("editTenantSlug"),
+    editTenantStatus: document.getElementById("editTenantStatus"),
 
     userName: document.getElementById("userName"),
     userEmail: document.getElementById("userEmail"),
@@ -212,7 +220,77 @@
       els.userTenantId.value = currentCreate;
     }
   }
+  function resetEditTenantModal() {
+    if (els.editTenantId) els.editTenantId.value = "";
+    if (els.editTenantName) els.editTenantName.value = "";
+    if (els.editTenantSlug) {
+      els.editTenantSlug.value = "";
+      delete els.editTenantSlug.dataset.editedManually;
+    }
+    if (els.editTenantStatus) els.editTenantStatus.value = "active";
+  }
 
+  function openEditTenantModal(tenantId) {
+    const tenant = state.tenants.find(t => String(t.id) === String(tenantId));
+    if (!tenant) {
+      alert("Tenant não encontrado.");
+      return;
+    }
+
+    if (els.editTenantId) els.editTenantId.value = tenant.id || "";
+    if (els.editTenantName) els.editTenantName.value = tenant.name || "";
+    if (els.editTenantSlug) {
+      els.editTenantSlug.value = tenant.slug || "";
+      delete els.editTenantSlug.dataset.editedManually;
+    }
+    if (els.editTenantStatus) els.editTenantStatus.value = tenant.status || "active";
+
+    openModal(els.modalEditTenant);
+  }
+
+  async function updateTenant() {
+    const tenantId = (els.editTenantId?.value || "").trim();
+    const name = (els.editTenantName?.value || "").trim();
+    const slug = makeSlug(els.editTenantSlug?.value || "");
+    const status = (els.editTenantStatus?.value || "active").trim();
+
+    if (!tenantId) {
+      alert("Tenant inválido.");
+      return;
+    }
+
+    if (!name) {
+      alert("Informe o nome do tenant.");
+      els.editTenantName?.focus();
+      return;
+    }
+
+    if (!slug) {
+      alert("Informe um slug válido.");
+      els.editTenantSlug?.focus();
+      return;
+    }
+
+    const { error } = await sb
+      .from("tenants")
+      .update({
+        name,
+        slug,
+        status
+      })
+      .eq("id", tenantId);
+
+    if (error) {
+      console.error("Erro ao atualizar tenant:", error);
+      alert(`Erro ao atualizar tenant: ${error.message}`);
+      return;
+    }
+
+    closeModal(els.modalEditTenant);
+    resetEditTenantModal();
+    await refreshAll();
+    setActiveSection("tenants");
+  }
   function getFilteredTenants() {
     const search = (els.tenantSearch?.value || "").trim().toLowerCase();
     const status = (els.tenantStatusFilter?.value || "").trim().toLowerCase();
@@ -572,7 +650,9 @@
       resetTenantModal();
       openModal(els.modalCreateTenant);
     });
-
+    
+    els.btnUpdateTenantConfirm?.addEventListener("click", updateTenant);
+    
     els.btnOpenCreateUser?.addEventListener("click", () => {
       resetUserModal();
       openModal(els.modalCreateUser);
@@ -620,6 +700,37 @@
       }
     });
 
+    document.addEventListener("click", (event) => {
+      const tenantActionBtn = event.target.closest("[data-tenant-action]");
+      if (tenantActionBtn) {
+        const action = tenantActionBtn.getAttribute("data-tenant-action");
+        const tenantId = tenantActionBtn.getAttribute("data-id");
+
+        if (action === "edit") {
+          openEditTenantModal(tenantId);
+          return;
+        }
+
+        if (action === "users") {
+          alert("Próximo item: abrir gerenciamento de usuários do tenant " + tenantId);
+          return;
+        }
+      }
+    });
+
+        els.editTenantName?.addEventListener("input", () => {
+      if (!els.editTenantSlug?.dataset.editedManually) {
+        els.editTenantSlug.value = makeSlug(els.editTenantName.value);
+      }
+    });
+
+    els.editTenantSlug?.addEventListener("input", () => {
+      els.editTenantSlug.value = makeSlug(els.editTenantSlug.value);
+      els.editTenantSlug.dataset.editedManually = "1";
+    });
+
+    
+    
     els.tenantName?.addEventListener("input", () => {
       if (!els.tenantSlug?.dataset.editedManually) {
         els.tenantSlug.value = makeSlug(els.tenantName.value);
