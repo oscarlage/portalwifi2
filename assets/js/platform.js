@@ -220,9 +220,7 @@
     return state.tenants.filter((tenant) => {
       const haystack = [
         tenant.name,
-        tenant.slug,
-        tenant.admin_name,
-        tenant.admin_email
+        tenant.slug
       ].join(" ").toLowerCase();
 
       const okSearch = !search || haystack.includes(search);
@@ -245,17 +243,22 @@
         user.phone,
         user.scope,
         user.platform_role,
-        user.user_type,
-        user.tenant_name
+        user.tenant_names
       ].join(" ").toLowerCase();
 
-      const userType = String(user.user_type || user.platform_role || "").toLowerCase();
+      const userType = String(user.platform_role || "").toLowerCase();
       const userStatus = String(user.status || "").toLowerCase();
+
+      let okTenant = true;
+
+      if (tenantId) {
+        const memberships = Array.isArray(user.memberships) ? user.memberships : [];
+        okTenant = memberships.some((m) => String(m.tenant_id || "") === tenantId);
+      }
 
       const okSearch = !search || haystack.includes(search);
       const okStatus = !status || userStatus === status;
-      const okType = !type || userType === type || String(user.platform_role || "").toLowerCase() === type;
-      const okTenant = !tenantId || String(user.tenant_id || "") === tenantId;
+      const okType = !type || userType === type;
 
       return okSearch && okStatus && okType && okTenant;
     });
@@ -280,8 +283,8 @@
         <td>${escapeHtml(tenant.name || "—")}</td>
         <td>${escapeHtml(tenant.slug || "—")}</td>
         <td>${statusBadge(tenant.status)}</td>
-        <td>${escapeHtml(tenant.admin_name || "—")}</td>
-        <td>${escapeHtml(tenant.admin_email || "—")}</td>
+        <td>—</td>
+        <td>—</td>
         <td>${formatDate(tenant.created_at)}</td>
         <td>
           <div class="actions">
@@ -308,23 +311,23 @@
     }
 
     els.usersTableBody.innerHTML = rows.map((user) => {
-      const type = user.user_type || user.platform_role || "—";
-      const scope = user.scope || (user.tenant_id ? "tenant" : "global");
-      const tenantsLabel = user.tenant_name || (user.tenant_id ? user.tenant_id : "—");
+      const scope = user.scope || "—";
+      const role = user.platform_role || "—";
+      const tenantsLabel = user.tenant_names || "—";
 
       return `
         <tr>
           <td>${escapeHtml(user.full_name || "—")}</td>
           <td>${escapeHtml(user.email || "—")}</td>
           <td>${escapeHtml(scope)}</td>
-          <td>${escapeHtml(type)}</td>
+          <td>${escapeHtml(role)}</td>
           <td>${escapeHtml(tenantsLabel)}</td>
           <td>${statusBadge(user.status)}</td>
           <td>${formatDateTime(user.last_login_at)}</td>
           <td>
             <div class="actions">
-              <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.id || user.user_id || "")}">Editar</button>
-              <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.id || user.user_id || "")}">Vínculos</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.user_id || "")}">Editar</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.user_id || "")}">Vínculos</button>
             </div>
           </td>
         </tr>
@@ -336,11 +339,11 @@
     const totalTenants = state.tenants.length;
     const activeTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "active").length;
     const disabledTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "disabled").length;
-    const admins = state.tenants.filter(t => t.admin_email || t.admin_name).length;
+    const admins = state.users.filter(u => String(u.platform_role || "").toLowerCase() === "platform_admin").length;
 
     const totalUsers = state.users.length;
-    const globalUsers = state.users.filter(u => !u.tenant_id).length;
-    const tenantUsers = state.users.filter(u => !!u.tenant_id).length;
+    const globalUsers = state.users.filter(u => Number(u.tenant_count || 0) === 0).length;
+    const tenantUsers = state.users.filter(u => Number(u.tenant_count || 0) > 0).length;
     const blockedUsers = state.users.filter(u => String(u.status || "").toLowerCase() === "blocked").length;
 
     if (els.metricTotalTenants) els.metricTotalTenants.textContent = String(totalTenants);
@@ -383,25 +386,32 @@
     renderMetrics();
   }
 
-async function loadUsers() {
+  async function loadUsers() {
+    if (!els.usersTableBody) return;
 
-  const { data, error } = await sb
-    .from("v_platform_users")
-    .select("*")
-    .order("created_at", { ascending: false });
+    els.usersTableBody.innerHTML = `
+      <tr><td colspan="8" class="empty-row">Carregando usuários...</td></tr>
+    `;
 
-  if (error) {
-    console.error("Erro ao carregar usuários:", error);
-    els.usersTableBody.innerHTML =
-      `<tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>`;
-    return;
+    const { data, error } = await sb
+      .from("v_platform_users")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao carregar usuários:", error);
+      els.usersTableBody.innerHTML = `
+        <tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>
+      `;
+      state.users = [];
+      renderMetrics();
+      return;
+    }
+
+    state.users = Array.isArray(data) ? data : [];
+    renderUsersTable();
+    renderMetrics();
   }
-
-  state.users = data || [];
-
-  renderUsersTable();
-  renderMetrics();
-}
 
   async function refreshAll() {
     await loadTenants();
@@ -412,8 +422,6 @@ async function loadUsers() {
     const name = (els.tenantName?.value || "").trim();
     const slug = makeSlug(els.tenantSlug?.value || "");
     const status = (els.tenantStatus?.value || "active").trim();
-    const adminName = (els.tenantAdminName?.value || "").trim();
-    const adminEmail = (els.tenantAdminEmail?.value || "").trim().toLowerCase();
 
     if (!name) {
       alert("Informe o nome do tenant.");
@@ -430,9 +438,7 @@ async function loadUsers() {
     const payload = {
       name,
       slug,
-      status,
-      admin_name: adminName || null,
-      admin_email: adminEmail || null
+      status
     };
 
     const { error } = await sb.from("tenants").insert(payload);
@@ -503,45 +509,45 @@ async function loadUsers() {
 
     const authUserId = authCreate.data?.user?.id || null;
 
+    if (!authUserId) {
+      alert("Não foi possível obter o ID do usuário criado.");
+      return;
+    }
+
     const profilePayload = {
-      user_id: authUserId,
+      id: authUserId,
       full_name: fullName,
       email,
       phone: phone || null,
       scope,
       platform_role: userType,
-      user_type: userType,
       status,
-      tenant_id: tenantId,
       is_platform_user: userType === "platform_admin"
     };
 
-    let insertOk = false;
+    const insertProfile = await sb.from("profiles").insert(profilePayload);
 
-    const insertProfiles = await sb.from("profiles").insert(profilePayload);
-    if (!insertProfiles.error) {
-      insertOk = true;
-    } else {
-      console.warn("Insert em profiles falhou, tentando platform_users:", insertProfiles.error);
-
-      const fallbackPayload = {
-        ...profilePayload,
-        id: authUserId
-      };
-
-      const insertPlatformUsers = await sb.from("platform_users").insert(fallbackPayload);
-      if (!insertPlatformUsers.error) {
-        insertOk = true;
-      } else {
-        console.error("Erro ao persistir usuário:", insertPlatformUsers.error);
-        alert(`Usuário autenticado criado, mas falhou ao gravar perfil: ${insertPlatformUsers.error.message}`);
-        return;
-      }
+    if (insertProfile.error) {
+      console.error("Erro ao gravar profile:", insertProfile.error);
+      alert(`Usuário autenticado criado, mas falhou ao gravar perfil: ${insertProfile.error.message}`);
+      return;
     }
 
-    if (!insertOk) {
-      alert("Não foi possível concluir o cadastro do usuário.");
-      return;
+    if (tenantId) {
+      const memberPayload = {
+        tenant_id: tenantId,
+        user_id: authUserId,
+        role: userType,
+        is_active: status === "active"
+      };
+
+      const insertMembership = await sb.from("tenant_members").insert(memberPayload);
+
+      if (insertMembership.error) {
+        console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
+        alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
+        return;
+      }
     }
 
     closeModal(els.modalCreateUser);
@@ -625,20 +631,12 @@ async function loadUsers() {
       els.tenantSlug.dataset.editedManually = "1";
     });
 
-    [
-      els.tenantSearch,
-      els.tenantStatusFilter
-    ].forEach((el) => {
+    [els.tenantSearch, els.tenantStatusFilter].forEach((el) => {
       el?.addEventListener("input", renderTenantsTable);
       el?.addEventListener("change", renderTenantsTable);
     });
 
-    [
-      els.userSearch,
-      els.userStatusFilter,
-      els.userTypeFilter,
-      els.userTenantFilter
-    ].forEach((el) => {
+    [els.userSearch, els.userStatusFilter, els.userTypeFilter, els.userTenantFilter].forEach((el) => {
       el?.addEventListener("input", renderUsersTable);
       el?.addEventListener("change", renderUsersTable);
     });
