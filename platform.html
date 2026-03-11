@@ -13,7 +13,6 @@
 <body>
 
 <header class="platform-topbar">
-
   <div class="topbar-left">
     <div class="platform-title">Portal WiFi — Plataforma</div>
     <div class="platform-subtitle">Gestão de tenants, acessos e operação SaaS</div>
@@ -38,7 +37,6 @@
 <div class="platform-shell">
 
   <aside class="platform-sidebar">
-
     <nav class="platform-nav">
       <button class="nav-link active" data-section="overview">Visão geral</button>
       <button class="nav-link" data-section="tenants">Tenants</button>
@@ -58,12 +56,10 @@
         Recarregar lista
       </button>
     </div>
-
   </aside>
 
   <main class="platform-main">
 
-    <!-- OVERVIEW -->
     <section class="section active" id="section-overview">
       <div class="section-head">
         <div>
@@ -117,7 +113,6 @@
       </div>
     </section>
 
-    <!-- TENANTS -->
     <section class="section" id="section-tenants">
       <div class="section-head">
         <div>
@@ -172,7 +167,6 @@
       </div>
     </section>
 
-    <!-- USERS -->
     <section class="section" id="section-users">
       <div class="section-head">
         <div>
@@ -209,6 +203,9 @@
             <option value="global">Global</option>
             <option value="tenant">Tenant</option>
             <option value="platform_admin">Platform admin</option>
+            <option value="platform_support">Platform support</option>
+            <option value="platform_operations">Platform operations</option>
+            <option value="platform_readonly">Platform readonly</option>
             <option value="tenant_admin">Tenant admin</option>
             <option value="tenant_viewer">Tenant viewer</option>
             <option value="tenant_marketing">Tenant marketing</option>
@@ -243,7 +240,6 @@
       </div>
     </section>
 
-    <!-- LOGS -->
     <section class="section" id="section-logs">
       <div class="section-head">
         <div>
@@ -257,7 +253,6 @@
       </div>
     </section>
 
-    <!-- SETTINGS -->
     <section class="section" id="section-settings">
       <div class="section-head">
         <div>
@@ -274,7 +269,6 @@
   </main>
 </div>
 
-<!-- MODAL NOVO TENANT -->
 <div class="modal-backdrop hidden" id="modalCreateTenant">
   <div class="modal modal-sm">
     <div class="modal-head">
@@ -329,7 +323,6 @@
   </div>
 </div>
 
-<!-- MODAL EDITAR TENANT -->
 <div class="modal-backdrop hidden" id="modalEditTenant">
   <div class="modal modal-sm">
     <div class="modal-head">
@@ -375,8 +368,7 @@
     </div>
   </div>
 </div>
-  
-<!-- MODAL NOVO USUÁRIO -->
+
 <div class="modal-backdrop hidden" id="modalCreateUser">
   <div class="modal modal-user">
     <div class="modal-head">
@@ -412,10 +404,13 @@
           <label class="field">
             <span>Tipo de usuário</span>
             <select id="userType" class="input select">
+              <option value="platform_readonly">Platform readonly</option>
+              <option value="platform_support">Platform support</option>
+              <option value="platform_operations">Platform operations</option>
+              <option value="platform_admin">Platform admin</option>
               <option value="tenant_admin">Tenant admin</option>
               <option value="tenant_viewer">Tenant viewer</option>
               <option value="tenant_marketing">Tenant marketing</option>
-              <option value="platform_admin">Platform admin</option>
             </select>
           </label>
 
@@ -479,6 +474,84 @@
 
       <button class="btn btn-primary" id="btnCreateUserConfirm" type="button">
         Criar usuário
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modalEditUser">
+  <div class="modal modal-user">
+    <div class="modal-head">
+      <h3>Editar usuário</h3>
+      <button class="icon-btn" data-close="modalEditUser" type="button" aria-label="Fechar modal">×</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="editUserId">
+
+      <div class="form-grid">
+        <div class="form-section">
+          <h4>Dados do usuário</h4>
+
+          <label class="field">
+            <span>Nome</span>
+            <input type="text" id="editUserName" class="input">
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input type="email" id="editUserEmail" class="input">
+          </label>
+
+          <label class="field">
+            <span>Telefone</span>
+            <input type="text" id="editUserPhone" class="input">
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Acesso</h4>
+
+          <label class="field">
+            <span>Tipo de usuário</span>
+            <select id="editUserType" class="input select">
+              <option value="platform_readonly">Platform readonly</option>
+              <option value="platform_support">Platform support</option>
+              <option value="platform_operations">Platform operations</option>
+              <option value="platform_admin">Platform admin</option>
+              <option value="tenant_admin">Tenant admin</option>
+              <option value="tenant_viewer">Tenant viewer</option>
+              <option value="tenant_marketing">Tenant marketing</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Status</span>
+            <select id="editUserStatus" class="input select">
+              <option value="active">Ativo</option>
+              <option value="pending">Pendente</option>
+              <option value="blocked">Bloqueado</option>
+              <option value="disabled">Desabilitado</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Tenant</span>
+            <select id="editUserTenantId" class="input select">
+              <option value="">Sem vínculo</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-light" data-close="modalEditUser" type="button">
+        Cancelar
+      </button>
+
+      <button class="btn btn-primary" id="btnUpdateUserConfirm" type="button">
+        Salvar alterações
       </button>
     </div>
   </div>
