@@ -383,60 +383,25 @@
     renderMetrics();
   }
 
-  async function loadUsers() {
-    if (!els.usersTableBody) return;
+async function loadUsers() {
 
-    els.usersTableBody.innerHTML = `
-      <tr><td colspan="8" class="empty-row">Carregando usuários...</td></tr>
-    `;
+  const { data, error } = await sb
+    .from("v_platform_users")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    let usersData = [];
-    let usersError = null;
-
-    const attemptProfiles = await sb
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!attemptProfiles.error) {
-      usersData = attemptProfiles.data || [];
-    } else {
-      usersError = attemptProfiles.error;
-
-      const attemptUsers = await sb
-        .from("platform_users")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!attemptUsers.error) {
-        usersData = attemptUsers.data || [];
-        usersError = null;
-      } else {
-        usersError = attemptUsers.error;
-      }
-    }
-
-    if (usersError) {
-      console.error("Erro ao carregar usuários:", usersError);
-      els.usersTableBody.innerHTML = `
-        <tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>
-      `;
-      state.users = [];
-      renderMetrics();
-      return;
-    }
-
-    const tenantMap = new Map(state.tenants.map(t => [String(t.id), t.name || t.slug || t.id]));
-
-    state.users = usersData.map((user) => ({
-      ...user,
-      id: user.id || user.user_id,
-      tenant_name: user.tenant_name || tenantMap.get(String(user.tenant_id || "")) || ""
-    }));
-
-    renderUsersTable();
-    renderMetrics();
+  if (error) {
+    console.error("Erro ao carregar usuários:", error);
+    els.usersTableBody.innerHTML =
+      `<tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>`;
+    return;
   }
+
+  state.users = data || [];
+
+  renderUsersTable();
+  renderMetrics();
+}
 
   async function refreshAll() {
     await loadTenants();
