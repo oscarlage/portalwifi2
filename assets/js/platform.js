@@ -534,105 +534,108 @@
   }
 
   async function createUser() {
-    const fullName = (els.userName?.value || "").trim();
-    const email = (els.userEmail?.value || "").trim().toLowerCase();
-    const phone = (els.userPhone?.value || "").trim();
-    const userType = (els.userType?.value || "tenant_admin").trim();
-    const status = (els.userStatus?.value || "active").trim();
-    const tenantId = (els.userTenantId?.value || "").trim() || null;
-    const password = (els.userPassword?.value || "").trim();
-    const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
+  const fullName = (els.userName?.value || "").trim();
+  const email = (els.userEmail?.value || "").trim().toLowerCase();
+  const phone = (els.userPhone?.value || "").trim();
+  const userType = (els.userType?.value || "tenant_admin").trim();
+  const status = (els.userStatus?.value || "active").trim();
+  const tenantId = (els.userTenantId?.value || "").trim() || null;
+  const password = (els.userPassword?.value || "").trim();
+  const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
 
-    if (!fullName) {
-      alert("Informe o nome do usuário.");
-      els.userName?.focus();
-      return;
-    }
+  if (!fullName) {
+    alert("Informe o nome do usuário.");
+    els.userName?.focus();
+    return;
+  }
 
-    if (!email) {
-      alert("Informe o e-mail do usuário.");
-      els.userEmail?.focus();
-      return;
-    }
+  if (!email) {
+    alert("Informe o e-mail do usuário.");
+    els.userEmail?.focus();
+    return;
+  }
 
-    if (!password) {
-      alert("Informe a senha provisória.");
-      els.userPassword?.focus();
-      return;
-    }
+  if (!password) {
+    alert("Informe a senha provisória.");
+    els.userPassword?.focus();
+    return;
+  }
 
-    if (password !== passwordConfirm) {
-      alert("A confirmação de senha não confere.");
-      els.userPasswordConfirm?.focus();
-      return;
-    }
+  if (password !== passwordConfirm) {
+    alert("A confirmação de senha não confere.");
+    els.userPasswordConfirm?.focus();
+    return;
+  }
 
-    const scope = tenantId ? "tenant" : "global";
+  const scope = tenantId ? "tenant" : "global";
 
-    const authCreate = await sb.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName
-        }
+  const authCreate = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName
       }
-    });
-
-    if (authCreate.error) {
-      console.error("Erro ao criar autenticação do usuário:", authCreate.error);
-      alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
-      return;
     }
+  });
 
-    const authUserId = authCreate.data?.user?.id || null;
+  if (authCreate.error) {
+    console.error("Erro ao criar autenticação do usuário:", authCreate.error);
+    alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
+    return;
+  }
 
-    if (!authUserId) {
-      alert("Não foi possível obter o ID do usuário criado.");
-      return;
-    }
+  const authUserId = authCreate.data?.user?.id || null;
 
-    const profilePayload = {
-      id: authUserId,
+  if (!authUserId) {
+    alert("Não foi possível obter o ID do usuário criado.");
+    return;
+  }
+
+  // O trigger do banco já cria o registro em public.profiles.
+  // Aqui apenas atualizamos os campos complementares.
+  const updateProfile = await sb
+    .from("profiles")
+    .update({
       full_name: fullName,
       email,
       phone: phone || null,
       scope,
       platform_role: userType,
       status,
-      is_platform_user: userType === "platform_admin"
+      is_platform_user: userType === "platform_admin",
+      updated_at: new Date().toISOString()
+    })
+    .eq("user_id", authUserId);
+
+  if (updateProfile.error) {
+    console.error("Erro ao atualizar profile:", updateProfile.error);
+    alert(`Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`);
+    return;
+  }
+
+  if (tenantId) {
+    const memberPayload = {
+      tenant_id: tenantId,
+      user_id: authUserId,
+      role: userType,
+      is_active: status === "active"
     };
 
-    const insertProfile = await sb.from("profiles").insert(profilePayload);
+    const insertMembership = await sb.from("tenant_members").insert(memberPayload);
 
-    if (insertProfile.error) {
-      console.error("Erro ao gravar profile:", insertProfile.error);
-      alert(`Usuário autenticado criado, mas falhou ao gravar perfil: ${insertProfile.error.message}`);
+    if (insertMembership.error) {
+      console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
+      alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
       return;
     }
-
-    if (tenantId) {
-      const memberPayload = {
-        tenant_id: tenantId,
-        user_id: authUserId,
-        role: userType,
-        is_active: status === "active"
-      };
-
-      const insertMembership = await sb.from("tenant_members").insert(memberPayload);
-
-      if (insertMembership.error) {
-        console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
-        alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
-        return;
-      }
-    }
-
-    closeModal(els.modalCreateUser);
-    resetUserModal();
-    await refreshAll();
-    setActiveSection("users");
   }
+
+  closeModal(els.modalCreateUser);
+  resetUserModal();
+  await refreshAll();
+  setActiveSection("users");
+}
 
   function bindEvents() {
     els.navLinks.forEach((btn) => {
