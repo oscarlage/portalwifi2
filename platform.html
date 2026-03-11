@@ -329,6 +329,53 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR TENANT -->
+<div class="modal-backdrop hidden" id="modalEditTenant">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>Editar tenant</h3>
+      <button class="icon-btn" data-close="modalEditTenant" type="button" aria-label="Fechar modal">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-section">
+        <h4>Dados do tenant</h4>
+
+        <input type="hidden" id="editTenantId">
+
+        <label class="field">
+          <span>Nome do tenant</span>
+          <input type="text" id="editTenantName" class="input" placeholder="Ex.: Restaurante Central">
+        </label>
+
+        <label class="field">
+          <span>Slug</span>
+          <input type="text" id="editTenantSlug" class="input" placeholder="Ex.: restaurante-central">
+        </label>
+
+        <label class="field">
+          <span>Status</span>
+          <select id="editTenantStatus" class="input select">
+            <option value="active">Ativo</option>
+            <option value="pending">Pendente</option>
+            <option value="disabled">Desabilitado</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-light" data-close="modalEditTenant" type="button">
+        Cancelar
+      </button>
+
+      <button class="btn btn-primary" id="btnUpdateTenantConfirm" type="button">
+        Salvar alterações
+      </button>
+    </div>
+  </div>
+</div>
+  
 <!-- MODAL NOVO USUÁRIO -->
 <div class="modal-backdrop hidden" id="modalCreateUser">
   <div class="modal modal-user">
