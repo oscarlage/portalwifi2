@@ -11,11 +11,17 @@
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const ALLOWED_PLATFORM_ROLES = [
+  const PLATFORM_ROLES = [
     "platform_admin",
     "platform_support",
     "platform_operations",
     "platform_readonly"
+  ];
+
+  const TENANT_ROLES = [
+    "tenant_admin",
+    "tenant_viewer",
+    "tenant_marketing"
   ];
 
   const state = {
@@ -149,9 +155,33 @@
     return out;
   }
 
-  function normalizePlatformRole(value) {
-    const role = String(value || "").trim().toLowerCase();
-    return ALLOWED_PLATFORM_ROLES.includes(role) ? role : null;
+  function isPlatformRole(value) {
+    return PLATFORM_ROLES.includes(String(value || "").trim().toLowerCase());
+  }
+
+  function isTenantRole(value) {
+    return TENANT_ROLES.includes(String(value || "").trim().toLowerCase());
+  }
+
+  function getProfileScopeAndRole(userType, tenantId) {
+    const normalizedType = String(userType || "").trim().toLowerCase();
+    const hasTenant = Boolean(tenantId);
+
+    if (isPlatformRole(normalizedType)) {
+      return {
+        scope: "global",
+        platformRole: normalizedType,
+        membershipRole: null,
+        isPlatformUser: true
+      };
+    }
+
+    return {
+      scope: hasTenant ? "tenant" : "global",
+      platformRole: null,
+      membershipRole: isTenantRole(normalizedType) ? normalizedType : null,
+      isPlatformUser: false
+    };
   }
 
   function openModal(modal) {
@@ -301,6 +331,17 @@
     openModal(els.modalEditTenant);
   }
 
+  function deriveUserType(user) {
+    const profileRole = String(user.platform_role || "").trim().toLowerCase();
+    if (isPlatformRole(profileRole)) return profileRole;
+
+    const memberships = Array.isArray(user.memberships) ? user.memberships : [];
+    const firstMembershipRole = String(memberships[0]?.role || "").trim().toLowerCase();
+    if (isTenantRole(firstMembershipRole)) return firstMembershipRole;
+
+    return "platform_readonly";
+  }
+
   function openEditUserModal(userId) {
     const user = state.users.find(u => String(u.user_id) === String(userId));
 
@@ -311,12 +352,13 @@
 
     const memberships = Array.isArray(user.memberships) ? user.memberships : [];
     const firstTenantId = memberships.length ? String(memberships[0].tenant_id || "") : "";
+    const derivedType = deriveUserType(user);
 
     if (els.editUserId) els.editUserId.value = user.user_id || "";
     if (els.editUserName) els.editUserName.value = user.full_name || "";
     if (els.editUserEmail) els.editUserEmail.value = user.email || "";
     if (els.editUserPhone) els.editUserPhone.value = user.phone || "";
-    if (els.editUserType) els.editUserType.value = user.platform_role || "platform_readonly";
+    if (els.editUserType) els.editUserType.value = derivedType;
     if (els.editUserStatus) els.editUserStatus.value = user.status || "pending";
 
     renderEditUserTenantOptions(firstTenantId);
@@ -340,7 +382,7 @@
     }
 
     const tenantNames = memberships
-      .map(m => m.tenant_name || m.tenant_id || "—")
+      .map(m => `${m.tenant_name || m.tenant_id || "—"}${m.role ? ` (${m.role})` : ""}`)
       .join("\n");
 
     alert(`Vínculos do usuário:\n\n${tenantNames}`);
@@ -370,28 +412,28 @@
     const tenantId = (els.userTenantFilter?.value || "").trim();
 
     return state.users.filter((user) => {
+      const memberships = Array.isArray(user.memberships) ? user.memberships : [];
+      const resolvedType = deriveUserType(user);
       const haystack = [
         user.full_name,
         user.email,
         user.phone,
         user.scope,
         user.platform_role,
-        user.tenant_names
+        user.tenant_names,
+        resolvedType
       ].join(" ").toLowerCase();
 
-      const userType = String(user.platform_role || "").toLowerCase();
       const userStatus = String(user.status || "").toLowerCase();
 
       let okTenant = true;
-
       if (tenantId) {
-        const memberships = Array.isArray(user.memberships) ? user.memberships : [];
         okTenant = memberships.some((m) => String(m.tenant_id || "") === tenantId);
       }
 
       const okSearch = !search || haystack.includes(search);
       const okStatus = !status || userStatus === status;
-      const okType = !type || userType === type;
+      const okType = !type || resolvedType === type || String(user.scope || "").toLowerCase() === type;
 
       return okSearch && okStatus && okType && okTenant;
     });
@@ -445,7 +487,7 @@
 
     els.usersTableBody.innerHTML = rows.map((user) => {
       const scope = user.scope || "—";
-      const role = user.platform_role || "—";
+      const role = deriveUserType(user) || "—";
       const tenantsLabel = user.tenant_names || "—";
 
       return `
@@ -568,11 +610,7 @@
       return;
     }
 
-    const payload = {
-      name,
-      slug,
-      status
-    };
+    const payload = { name, slug, status };
 
     const { error } = await sb.from("tenants").insert(payload);
 
@@ -613,11 +651,7 @@
 
     const { error } = await sb
       .from("tenants")
-      .update({
-        name,
-        slug,
-        status
-      })
+      .update({ name, slug, status })
       .eq("id", tenantId);
 
     if (error) {
@@ -666,8 +700,13 @@
       return;
     }
 
-    const scope = tenantId ? "tenant" : "global";
-    const profilePlatformRole = normalizePlatformRole(userType);
+    const roleData = getProfileScopeAndRole(userType, tenantId);
+
+    if (isTenantRole(userType) && !tenantId) {
+      alert("Usuários de tenant precisam estar vinculados a um tenant.");
+      els.userTenantId?.focus();
+      return;
+    }
 
     const authCreate = await sb.auth.signUp({
       email,
@@ -698,10 +737,10 @@
         full_name: fullName,
         email,
         phone: phone || null,
-        scope,
-        platform_role: profilePlatformRole,
+        scope: roleData.scope,
+        platform_role: roleData.platformRole,
         status,
-        is_platform_user: Boolean(profilePlatformRole),
+        is_platform_user: roleData.isPlatformUser,
         updated_at: new Date().toISOString()
       })
       .eq("user_id", authUserId);
@@ -712,15 +751,13 @@
       return;
     }
 
-    if (tenantId) {
-      const memberPayload = {
+    if (tenantId && roleData.membershipRole) {
+      const insertMembership = await sb.from("tenant_members").insert({
         tenant_id: tenantId,
         user_id: authUserId,
-        role: userType,
+        role: roleData.membershipRole,
         is_active: status === "active"
-      };
-
-      const insertMembership = await sb.from("tenant_members").insert(memberPayload);
+      });
 
       if (insertMembership.error) {
         console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
@@ -743,8 +780,6 @@
     const userType = (els.editUserType?.value || "platform_readonly").trim();
     const status = (els.editUserStatus?.value || "active").trim();
     const tenantId = (els.editUserTenantId?.value || "").trim() || null;
-    const scope = tenantId ? "tenant" : "global";
-    const profilePlatformRole = normalizePlatformRole(userType);
 
     if (!userId) {
       alert("Usuário inválido.");
@@ -763,16 +798,24 @@
       return;
     }
 
+    if (isTenantRole(userType) && !tenantId) {
+      alert("Usuários de tenant precisam estar vinculados a um tenant.");
+      els.editUserTenantId?.focus();
+      return;
+    }
+
+    const roleData = getProfileScopeAndRole(userType, tenantId);
+
     const updateProfile = await sb
       .from("profiles")
       .update({
         full_name: fullName,
         email,
         phone: phone || null,
-        scope,
-        platform_role: profilePlatformRole,
+        scope: roleData.scope,
+        platform_role: roleData.platformRole,
         status,
-        is_platform_user: Boolean(profilePlatformRole),
+        is_platform_user: roleData.isPlatformUser,
         updated_at: new Date().toISOString()
       })
       .eq("user_id", userId);
@@ -794,13 +837,13 @@
       return;
     }
 
-    if (tenantId) {
+    if (tenantId && roleData.membershipRole) {
       const insertMembership = await sb
         .from("tenant_members")
         .insert({
           tenant_id: tenantId,
           user_id: userId,
-          role: userType,
+          role: roleData.membershipRole,
           is_active: status === "active"
         });
 
