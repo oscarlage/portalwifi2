@@ -72,6 +72,30 @@
         console.log(obj);
       }
 
+      function clearTenantSession() {
+        try {
+          sessionStorage.removeItem("tenant_id");
+          sessionStorage.removeItem("tenant_role");
+        } catch (e) {
+          console.warn("Falha ao limpar sessionStorage:", e);
+        }
+      }
+
+      async function signOutAndRedirect(reason = "") {
+        try {
+          clearTenantSession();
+          await sb.auth.signOut();
+        } catch (e) {
+          console.error("Erro ao encerrar sessão:", e);
+        }
+
+        const target = reason
+          ? `/login.html?error=${encodeURIComponent(reason)}`
+          : "/login.html";
+
+        window.location.replace(target);
+      }
+
       if (!window.__PORTAL_SUPABASE_CLIENT__) {
         window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
           SUPABASE_URL,
@@ -86,10 +110,17 @@
           setStatus("Verificando sessão...");
 
           const { data: sessionData, error: sessionError } = await sb.auth.getSession();
-          addLog({ step: "session", hasSession: !!sessionData?.session, sessionError });
+          addLog({
+            step: "session",
+            hasSession: !!sessionData?.session,
+            sessionError: sessionError ? sessionError.message : null
+          });
 
           if (sessionError) {
-            setStatus("Falha ao ler sessão", "err");
+            setStatus("Falha ao ler sessão. Redirecionando para login...", "err");
+            setTimeout(() => {
+              signOutAndRedirect("session_error");
+            }, 500);
             return;
           }
 
@@ -113,19 +144,30 @@
             .eq("user_id", userId)
             .single();
 
-          addLog({ step: "profile", profile, profileError });
+          addLog({
+            step: "profile",
+            profile,
+            profileError: profileError ? profileError.message : null
+          });
 
           if (profileError || !profile) {
-            setStatus("Falha: perfil não encontrado", "err");
+            setStatus("Falha: perfil não encontrado. Redirecionando...", "err");
+            setTimeout(() => {
+              signOutAndRedirect("profile_not_found");
+            }, 700);
             return;
           }
 
           if (profile.status !== "active") {
-            setStatus("Falha: usuário inativo, status = " + profile.status, "err");
+            setStatus("Falha: usuário inativo, status = " + profile.status + ". Redirecionando...", "err");
+            setTimeout(() => {
+              signOutAndRedirect("user_inactive");
+            }, 900);
             return;
           }
 
           if (profile.is_platform_user === true) {
+            clearTenantSession();
             setStatus("Usuário global detectado. Redirecionando para platform.html...", "ok");
             setTimeout(() => {
               window.location.replace("/platform.html");
@@ -142,10 +184,17 @@
             .eq("is_active", true)
             .limit(1);
 
-          addLog({ step: "membership", memberships, membershipError });
+          addLog({
+            step: "membership",
+            memberships,
+            membershipError: membershipError ? membershipError.message : null
+          });
 
           if (membershipError || !memberships || memberships.length === 0) {
-            setStatus("Falha: sem vínculo ativo de tenant", "err");
+            setStatus("Falha: sem vínculo ativo de tenant. Redirecionando...", "err");
+            setTimeout(() => {
+              signOutAndRedirect("no_active_membership");
+            }, 900);
             return;
           }
 
@@ -159,8 +208,15 @@
           }, 800);
 
         } catch (err) {
-          addLog({ step: "fatal_error", message: err.message, stack: err.stack });
-          setStatus("Erro fatal: " + err.message, "err");
+          addLog({
+            step: "fatal_error",
+            message: err.message,
+            stack: err.stack
+          });
+          setStatus("Erro fatal. Redirecionando para login...", "err");
+          setTimeout(() => {
+            signOutAndRedirect("unexpected_error");
+          }, 1000);
         }
       }
 
