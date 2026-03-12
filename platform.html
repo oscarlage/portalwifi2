@@ -117,7 +117,7 @@
       <div class="section-head">
         <div>
           <h2>Tenants</h2>
-          <p>Gerencie tenants e administradores.</p>
+          <p>Gerencie tenants da plataforma.</p>
         </div>
 
         <div class="section-actions">
@@ -133,7 +133,7 @@
             type="text"
             id="tenantSearch"
             class="input"
-            placeholder="Buscar por nome, slug ou admin"
+            placeholder="Buscar por nome ou slug"
           >
 
           <select id="tenantStatusFilter" class="input select">
@@ -297,16 +297,6 @@
             <option value="pending">Pendente</option>
             <option value="disabled">Desabilitado</option>
           </select>
-        </label>
-
-        <label class="field">
-          <span>Nome do administrador</span>
-          <input type="text" id="tenantAdminName" class="input" placeholder="Nome do responsável">
-        </label>
-
-        <label class="field">
-          <span>E-mail do administrador</span>
-          <input type="email" id="tenantAdminEmail" class="input" placeholder="email@empresa.com">
         </label>
       </div>
     </div>
@@ -557,13 +547,12 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
 window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/js/platform.js"></script>
 
 </body>
