@@ -6,10 +6,15 @@
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
     console.error("Supabase não configurado.");
+    window.location.replace("/login.html?error=supabase_not_configured");
     return;
   }
 
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.__PORTAL_SUPABASE_CLIENT__ || window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+  window.__PORTAL_SUPABASE_CLIENT__ = sb;
 
   const PLATFORM_ROLES = [
     "platform_admin",
@@ -53,8 +58,6 @@
     tenantName: document.getElementById("tenantName"),
     tenantSlug: document.getElementById("tenantSlug"),
     tenantStatus: document.getElementById("tenantStatus"),
-    tenantAdminName: document.getElementById("tenantAdminName"),
-    tenantAdminEmail: document.getElementById("tenantAdminEmail"),
 
     btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
 
@@ -163,6 +166,64 @@
     return TENANT_ROLES.includes(String(value || "").trim().toLowerCase());
   }
 
+  function clearTenantSessionStorage() {
+    try {
+      sessionStorage.removeItem("tenant_id");
+      sessionStorage.removeItem("tenant_role");
+    } catch (err) {
+      console.warn("Falha ao limpar sessão do tenant:", err);
+    }
+  }
+
+  async function signOutAndRedirect(reason = "session_invalid") {
+    try {
+      clearTenantSessionStorage();
+      await sb.auth.signOut();
+    } catch (err) {
+      console.error("Erro ao encerrar sessão:", err);
+    }
+    window.location.replace(`/login.html?error=${encodeURIComponent(reason)}`);
+  }
+
+  async function ensurePlatformAccess() {
+    const { data: sessionData, error: sessionError } = await sb.auth.getSession();
+
+    if (sessionError || !sessionData?.session?.user) {
+      console.error("Sessão inválida:", sessionError);
+      await signOutAndRedirect("no_session");
+      return false;
+    }
+
+    const userId = sessionData.session.user.id;
+
+    const { data: profile, error: profileError } = await sb
+      .from("profiles")
+      .select("user_id,email,status,is_platform_user,platform_role")
+      .eq("user_id", userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Perfil não encontrado:", profileError);
+      await signOutAndRedirect("profile_not_found");
+      return false;
+    }
+
+    if (profile.status !== "active") {
+      console.error("Usuário inativo:", profile.status);
+      await signOutAndRedirect("user_inactive");
+      return false;
+    }
+
+    if (profile.is_platform_user !== true) {
+      console.error("Usuário sem acesso à plataforma.");
+      await signOutAndRedirect("not_platform_user");
+      return false;
+    }
+
+    clearTenantSessionStorage();
+    return true;
+  }
+
   function getProfileScopeAndRole(userType, tenantId) {
     const normalizedType = String(userType || "").trim().toLowerCase();
     const hasTenant = Boolean(tenantId);
@@ -222,8 +283,6 @@
       delete els.tenantSlug.dataset.editedManually;
     }
     if (els.tenantStatus) els.tenantStatus.value = "active";
-    if (els.tenantAdminName) els.tenantAdminName.value = "";
-    if (els.tenantAdminEmail) els.tenantAdminEmail.value = "";
   }
 
   function resetUserModal() {
@@ -461,11 +520,11 @@
         <td>—</td>
         <td>—</td>
         <td>${formatDate(tenant.created_at)}</td>
-<td>
-  <div class="actions">
-    <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
-  </div>
-</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
+          </div>
+        </td>
       </tr>
     `).join("");
   }
@@ -623,6 +682,8 @@
     resetTenantModal();
     await refreshAll();
     setActiveSection("tenants");
+
+    alert("Tenant criado com sucesso. Agora cadastre um usuário e vincule-o ao tenant.");
   }
 
   async function updateTenant() {
@@ -707,6 +768,25 @@
       return;
     }
 
+    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
+      alert("Tipo de usuário inválido.");
+      els.userType?.focus();
+      return;
+    }
+
+    const {
+      data: currentSessionData,
+      error: currentSessionError
+    } = await sb.auth.getSession();
+
+    if (currentSessionError || !currentSessionData?.session) {
+      alert("Sua sessão expirou. Faça login novamente.");
+      await signOutAndRedirect("session_expired");
+      return;
+    }
+
+    const adminSession = currentSessionData.session;
+
     const authCreate = await sb.auth.signUp({
       email,
       password,
@@ -728,6 +808,19 @@
     if (!authUserId) {
       alert("Não foi possível obter o ID do usuário criado.");
       return;
+    }
+
+    try {
+      const { error: restoreError } = await sb.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token
+      });
+
+      if (restoreError) {
+        console.warn("Falha ao restaurar sessão do administrador:", restoreError);
+      }
+    } catch (restoreErr) {
+      console.warn("Erro ao tentar restaurar sessão do administrador:", restoreErr);
     }
 
     const updateProfile = await sb
@@ -769,6 +862,8 @@
     resetUserModal();
     await refreshAll();
     setActiveSection("users");
+
+    alert("Usuário criado com sucesso.");
   }
 
   async function updateUser() {
@@ -800,6 +895,12 @@
     if (isTenantRole(userType) && !tenantId) {
       alert("Usuários de tenant precisam estar vinculados a um tenant.");
       els.editUserTenantId?.focus();
+      return;
+    }
+
+    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
+      alert("Tipo de usuário inválido.");
+      els.editUserType?.focus();
       return;
     }
 
@@ -857,6 +958,8 @@
     resetEditUserModal();
     await refreshAll();
     setActiveSection("users");
+
+    alert("Usuário atualizado com sucesso.");
   }
 
   function bindEvents() {
@@ -897,11 +1000,12 @@
 
     els.btnLogout?.addEventListener("click", async () => {
       try {
+        clearTenantSessionStorage();
         await sb.auth.signOut();
       } catch (err) {
         console.error(err);
       }
-      window.location.href = "/login.html";
+      window.location.replace("/login.html");
     });
 
     document.querySelectorAll("[data-close]").forEach((btn) => {
@@ -935,7 +1039,6 @@
           openEditTenantModal(tenantId);
           return;
         }
-
       }
 
       const userActionBtn = event.target.closest("[data-user-action]");
@@ -985,12 +1088,22 @@
       el?.addEventListener("input", renderUsersTable);
       el?.addEventListener("change", renderUsersTable);
     });
+
+    sb.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        window.location.replace("/login.html");
+      }
+    });
   }
 
   async function init() {
     bindEvents();
     resetUserModal();
     resetEditUserModal();
+
+    const allowed = await ensurePlatformAccess();
+    if (!allowed) return;
+
     await refreshAll();
   }
 
