@@ -461,12 +461,11 @@
         <td>—</td>
         <td>—</td>
         <td>${formatDate(tenant.created_at)}</td>
-        <td>
-          <div class="actions">
-            <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
-            <button class="btn btn-light btn-sm" type="button" data-tenant-action="users" data-id="${escapeHtml(tenant.id)}">Usuários</button>
-          </div>
-        </td>
+<td>
+  <div class="actions">
+    <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
+  </div>
+</td>
       </tr>
     `).join("");
   }
@@ -937,10 +936,6 @@
           return;
         }
 
-        if (action === "users") {
-          alert("Próximo item: abrir gerenciamento de usuários do tenant " + tenantId);
-          return;
-        }
       }
 
       const userActionBtn = event.target.closest("[data-user-action]");
