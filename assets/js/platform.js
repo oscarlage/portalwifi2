@@ -343,11 +343,11 @@
 
     els.userTenantId.innerHTML = createOptions;
 
-    if ([...els.userTenantFilter.options].some(o => o.value === currentFilter)) {
+    if ([...els.userTenantFilter.options].some((o) => o.value === currentFilter)) {
       els.userTenantFilter.value = currentFilter;
     }
 
-    if ([...els.userTenantId.options].some(o => o.value === currentCreate)) {
+    if ([...els.userTenantId.options].some((o) => o.value === currentCreate)) {
       els.userTenantId.value = currentCreate;
     }
 
@@ -367,13 +367,13 @@
 
     els.editUserTenantId.innerHTML = options;
 
-    if ([...els.editUserTenantId.options].some(o => o.value === selectedTenantId)) {
+    if ([...els.editUserTenantId.options].some((o) => o.value === selectedTenantId)) {
       els.editUserTenantId.value = selectedTenantId;
     }
   }
 
   function openEditTenantModal(tenantId) {
-    const tenant = state.tenants.find(t => String(t.id) === String(tenantId));
+    const tenant = state.tenants.find((t) => String(t.id) === String(tenantId));
     if (!tenant) {
       alert("Tenant não encontrado.");
       return;
@@ -402,7 +402,7 @@
   }
 
   function openEditUserModal(userId) {
-    const user = state.users.find(u => String(u.user_id) === String(userId));
+    const user = state.users.find((u) => String(u.user_id) === String(userId));
 
     if (!user) {
       alert("Usuário não encontrado.");
@@ -421,12 +421,11 @@
     if (els.editUserStatus) els.editUserStatus.value = user.status || "pending";
 
     renderEditUserTenantOptions(firstTenantId);
-
     openModal(els.modalEditUser);
   }
 
   function openUserLinksModal(userId) {
-    const user = state.users.find(u => String(u.user_id) === String(userId));
+    const user = state.users.find((u) => String(u.user_id) === String(userId));
 
     if (!user) {
       alert("Usuário não encontrado.");
@@ -441,7 +440,7 @@
     }
 
     const tenantNames = memberships
-      .map(m => `${m.tenant_name || m.tenant_id || "—"}${m.role ? ` (${m.role})` : ""}`)
+      .map((m) => `${m.tenant_name || m.tenant_id || "—"}${m.role ? ` (${m.role})` : ""}`)
       .join("\n");
 
     alert(`Vínculos do usuário:\n\n${tenantNames}`);
@@ -570,14 +569,14 @@
 
   function renderMetrics() {
     const totalTenants = state.tenants.length;
-    const activeTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "active").length;
-    const disabledTenants = state.tenants.filter(t => String(t.status || "").toLowerCase() === "disabled").length;
-    const admins = state.users.filter(u => String(u.platform_role || "").toLowerCase() === "platform_admin").length;
+    const activeTenants = state.tenants.filter((t) => String(t.status || "").toLowerCase() === "active").length;
+    const disabledTenants = state.tenants.filter((t) => String(t.status || "").toLowerCase() === "disabled").length;
+    const admins = state.users.filter((u) => String(u.platform_role || "").toLowerCase() === "platform_admin").length;
 
     const totalUsers = state.users.length;
-    const globalUsers = state.users.filter(u => Number(u.tenant_count || 0) === 0).length;
-    const tenantUsers = state.users.filter(u => Number(u.tenant_count || 0) > 0).length;
-    const blockedUsers = state.users.filter(u => String(u.status || "").toLowerCase() === "blocked").length;
+    const globalUsers = state.users.filter((u) => Number(u.tenant_count || 0) === 0).length;
+    const tenantUsers = state.users.filter((u) => Number(u.tenant_count || 0) > 0).length;
+    const blockedUsers = state.users.filter((u) => String(u.status || "").toLowerCase() === "blocked").length;
 
     if (els.metricTotalTenants) els.metricTotalTenants.textContent = String(totalTenants);
     if (els.metricActiveTenants) els.metricActiveTenants.textContent = String(activeTenants);
@@ -760,7 +759,11 @@
       return;
     }
 
-    const roleData = getProfileScopeAndRole(userType, tenantId);
+    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
+      alert("Tipo de usuário inválido.");
+      els.userType?.focus();
+      return;
+    }
 
     if (isTenantRole(userType) && !tenantId) {
       alert("Usuários de tenant precisam estar vinculados a um tenant.");
@@ -768,11 +771,13 @@
       return;
     }
 
-    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
-      alert("Tipo de usuário inválido.");
+    if (tenantId && isPlatformRole(userType)) {
+      alert("Para vincular o usuário a um tenant, selecione um perfil de tenant.");
       els.userType?.focus();
       return;
     }
+
+    const roleData = getProfileScopeAndRole(userType, tenantId);
 
     const {
       data: currentSessionData,
@@ -892,14 +897,20 @@
       return;
     }
 
+    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
+      alert("Tipo de usuário inválido.");
+      els.editUserType?.focus();
+      return;
+    }
+
     if (isTenantRole(userType) && !tenantId) {
       alert("Usuários de tenant precisam estar vinculados a um tenant.");
       els.editUserTenantId?.focus();
       return;
     }
 
-    if (!isPlatformRole(userType) && !isTenantRole(userType)) {
-      alert("Tipo de usuário inválido.");
+    if (tenantId && isPlatformRole(userType)) {
+      alert("Para vincular o usuário a um tenant, selecione um perfil de tenant.");
       els.editUserType?.focus();
       return;
     }
@@ -993,6 +1004,38 @@
       const pwd = generatePassword();
       if (els.userPassword) els.userPassword.value = pwd;
       if (els.userPasswordConfirm) els.userPasswordConfirm.value = pwd;
+    });
+
+    els.userTenantId?.addEventListener("change", () => {
+      const tenantId = (els.userTenantId.value || "").trim();
+      const currentType = (els.userType?.value || "").trim();
+
+      if (tenantId && isPlatformRole(currentType) && els.userType) {
+        els.userType.value = "tenant_admin";
+      }
+    });
+
+    els.editUserTenantId?.addEventListener("change", () => {
+      const tenantId = (els.editUserTenantId.value || "").trim();
+      const currentType = (els.editUserType?.value || "").trim();
+
+      if (tenantId && isPlatformRole(currentType) && els.editUserType) {
+        els.editUserType.value = "tenant_admin";
+      }
+    });
+
+    els.userType?.addEventListener("change", () => {
+      const currentType = (els.userType.value || "").trim();
+      if (isPlatformRole(currentType) && els.userTenantId) {
+        els.userTenantId.value = "";
+      }
+    });
+
+    els.editUserType?.addEventListener("change", () => {
+      const currentType = (els.editUserType.value || "").trim();
+      if (isPlatformRole(currentType) && els.editUserTenantId) {
+        els.editUserTenantId.value = "";
+      }
     });
 
     els.btnRefreshPlatform?.addEventListener("click", refreshAll);
