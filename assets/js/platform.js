@@ -52,6 +52,10 @@
     btnCreateUserConfirm: document.getElementById("btnCreateUserConfirm"),
     btnGeneratePassword: document.getElementById("btnGeneratePassword"),
 
+    btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
+    btnUpdateUserConfirm: document.getElementById("btnUpdateUserConfirm"),
+    btnSaveSettings: document.getElementById("btnSaveSettings"),
+
     modalCreateTenant: document.getElementById("modalCreateTenant"),
     modalCreateUser: document.getElementById("modalCreateUser"),
     modalEditTenant: document.getElementById("modalEditTenant"),
@@ -61,8 +65,6 @@
     tenantName: document.getElementById("tenantName"),
     tenantSlug: document.getElementById("tenantSlug"),
     tenantStatus: document.getElementById("tenantStatus"),
-
-    btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
 
     editTenantId: document.getElementById("editTenantId"),
     editTenantName: document.getElementById("editTenantName"),
@@ -78,7 +80,6 @@
     userPassword: document.getElementById("userPassword"),
     userPasswordConfirm: document.getElementById("userPasswordConfirm"),
 
-    btnUpdateUserConfirm: document.getElementById("btnUpdateUserConfirm"),
     editUserId: document.getElementById("editUserId"),
     editUserName: document.getElementById("editUserName"),
     editUserEmail: document.getElementById("editUserEmail"),
@@ -122,7 +123,21 @@
     logDetailTenant: document.getElementById("logDetailTenant"),
     logDetailMessage: document.getElementById("logDetailMessage"),
     logDetailOldData: document.getElementById("logDetailOldData"),
-    logDetailNewData: document.getElementById("logDetailNewData")
+    logDetailNewData: document.getElementById("logDetailNewData"),
+
+    cfgPlatformName: document.getElementById("cfgPlatformName"),
+    cfgSupportEmail: document.getElementById("cfgSupportEmail"),
+    cfgDefaultUserStatus: document.getElementById("cfgDefaultUserStatus"),
+    cfgDefaultTenantStatus: document.getElementById("cfgDefaultTenantStatus"),
+    cfgForcePasswordChange: document.getElementById("cfgForcePasswordChange"),
+    cfgSessionTimeout: document.getElementById("cfgSessionTimeout"),
+    cfgMultiSession: document.getElementById("cfgMultiSession"),
+    cfgDetailedLogs: document.getElementById("cfgDetailedLogs"),
+    cfgMaintenanceMode: document.getElementById("cfgMaintenanceMode"),
+    cfgMaintenanceMessage: document.getElementById("cfgMaintenanceMessage"),
+
+    settingsTabs: document.querySelectorAll(".tab"),
+    settingsTabContents: document.querySelectorAll(".tab-content")
   };
 
   function escapeHtml(value) {
@@ -186,7 +201,8 @@
       tenant_updated: "Tenant atualizado",
       platform_login: "Login",
       platform_logout: "Logout",
-      access_denied: "Acesso negado"
+      access_denied: "Acesso negado",
+      settings_updated: "Configurações atualizadas"
     };
     return map[action] || action || "—";
   }
@@ -244,6 +260,16 @@
     } catch (err) {
       console.warn("Falha ao limpar sessão do tenant:", err);
     }
+  }
+
+  function setSettingsTab(tabId) {
+    els.settingsTabs.forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.tab === tabId);
+    });
+
+    els.settingsTabContents.forEach((content) => {
+      content.classList.toggle("active", content.id === tabId);
+    });
   }
 
   async function signOutAndRedirect(reason = "session_invalid") {
@@ -361,7 +387,9 @@
     if (els.userEmail) els.userEmail.value = "";
     if (els.userPhone) els.userPhone.value = "";
     if (els.userType) els.userType.value = "platform_readonly";
-    if (els.userStatus) els.userStatus.value = "active";
+    if (els.userStatus) {
+      els.userStatus.value = els.cfgDefaultUserStatus?.value || "active";
+    }
     if (els.userTenantId) els.userTenantId.value = "";
     const pwd = generatePassword();
     if (els.userPassword) els.userPassword.value = pwd;
@@ -826,14 +854,48 @@
     renderLogsTable();
   }
 
+  async function loadSettings() {
+    const { data, error } = await sb
+      .from("platform_settings")
+      .select("*")
+      .eq("key", "global")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Erro ao carregar configurações:", error);
+      return;
+    }
+
+    if (!data) return;
+
+    const cfg = data.value || {};
+
+    if (els.cfgPlatformName) els.cfgPlatformName.value = cfg.platform_name || "";
+    if (els.cfgSupportEmail) els.cfgSupportEmail.value = cfg.support_email || "";
+    if (els.cfgDefaultUserStatus) els.cfgDefaultUserStatus.value = cfg.default_user_status || "active";
+    if (els.cfgDefaultTenantStatus) els.cfgDefaultTenantStatus.value = cfg.default_tenant_status || "active";
+    if (els.cfgForcePasswordChange) els.cfgForcePasswordChange.value = String(cfg.force_password_change ?? true);
+    if (els.cfgSessionTimeout) els.cfgSessionTimeout.value = cfg.session_timeout ?? 60;
+    if (els.cfgMultiSession) els.cfgMultiSession.value = String(cfg.multi_session ?? false);
+    if (els.cfgDetailedLogs) els.cfgDetailedLogs.value = String(cfg.detailed_logs ?? true);
+    if (els.cfgMaintenanceMode) els.cfgMaintenanceMode.value = String(cfg.maintenance_mode ?? false);
+    if (els.cfgMaintenanceMessage) els.cfgMaintenanceMessage.value = cfg.maintenance_message || "";
+  }
+
   async function refreshAll() {
     await loadTenants();
     await loadUsers();
     await loadLogs();
+    await loadSettings();
   }
 
   async function writeAuditLog(payload) {
     try {
+      const detailedLogsEnabled = els.cfgDetailedLogs?.value !== "false";
+      if (!detailedLogsEnabled && payload.result === "success") {
+        return;
+      }
+
       const { data: sessionData } = await sb.auth.getSession();
       const currentUserId = sessionData?.session?.user?.id || null;
 
@@ -882,7 +944,7 @@
   async function createTenant() {
     const name = (els.tenantName?.value || "").trim();
     const slug = makeSlug(els.tenantSlug?.value || "");
-    const status = (els.tenantStatus?.value || "active").trim();
+    const status = (els.tenantStatus?.value || els.cfgDefaultTenantStatus?.value || "active").trim();
 
     if (!name) {
       alert("Informe o nome do tenant.");
@@ -1013,7 +1075,7 @@
     const email = (els.userEmail?.value || "").trim().toLowerCase();
     const phone = (els.userPhone?.value || "").trim();
     const userType = (els.userType?.value || "platform_readonly").trim();
-    const status = (els.userStatus?.value || "active").trim();
+    const status = (els.userStatus?.value || els.cfgDefaultUserStatus?.value || "active").trim();
     const tenantId = (els.userTenantId?.value || "").trim() || null;
     const password = (els.userPassword?.value || "").trim();
     const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
@@ -1062,10 +1124,7 @@
 
     const roleData = getProfileScopeAndRole(userType, tenantId);
 
-    const {
-      data: currentSessionData,
-      error: currentSessionError
-    } = await sb.auth.getSession();
+    const { data: currentSessionData, error: currentSessionError } = await sb.auth.getSession();
 
     if (currentSessionError || !currentSessionData?.session) {
       alert("Sua sessão expirou. Faça login novamente.");
@@ -1415,10 +1474,75 @@
     alert("Usuário atualizado com sucesso.");
   }
 
+  async function saveSettings() {
+    const payload = {
+      platform_name: els.cfgPlatformName?.value?.trim() || "",
+      support_email: els.cfgSupportEmail?.value?.trim() || "",
+      default_user_status: els.cfgDefaultUserStatus?.value || "active",
+      default_tenant_status: els.cfgDefaultTenantStatus?.value || "active",
+      force_password_change: els.cfgForcePasswordChange?.value === "true",
+      session_timeout: Number(els.cfgSessionTimeout?.value || 60),
+      multi_session: els.cfgMultiSession?.value === "true",
+      detailed_logs: els.cfgDetailedLogs?.value === "true",
+      maintenance_mode: els.cfgMaintenanceMode?.value === "true",
+      maintenance_message: els.cfgMaintenanceMessage?.value?.trim() || ""
+    };
+
+    const { data: existing } = await sb
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "global")
+      .maybeSingle();
+
+    const oldData = existing?.value || null;
+
+    const { error } = await sb
+      .from("platform_settings")
+      .upsert({
+        key: "global",
+        value: payload,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error("Erro ao salvar configurações:", error);
+      alert(`Erro ao salvar configurações: ${error.message}`);
+
+      await writeAuditLog({
+        action: "settings_updated",
+        module: "platform",
+        result: "error",
+        message: `Falha ao salvar configurações: ${error.message}`,
+        old_data: oldData,
+        new_data: payload
+      });
+
+      return;
+    }
+
+    await writeAuditLog({
+      action: "settings_updated",
+      module: "platform",
+      result: "success",
+      message: "Configurações da plataforma atualizadas.",
+      old_data: oldData,
+      new_data: payload
+    });
+
+    alert("Configurações salvas com sucesso.");
+    await loadSettings();
+  }
+
   function bindEvents() {
     els.navLinks.forEach((btn) => {
       btn.addEventListener("click", () => {
         setActiveSection(btn.dataset.section);
+      });
+    });
+
+    els.settingsTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        setSettingsTab(tab.dataset.tab);
       });
     });
 
@@ -1432,7 +1556,8 @@
       openModal(els.modalCreateTenant);
     });
 
-    els.btnOpenCreateUser?.addEventListener("click", () => {
+    els.btnOpenCreateUser?.addEventListener("click", async () => {
+      await loadSettings();
       resetUserModal();
       openModal(els.modalCreateUser);
     });
@@ -1441,6 +1566,7 @@
     els.btnUpdateTenantConfirm?.addEventListener("click", updateTenant);
     els.btnCreateUserConfirm?.addEventListener("click", createUser);
     els.btnUpdateUserConfirm?.addEventListener("click", updateUser);
+    els.btnSaveSettings?.addEventListener("click", saveSettings);
 
     els.btnGeneratePassword?.addEventListener("click", () => {
       const pwd = generatePassword();
@@ -1581,7 +1707,7 @@
       el?.addEventListener("change", renderLogsTable);
     });
 
-    sb.auth.onAuthStateChange(async (event) => {
+    sb.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
         window.location.replace("/login.html");
       }
@@ -1592,6 +1718,7 @@
     bindEvents();
     resetUserModal();
     resetEditUserModal();
+    setSettingsTab("settings-general");
 
     const allowed = await ensurePlatformAccess();
     if (!allowed) {
