@@ -139,6 +139,13 @@
     return `<span class="badge ${escapeHtml(safe)}">${escapeHtml(label)}</span>`;
   }
 
+  function firstAccessBadge(lastLoginAt) {
+    if (!lastLoginAt) {
+      return `<span class="badge pending">Pendente</span>`;
+    }
+    return `<span class="badge active">Realizado</span>`;
+  }
+
   function makeSlug(value) {
     return String(value || "")
       .normalize("NFD")
@@ -536,7 +543,7 @@
     if (!rows.length) {
       els.usersTableBody.innerHTML = `
         <tr>
-          <td colspan="8" class="empty-row">Nenhum usuário encontrado.</td>
+          <td colspan="9" class="empty-row">Nenhum usuário encontrado.</td>
         </tr>
       `;
       return;
@@ -555,6 +562,7 @@
           <td>${escapeHtml(role)}</td>
           <td>${escapeHtml(tenantsLabel)}</td>
           <td>${statusBadge(user.status)}</td>
+          <td>${firstAccessBadge(user.last_login_at)}</td>
           <td>${formatDateTime(user.last_login_at)}</td>
           <td>
             <div class="actions">
@@ -622,7 +630,7 @@
     if (!els.usersTableBody) return;
 
     els.usersTableBody.innerHTML = `
-      <tr><td colspan="8" class="empty-row">Carregando usuários...</td></tr>
+      <tr><td colspan="9" class="empty-row">Carregando usuários...</td></tr>
     `;
 
     const { data, error } = await sb
@@ -633,7 +641,7 @@
     if (error) {
       console.error("Erro ao carregar usuários:", error);
       els.usersTableBody.innerHTML = `
-        <tr><td colspan="8" class="empty-row">Erro ao carregar usuários.</td></tr>
+        <tr><td colspan="9" class="empty-row">Erro ao carregar usuários.</td></tr>
       `;
       state.users = [];
       renderMetrics();
