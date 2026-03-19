@@ -31,7 +31,8 @@
 
   const state = {
     tenants: [],
-    users: []
+    users: [],
+    logs: []
   };
 
   const els = {
@@ -40,6 +41,7 @@
 
     btnRefreshPlatform: document.getElementById("btnRefreshPlatform"),
     btnReloadTenants: document.getElementById("btnReloadTenants"),
+    btnReloadLogs: document.getElementById("btnReloadLogs"),
     btnLogout: document.getElementById("btnLogout"),
 
     btnOpenCreateTenant: document.getElementById("btnOpenCreateTenant"),
@@ -54,6 +56,7 @@
     modalCreateUser: document.getElementById("modalCreateUser"),
     modalEditTenant: document.getElementById("modalEditTenant"),
     modalEditUser: document.getElementById("modalEditUser"),
+    modalLogDetails: document.getElementById("modalLogDetails"),
 
     tenantName: document.getElementById("tenantName"),
     tenantSlug: document.getElementById("tenantSlug"),
@@ -91,8 +94,14 @@
     userTypeFilter: document.getElementById("userTypeFilter"),
     userTenantFilter: document.getElementById("userTenantFilter"),
 
+    logSearch: document.getElementById("logSearch"),
+    logModuleFilter: document.getElementById("logModuleFilter"),
+    logResultFilter: document.getElementById("logResultFilter"),
+    logActionFilter: document.getElementById("logActionFilter"),
+
     tenantsTableBody: document.getElementById("tenantsTableBody"),
     usersTableBody: document.getElementById("usersTableBody"),
+    logsTableBody: document.getElementById("logsTableBody"),
 
     metricTotalTenants: document.getElementById("metricTotalTenants"),
     metricActiveTenants: document.getElementById("metricActiveTenants"),
@@ -101,7 +110,19 @@
     metricTotalUsers: document.getElementById("metricTotalUsers"),
     metricGlobalUsers: document.getElementById("metricGlobalUsers"),
     metricTenantUsers: document.getElementById("metricTenantUsers"),
-    metricBlockedUsers: document.getElementById("metricBlockedUsers")
+    metricBlockedUsers: document.getElementById("metricBlockedUsers"),
+
+    logDetailCreatedAt: document.getElementById("logDetailCreatedAt"),
+    logDetailActor: document.getElementById("logDetailActor"),
+    logDetailAction: document.getElementById("logDetailAction"),
+    logDetailModule: document.getElementById("logDetailModule"),
+    logDetailResult: document.getElementById("logDetailResult"),
+    logDetailTargetType: document.getElementById("logDetailTargetType"),
+    logDetailTargetLabel: document.getElementById("logDetailTargetLabel"),
+    logDetailTenant: document.getElementById("logDetailTenant"),
+    logDetailMessage: document.getElementById("logDetailMessage"),
+    logDetailOldData: document.getElementById("logDetailOldData"),
+    logDetailNewData: document.getElementById("logDetailNewData")
   };
 
   function escapeHtml(value) {
@@ -139,11 +160,54 @@
     return `<span class="badge ${escapeHtml(safe)}">${escapeHtml(label)}</span>`;
   }
 
+  function resultBadge(result) {
+    const safe = String(result || "").toLowerCase();
+    const map = {
+      success: "Sucesso",
+      warning: "Aviso",
+      error: "Erro"
+    };
+    const label = map[safe] || safe || "—";
+    return `<span class="badge ${escapeHtml(safe)}">${escapeHtml(label)}</span>`;
+  }
+
   function firstAccessBadge(lastLoginAt) {
     if (!lastLoginAt) {
       return `<span class="badge pending">Pendente</span>`;
     }
     return `<span class="badge active">Realizado</span>`;
+  }
+
+  function actionLabel(action) {
+    const map = {
+      user_created: "Usuário criado",
+      user_updated: "Usuário atualizado",
+      tenant_created: "Tenant criado",
+      tenant_updated: "Tenant atualizado",
+      platform_login: "Login",
+      platform_logout: "Logout",
+      access_denied: "Acesso negado"
+    };
+    return map[action] || action || "—";
+  }
+
+  function moduleLabel(module) {
+    const map = {
+      users: "Usuários",
+      tenants: "Tenants",
+      auth: "Autenticação",
+      platform: "Plataforma"
+    };
+    return map[module] || module || "—";
+  }
+
+  function prettifyJson(value) {
+    if (!value) return "";
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
   }
 
   function makeSlug(value) {
@@ -261,7 +325,7 @@
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.add("hidden");
-    if (![...document.querySelectorAll(".modal-backdrop")].some(el => !el.classList.contains("hidden"))) {
+    if (![...document.querySelectorAll(".modal-backdrop")].some((el) => !el.classList.contains("hidden"))) {
       document.body.style.overflow = "";
     }
   }
@@ -453,19 +517,43 @@
     alert(`Vínculos do usuário:\n\n${tenantNames}`);
   }
 
+  function openLogDetailsModal(logId) {
+    const log = state.logs.find((item) => String(item.id) === String(logId));
+
+    if (!log) {
+      alert("Log não encontrado.");
+      return;
+    }
+
+    if (els.logDetailCreatedAt) els.logDetailCreatedAt.value = formatDateTime(log.created_at);
+    if (els.logDetailActor) els.logDetailActor.value = log.actor_name || log.actor_email || "—";
+    if (els.logDetailAction) els.logDetailAction.value = actionLabel(log.action);
+    if (els.logDetailModule) els.logDetailModule.value = moduleLabel(log.module);
+    if (els.logDetailResult) els.logDetailResult.value = log.result || "—";
+    if (els.logDetailTargetType) els.logDetailTargetType.value = log.target_type || "—";
+    if (els.logDetailTargetLabel) els.logDetailTargetLabel.value = log.target_label || "—";
+    if (els.logDetailTenant) els.logDetailTenant.value = log.tenant_name || "—";
+    if (els.logDetailMessage) els.logDetailMessage.value = log.message || "";
+    if (els.logDetailOldData) els.logDetailOldData.value = prettifyJson(log.old_data);
+    if (els.logDetailNewData) {
+      const payload = {
+        new_data: log.new_data || null,
+        meta: log.meta || null
+      };
+      els.logDetailNewData.value = prettifyJson(payload);
+    }
+
+    openModal(els.modalLogDetails);
+  }
+
   function getFilteredTenants() {
     const search = (els.tenantSearch?.value || "").trim().toLowerCase();
     const status = (els.tenantStatusFilter?.value || "").trim().toLowerCase();
 
     return state.tenants.filter((tenant) => {
-      const haystack = [
-        tenant.name,
-        tenant.slug
-      ].join(" ").toLowerCase();
-
+      const haystack = [tenant.name, tenant.slug].join(" ").toLowerCase();
       const okSearch = !search || haystack.includes(search);
       const okStatus = !status || String(tenant.status || "").toLowerCase() === status;
-
       return okSearch && okStatus;
     });
   }
@@ -501,6 +589,33 @@
       const okType = !type || resolvedType === type || String(user.scope || "").toLowerCase() === type;
 
       return okSearch && okStatus && okType && okTenant;
+    });
+  }
+
+  function getFilteredLogs() {
+    const search = (els.logSearch?.value || "").trim().toLowerCase();
+    const module = (els.logModuleFilter?.value || "").trim().toLowerCase();
+    const result = (els.logResultFilter?.value || "").trim().toLowerCase();
+    const action = (els.logActionFilter?.value || "").trim().toLowerCase();
+
+    return state.logs.filter((log) => {
+      const haystack = [
+        log.actor_name,
+        log.actor_email,
+        log.action,
+        log.module,
+        log.target_label,
+        log.target_type,
+        log.message,
+        log.tenant_name
+      ].join(" ").toLowerCase();
+
+      const okSearch = !search || haystack.includes(search);
+      const okModule = !module || String(log.module || "").toLowerCase() === module;
+      const okResult = !result || String(log.result || "").toLowerCase() === result;
+      const okAction = !action || String(log.action || "").toLowerCase() === action;
+
+      return okSearch && okModule && okResult && okAction;
     });
   }
 
@@ -573,6 +688,38 @@
         </tr>
       `;
     }).join("");
+  }
+
+  function renderLogsTable() {
+    if (!els.logsTableBody) return;
+
+    const rows = getFilteredLogs();
+
+    if (!rows.length) {
+      els.logsTableBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty-row">Nenhum log encontrado.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    els.logsTableBody.innerHTML = rows.map((log) => `
+      <tr>
+        <td>${formatDateTime(log.created_at)}</td>
+        <td>${escapeHtml(log.actor_name || log.actor_email || "—")}</td>
+        <td>${escapeHtml(actionLabel(log.action))}</td>
+        <td>${escapeHtml(moduleLabel(log.module))}</td>
+        <td>${escapeHtml(log.target_label || "—")}</td>
+        <td>${resultBadge(log.result)}</td>
+        <td>${escapeHtml(log.message || "—")}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-light btn-sm" type="button" data-log-action="view" data-id="${escapeHtml(log.id)}">Ver</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
   }
 
   function renderMetrics() {
@@ -653,9 +800,83 @@
     renderMetrics();
   }
 
+  async function loadLogs() {
+    if (!els.logsTableBody) return;
+
+    els.logsTableBody.innerHTML = `
+      <tr><td colspan="8" class="empty-row">Carregando logs...</td></tr>
+    `;
+
+    const { data, error } = await sb
+      .from("platform_audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.error("Erro ao carregar logs:", error);
+      els.logsTableBody.innerHTML = `
+        <tr><td colspan="8" class="empty-row">Erro ao carregar logs.</td></tr>
+      `;
+      state.logs = [];
+      return;
+    }
+
+    state.logs = Array.isArray(data) ? data : [];
+    renderLogsTable();
+  }
+
   async function refreshAll() {
     await loadTenants();
     await loadUsers();
+    await loadLogs();
+  }
+
+  async function writeAuditLog(payload) {
+    try {
+      const { data: sessionData } = await sb.auth.getSession();
+      const currentUserId = sessionData?.session?.user?.id || null;
+
+      let actorName = null;
+      let actorEmail = null;
+
+      if (currentUserId) {
+        const { data: profile } = await sb
+          .from("profiles")
+          .select("full_name,email")
+          .eq("user_id", currentUserId)
+          .maybeSingle();
+
+        actorName = profile?.full_name || null;
+        actorEmail = profile?.email || null;
+      }
+
+      const insertPayload = {
+        actor_user_id: currentUserId,
+        actor_name: actorName,
+        actor_email: actorEmail,
+        action: payload.action,
+        module: payload.module,
+        target_type: payload.target_type || null,
+        target_id: payload.target_id || null,
+        target_label: payload.target_label || null,
+        tenant_id: payload.tenant_id || null,
+        tenant_name: payload.tenant_name || null,
+        result: payload.result || "success",
+        message: payload.message || null,
+        old_data: payload.old_data || null,
+        new_data: payload.new_data || null,
+        meta: payload.meta || null
+      };
+
+      const { error } = await sb.from("platform_audit_logs").insert(insertPayload);
+
+      if (error) {
+        console.warn("Falha ao gravar log de auditoria:", error);
+      }
+    } catch (err) {
+      console.warn("Falha ao gravar log de auditoria:", err);
+    }
   }
 
   async function createTenant() {
@@ -677,13 +898,39 @@
 
     const payload = { name, slug, status };
 
-    const { error } = await sb.from("tenants").insert(payload);
+    const { data, error } = await sb
+      .from("tenants")
+      .insert(payload)
+      .select()
+      .single();
 
     if (error) {
       console.error("Erro ao criar tenant:", error);
       alert(`Erro ao criar tenant: ${error.message}`);
+
+      await writeAuditLog({
+        action: "tenant_created",
+        module: "tenants",
+        target_type: "tenant",
+        target_label: name,
+        result: "error",
+        message: `Falha ao criar tenant: ${error.message}`,
+        new_data: payload
+      });
+
       return;
     }
+
+    await writeAuditLog({
+      action: "tenant_created",
+      module: "tenants",
+      target_type: "tenant",
+      target_id: data?.id || null,
+      target_label: name,
+      result: "success",
+      message: "Tenant criado manualmente pela plataforma.",
+      new_data: payload
+    });
 
     closeModal(els.modalCreateTenant);
     resetTenantModal();
@@ -716,16 +963,44 @@
       return;
     }
 
+    const oldTenant = state.tenants.find((t) => String(t.id) === String(tenantId)) || null;
+    const newData = { name, slug, status };
+
     const { error } = await sb
       .from("tenants")
-      .update({ name, slug, status })
+      .update(newData)
       .eq("id", tenantId);
 
     if (error) {
       console.error("Erro ao atualizar tenant:", error);
       alert(`Erro ao atualizar tenant: ${error.message}`);
+
+      await writeAuditLog({
+        action: "tenant_updated",
+        module: "tenants",
+        target_type: "tenant",
+        target_id: tenantId,
+        target_label: name,
+        result: "error",
+        message: `Falha ao atualizar tenant: ${error.message}`,
+        old_data: oldTenant,
+        new_data: newData
+      });
+
       return;
     }
+
+    await writeAuditLog({
+      action: "tenant_updated",
+      module: "tenants",
+      target_type: "tenant",
+      target_id: tenantId,
+      target_label: name,
+      result: "success",
+      message: "Tenant atualizado manualmente pela plataforma.",
+      old_data: oldTenant,
+      new_data: newData
+    });
 
     closeModal(els.modalEditTenant);
     resetEditTenantModal();
@@ -813,6 +1088,26 @@
     if (authCreate.error) {
       console.error("Erro ao criar autenticação do usuário:", authCreate.error);
       alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
+
+      await writeAuditLog({
+        action: "user_created",
+        module: "users",
+        target_type: "user",
+        target_label: fullName,
+        tenant_id: tenantId,
+        tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+        result: "error",
+        message: `Falha ao criar autenticação do usuário: ${authCreate.error.message}`,
+        new_data: {
+          full_name: fullName,
+          email,
+          phone,
+          user_type: userType,
+          status,
+          tenant_id: tenantId
+        }
+      });
+
       return;
     }
 
@@ -836,23 +1131,43 @@
       console.warn("Erro ao tentar restaurar sessão do administrador:", restoreErr);
     }
 
+    const profilePayload = {
+      full_name: fullName,
+      email,
+      phone: phone || null,
+      scope: roleData.scope,
+      platform_role: roleData.platformRole,
+      status,
+      is_platform_user: roleData.isPlatformUser,
+      updated_at: new Date().toISOString()
+    };
+
     const updateProfile = await sb
       .from("profiles")
-      .update({
-        full_name: fullName,
-        email,
-        phone: phone || null,
-        scope: roleData.scope,
-        platform_role: roleData.platformRole,
-        status,
-        is_platform_user: roleData.isPlatformUser,
-        updated_at: new Date().toISOString()
-      })
+      .update(profilePayload)
       .eq("user_id", authUserId);
 
     if (updateProfile.error) {
       console.error("Erro ao atualizar profile:", updateProfile.error);
       alert(`Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`);
+
+      await writeAuditLog({
+        action: "user_created",
+        module: "users",
+        target_type: "user",
+        target_id: authUserId,
+        target_label: fullName,
+        tenant_id: tenantId,
+        tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+        result: "error",
+        message: `Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`,
+        new_data: {
+          ...profilePayload,
+          user_type: userType,
+          tenant_id: tenantId
+        }
+      });
+
       return;
     }
 
@@ -867,9 +1182,50 @@
       if (insertMembership.error) {
         console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
         alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
+
+        await writeAuditLog({
+          action: "user_created",
+          module: "users",
+          target_type: "user",
+          target_id: authUserId,
+          target_label: fullName,
+          tenant_id: tenantId,
+          tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+          result: "error",
+          message: `Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`,
+          new_data: {
+            full_name: fullName,
+            email,
+            phone,
+            user_type: userType,
+            status,
+            tenant_id: tenantId
+          }
+        });
+
         return;
       }
     }
+
+    await writeAuditLog({
+      action: "user_created",
+      module: "users",
+      target_type: "user",
+      target_id: authUserId,
+      target_label: fullName,
+      tenant_id: tenantId,
+      tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+      result: "success",
+      message: "Usuário criado manualmente pela plataforma.",
+      new_data: {
+        full_name: fullName,
+        email,
+        phone,
+        user_type: userType,
+        status,
+        tenant_id: tenantId
+      }
+    });
 
     closeModal(els.modalCreateUser);
     resetUserModal();
@@ -923,25 +1279,47 @@
       return;
     }
 
+    const oldUser = state.users.find((u) => String(u.user_id) === String(userId)) || null;
     const roleData = getProfileScopeAndRole(userType, tenantId);
+
+    const profilePayload = {
+      full_name: fullName,
+      email,
+      phone: phone || null,
+      scope: roleData.scope,
+      platform_role: roleData.platformRole,
+      status,
+      is_platform_user: roleData.isPlatformUser,
+      updated_at: new Date().toISOString()
+    };
 
     const updateProfile = await sb
       .from("profiles")
-      .update({
-        full_name: fullName,
-        email,
-        phone: phone || null,
-        scope: roleData.scope,
-        platform_role: roleData.platformRole,
-        status,
-        is_platform_user: roleData.isPlatformUser,
-        updated_at: new Date().toISOString()
-      })
+      .update(profilePayload)
       .eq("user_id", userId);
 
     if (updateProfile.error) {
       console.error("Erro ao atualizar perfil do usuário:", updateProfile.error);
       alert(`Erro ao atualizar usuário: ${updateProfile.error.message}`);
+
+      await writeAuditLog({
+        action: "user_updated",
+        module: "users",
+        target_type: "user",
+        target_id: userId,
+        target_label: fullName,
+        tenant_id: tenantId,
+        tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+        result: "error",
+        message: `Erro ao atualizar usuário: ${updateProfile.error.message}`,
+        old_data: oldUser,
+        new_data: {
+          ...profilePayload,
+          user_type: userType,
+          tenant_id: tenantId
+        }
+      });
+
       return;
     }
 
@@ -953,6 +1331,25 @@
     if (removeMemberships.error) {
       console.error("Erro ao remover vínculos antigos:", removeMemberships.error);
       alert(`Usuário atualizado, mas falhou ao limpar vínculos antigos: ${removeMemberships.error.message}`);
+
+      await writeAuditLog({
+        action: "user_updated",
+        module: "users",
+        target_type: "user",
+        target_id: userId,
+        target_label: fullName,
+        tenant_id: tenantId,
+        tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+        result: "error",
+        message: `Usuário atualizado, mas falhou ao limpar vínculos antigos: ${removeMemberships.error.message}`,
+        old_data: oldUser,
+        new_data: {
+          ...profilePayload,
+          user_type: userType,
+          tenant_id: tenantId
+        }
+      });
+
       return;
     }
 
@@ -969,9 +1366,46 @@
       if (insertMembership.error) {
         console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
         alert(`Usuário atualizado, mas falhou ao recriar vínculo: ${insertMembership.error.message}`);
+
+        await writeAuditLog({
+          action: "user_updated",
+          module: "users",
+          target_type: "user",
+          target_id: userId,
+          target_label: fullName,
+          tenant_id: tenantId,
+          tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+          result: "error",
+          message: `Usuário atualizado, mas falhou ao recriar vínculo: ${insertMembership.error.message}`,
+          old_data: oldUser,
+          new_data: {
+            ...profilePayload,
+            user_type: userType,
+            tenant_id: tenantId
+          }
+        });
+
         return;
       }
     }
+
+    await writeAuditLog({
+      action: "user_updated",
+      module: "users",
+      target_type: "user",
+      target_id: userId,
+      target_label: fullName,
+      tenant_id: tenantId,
+      tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
+      result: "success",
+      message: "Usuário atualizado manualmente pela plataforma.",
+      old_data: oldUser,
+      new_data: {
+        ...profilePayload,
+        user_type: userType,
+        tenant_id: tenantId
+      }
+    });
 
     closeModal(els.modalEditUser);
     resetEditUserModal();
@@ -1030,9 +1464,18 @@
 
     els.btnRefreshPlatform?.addEventListener("click", refreshAll);
     els.btnReloadTenants?.addEventListener("click", loadTenants);
+    els.btnReloadLogs?.addEventListener("click", loadLogs);
 
     els.btnLogout?.addEventListener("click", async () => {
       try {
+        await writeAuditLog({
+          action: "platform_logout",
+          module: "auth",
+          target_type: "session",
+          result: "success",
+          message: "Logout realizado na área da plataforma."
+        });
+
         clearTenantSessionStorage();
         await sb.auth.signOut();
       } catch (err) {
@@ -1086,6 +1529,17 @@
 
         if (action === "link") {
           openUserLinksModal(userId);
+          return;
+        }
+      }
+
+      const logActionBtn = event.target.closest("[data-log-action]");
+      if (logActionBtn) {
+        const action = logActionBtn.getAttribute("data-log-action");
+        const logId = logActionBtn.getAttribute("data-id");
+
+        if (action === "view") {
+          openLogDetailsModal(logId);
         }
       }
     });
@@ -1122,7 +1576,12 @@
       el?.addEventListener("change", renderUsersTable);
     });
 
-    sb.auth.onAuthStateChange((event) => {
+    [els.logSearch, els.logModuleFilter, els.logResultFilter, els.logActionFilter].forEach((el) => {
+      el?.addEventListener("input", renderLogsTable);
+      el?.addEventListener("change", renderLogsTable);
+    });
+
+    sb.auth.onAuthStateChange(async (event) => {
       if (event === "SIGNED_OUT") {
         window.location.replace("/login.html");
       }
@@ -1135,7 +1594,24 @@
     resetEditUserModal();
 
     const allowed = await ensurePlatformAccess();
-    if (!allowed) return;
+    if (!allowed) {
+      await writeAuditLog({
+        action: "access_denied",
+        module: "platform",
+        target_type: "platform",
+        result: "warning",
+        message: "Tentativa de acesso negado à área da plataforma."
+      });
+      return;
+    }
+
+    await writeAuditLog({
+      action: "platform_login",
+      module: "auth",
+      target_type: "session",
+      result: "success",
+      message: "Acesso realizado à área da plataforma."
+    });
 
     await refreshAll();
   }
