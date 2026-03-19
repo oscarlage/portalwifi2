@@ -1014,24 +1014,6 @@
       if (els.userPasswordConfirm) els.userPasswordConfirm.value = pwd;
     });
 
-    els.userTenantId?.addEventListener("change", () => {
-      const tenantId = (els.userTenantId.value || "").trim();
-      const currentType = (els.userType?.value || "").trim();
-
-      if (tenantId && isPlatformRole(currentType) && els.userType) {
-        els.userType.value = "tenant_admin";
-      }
-    });
-
-    els.editUserTenantId?.addEventListener("change", () => {
-      const tenantId = (els.editUserTenantId.value || "").trim();
-      const currentType = (els.editUserType?.value || "").trim();
-
-      if (tenantId && isPlatformRole(currentType) && els.editUserType) {
-        els.editUserType.value = "tenant_admin";
-      }
-    });
-
     els.userType?.addEventListener("change", () => {
       const currentType = (els.userType.value || "").trim();
       if (isPlatformRole(currentType) && els.userTenantId) {
