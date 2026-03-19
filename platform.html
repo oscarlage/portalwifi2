@@ -405,7 +405,7 @@
           </label>
 
           <label class="field">
-            <span>Status</span>
+            <span>Status do cadastro</span>
             <select id="userStatus" class="input select">
               <option value="active">Ativo</option>
               <option value="pending">Pendente</option>
@@ -420,6 +420,10 @@
               <option value="">Sem vínculo</option>
             </select>
           </label>
+
+          <p class="muted">
+            Usuários globais da plataforma não devem ter vínculo com tenant. Usuários de tenant precisam de vínculo.
+          </p>
         </div>
       </div>
 
@@ -452,7 +456,7 @@
         </label>
 
         <p class="muted">
-          A senha será provisória. O usuário será obrigado a alterá-la no primeiro login.
+          A senha será provisória. O usuário deverá alterá-la no primeiro acesso.
         </p>
       </div>
     </div>
@@ -516,7 +520,7 @@
           </label>
 
           <label class="field">
-            <span>Status</span>
+            <span>Status do cadastro</span>
             <select id="editUserStatus" class="input select">
               <option value="active">Ativo</option>
               <option value="pending">Pendente</option>
@@ -531,6 +535,10 @@
               <option value="">Sem vínculo</option>
             </select>
           </label>
+
+          <p class="muted">
+            Usuários globais devem permanecer sem tenant. Ao selecionar tenant, use um papel de tenant.
+          </p>
         </div>
       </div>
     </div>
