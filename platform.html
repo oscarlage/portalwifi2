@@ -219,21 +219,21 @@
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-<tr>
-  <th>Usuário</th>
-  <th>Email</th>
-  <th>Escopo</th>
-  <th>Papel</th>
-  <th>Tenant(s)</th>
-  <th>Status</th>
-  <th>Primeiro acesso</th>
-  <th>Último acesso</th>
-  <th style="width:360px;">Ações</th>
-</tr>
+              <tr>
+                <th>Usuário</th>
+                <th>Email</th>
+                <th>Escopo</th>
+                <th>Papel</th>
+                <th>Tenant(s)</th>
+                <th>Status</th>
+                <th>Primeiro acesso</th>
+                <th>Último acesso</th>
+                <th style="width:360px;">Ações</th>
+              </tr>
             </thead>
             <tbody id="usersTableBody">
               <tr>
-                <td colspan="8" class="empty-row">Carregando usuários...</td>
+                <td colspan="9" class="empty-row">Carregando usuários...</td>
               </tr>
             </tbody>
           </table>
@@ -245,12 +245,71 @@
       <div class="section-head">
         <div>
           <h2>Logs</h2>
-          <p>Área reservada para auditoria e eventos operacionais.</p>
+          <p>Auditoria de ações realizadas na plataforma.</p>
         </div>
       </div>
 
       <div class="panel-card">
-        <div class="empty-row">Módulo em preparação.</div>
+        <div class="toolbar toolbar-logs">
+          <input
+            type="text"
+            id="logSearch"
+            class="input"
+            placeholder="Buscar por usuário, ação, mensagem ou alvo"
+          >
+
+          <select id="logModuleFilter" class="input select">
+            <option value="">Todos módulos</option>
+            <option value="users">Usuários</option>
+            <option value="tenants">Tenants</option>
+            <option value="auth">Autenticação</option>
+            <option value="platform">Plataforma</option>
+          </select>
+
+          <select id="logResultFilter" class="input select">
+            <option value="">Todos resultados</option>
+            <option value="success">Sucesso</option>
+            <option value="warning">Aviso</option>
+            <option value="error">Erro</option>
+          </select>
+
+          <select id="logActionFilter" class="input select">
+            <option value="">Todas ações</option>
+            <option value="user_created">Usuário criado</option>
+            <option value="user_updated">Usuário atualizado</option>
+            <option value="tenant_created">Tenant criado</option>
+            <option value="tenant_updated">Tenant atualizado</option>
+            <option value="platform_login">Login</option>
+            <option value="platform_logout">Logout</option>
+            <option value="access_denied">Acesso negado</option>
+          </select>
+
+          <button class="btn btn-light" id="btnReloadLogs" type="button">
+            Atualizar logs
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data/hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Módulo</th>
+                <th>Alvo</th>
+                <th>Resultado</th>
+                <th>Mensagem</th>
+                <th style="width:160px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr>
+                <td colspan="8" class="empty-row">Carregando logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -422,10 +481,10 @@
             </select>
           </label>
 
-<p class="muted">
-  Para criar um usuário global da plataforma, deixe o campo Tenant como “Sem vínculo” e escolha um papel do tipo Platform.
-  Para criar um usuário de tenant, selecione um Tenant e escolha um papel do tipo Tenant.
-</p>
+          <p class="muted">
+            Para criar um usuário global da plataforma, deixe o campo Tenant como “Sem vínculo” e escolha um papel do tipo Platform.
+            Para criar um usuário de tenant, selecione um Tenant e escolha um papel do tipo Tenant.
+          </p>
         </div>
       </div>
 
@@ -538,10 +597,10 @@
             </select>
           </label>
 
-<p class="muted">
-  Usuário global: papel do tipo Platform e sem vínculo com tenant.
-  Usuário de tenant: papel do tipo Tenant e tenant obrigatório.
-</p>
+          <p class="muted">
+            Usuário global: papel do tipo Platform e sem vínculo com tenant.
+            Usuário de tenant: papel do tipo Tenant e tenant obrigatório.
+          </p>
         </div>
       </div>
     </div>
@@ -558,81 +617,92 @@
   </div>
 </div>
 
-  <section class="section" id="section-logs">
-  <div class="section-head">
-    <div>
-      <h2>Logs</h2>
-      <p>Auditoria de ações realizadas na plataforma.</p>
+<div class="modal-backdrop hidden" id="modalLogDetails">
+  <div class="modal modal-user">
+    <div class="modal-head">
+      <h3>Detalhes do log</h3>
+      <button class="icon-btn" data-close="modalLogDetails" type="button" aria-label="Fechar modal">×</button>
     </div>
 
-    <div class="section-actions">
-      <button class="btn btn-light" id="btnReloadLogs" type="button">
-        Atualizar logs
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section">
+          <h4>Informações gerais</h4>
+
+          <label class="field">
+            <span>Data/hora</span>
+            <input type="text" id="logDetailCreatedAt" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Usuário</span>
+            <input type="text" id="logDetailActor" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Ação</span>
+            <input type="text" id="logDetailAction" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Módulo</span>
+            <input type="text" id="logDetailModule" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Resultado</span>
+            <input type="text" id="logDetailResult" class="input" readonly>
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Contexto</h4>
+
+          <label class="field">
+            <span>Tipo do alvo</span>
+            <input type="text" id="logDetailTargetType" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Alvo</span>
+            <input type="text" id="logDetailTargetLabel" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Tenant</span>
+            <input type="text" id="logDetailTenant" class="input" readonly>
+          </label>
+
+          <label class="field">
+            <span>Mensagem</span>
+            <textarea id="logDetailMessage" class="input" rows="4" readonly></textarea>
+          </label>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <div class="form-grid">
+        <div class="form-section">
+          <h4>Dados anteriores</h4>
+          <textarea id="logDetailOldData" class="input" rows="10" readonly></textarea>
+        </div>
+
+        <div class="form-section">
+          <h4>Dados novos / meta</h4>
+          <textarea id="logDetailNewData" class="input" rows="10" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-light" data-close="modalLogDetails" type="button">
+        Fechar
       </button>
     </div>
   </div>
+</div>
 
-  <div class="panel-card">
-    <div class="toolbar">
-      <input
-        type="text"
-        id="logSearch"
-        class="input"
-        placeholder="Buscar por usuário, ação, mensagem ou alvo"
-      >
-
-      <select id="logModuleFilter" class="input select">
-        <option value="">Todos módulos</option>
-        <option value="users">Usuários</option>
-        <option value="tenants">Tenants</option>
-        <option value="auth">Autenticação</option>
-        <option value="platform">Plataforma</option>
-      </select>
-
-      <select id="logResultFilter" class="input select">
-        <option value="">Todos resultados</option>
-        <option value="success">Sucesso</option>
-        <option value="warning">Aviso</option>
-        <option value="error">Erro</option>
-      </select>
-
-      <select id="logActionFilter" class="input select">
-        <option value="">Todas ações</option>
-        <option value="user_created">Usuário criado</option>
-        <option value="user_updated">Usuário atualizado</option>
-        <option value="tenant_created">Tenant criado</option>
-        <option value="tenant_updated">Tenant atualizado</option>
-        <option value="platform_login">Login</option>
-        <option value="platform_logout">Logout</option>
-        <option value="access_denied">Acesso negado</option>
-      </select>
-    </div>
-
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Data/hora</th>
-            <th>Usuário</th>
-            <th>Ação</th>
-            <th>Módulo</th>
-            <th>Alvo</th>
-            <th>Resultado</th>
-            <th>Mensagem</th>
-            <th style="width:160px;">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="logsTableBody">
-          <tr>
-            <td colspan="8" class="empty-row">Carregando logs...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-  
 <script>
 window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
 window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
