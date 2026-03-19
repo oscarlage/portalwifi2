@@ -558,6 +558,81 @@
   </div>
 </div>
 
+  <section class="section" id="section-logs">
+  <div class="section-head">
+    <div>
+      <h2>Logs</h2>
+      <p>Auditoria de ações realizadas na plataforma.</p>
+    </div>
+
+    <div class="section-actions">
+      <button class="btn btn-light" id="btnReloadLogs" type="button">
+        Atualizar logs
+      </button>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <div class="toolbar">
+      <input
+        type="text"
+        id="logSearch"
+        class="input"
+        placeholder="Buscar por usuário, ação, mensagem ou alvo"
+      >
+
+      <select id="logModuleFilter" class="input select">
+        <option value="">Todos módulos</option>
+        <option value="users">Usuários</option>
+        <option value="tenants">Tenants</option>
+        <option value="auth">Autenticação</option>
+        <option value="platform">Plataforma</option>
+      </select>
+
+      <select id="logResultFilter" class="input select">
+        <option value="">Todos resultados</option>
+        <option value="success">Sucesso</option>
+        <option value="warning">Aviso</option>
+        <option value="error">Erro</option>
+      </select>
+
+      <select id="logActionFilter" class="input select">
+        <option value="">Todas ações</option>
+        <option value="user_created">Usuário criado</option>
+        <option value="user_updated">Usuário atualizado</option>
+        <option value="tenant_created">Tenant criado</option>
+        <option value="tenant_updated">Tenant atualizado</option>
+        <option value="platform_login">Login</option>
+        <option value="platform_logout">Logout</option>
+        <option value="access_denied">Acesso negado</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data/hora</th>
+            <th>Usuário</th>
+            <th>Ação</th>
+            <th>Módulo</th>
+            <th>Alvo</th>
+            <th>Resultado</th>
+            <th>Mensagem</th>
+            <th style="width:160px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="logsTableBody">
+          <tr>
+            <td colspan="8" class="empty-row">Carregando logs...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+  
 <script>
 window.PORTAL_SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
 window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZG15Znh0eGNmbnlmdGthc2ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NjY3OTksImV4cCI6MjA4ODI0Mjc5OX0.7JxBYv5Hya8IvAHM0_IQkQOCwDBbOZlZu6cSe3lOqJs";
