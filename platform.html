@@ -313,18 +313,136 @@
       </div>
     </section>
 
-    <section class="section" id="section-settings">
-      <div class="section-head">
-        <div>
-          <h2>Configurações</h2>
-          <p>Preferências e parâmetros globais da plataforma.</p>
-        </div>
-      </div>
+<section class="section" id="section-settings">
+  <div class="section-head">
+    <div>
+      <h2>Configurações</h2>
+      <p>Preferências globais da plataforma.</p>
+    </div>
+  </div>
 
-      <div class="panel-card">
-        <div class="empty-row">Módulo em preparação.</div>
+  <div class="panel-card">
+
+    <div class="tabs">
+      <button class="tab active" data-tab="settings-general">Geral</button>
+      <button class="tab" data-tab="settings-security">Segurança</button>
+      <button class="tab" data-tab="settings-platform">Plataforma</button>
+    </div>
+
+    <div class="tab-content active" id="settings-general">
+      <div class="form-grid">
+
+        <div class="form-section">
+          <h4>Identidade da plataforma</h4>
+
+          <label class="field">
+            <span>Nome da plataforma</span>
+            <input type="text" id="cfgPlatformName" class="input">
+          </label>
+
+          <label class="field">
+            <span>Email de suporte</span>
+            <input type="email" id="cfgSupportEmail" class="input">
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Comportamento padrão</h4>
+
+          <label class="field">
+            <span>Status padrão de novos usuários</span>
+            <select id="cfgDefaultUserStatus" class="input select">
+              <option value="active">Ativo</option>
+              <option value="pending">Pendente</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Status padrão de novos tenants</span>
+            <select id="cfgDefaultTenantStatus" class="input select">
+              <option value="active">Ativo</option>
+              <option value="pending">Pendente</option>
+            </select>
+          </label>
+        </div>
+
       </div>
-    </section>
+    </div>
+
+    <div class="tab-content" id="settings-security">
+      <div class="form-grid">
+
+        <div class="form-section">
+          <h4>Autenticação</h4>
+
+          <label class="field">
+            <span>Forçar troca de senha no primeiro acesso</span>
+            <select id="cfgForcePasswordChange" class="input select">
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Tempo de sessão (minutos)</span>
+            <input type="number" id="cfgSessionTimeout" class="input">
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Controle</h4>
+
+          <label class="field">
+            <span>Permitir múltiplas sessões</span>
+            <select id="cfgMultiSession" class="input select">
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Registrar logs detalhados</span>
+            <select id="cfgDetailedLogs" class="input select">
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="tab-content" id="settings-platform">
+      <div class="form-grid">
+
+        <div class="form-section">
+          <h4>Operação</h4>
+
+          <label class="field">
+            <span>Modo manutenção</span>
+            <select id="cfgMaintenanceMode" class="input select">
+              <option value="false">Desativado</option>
+              <option value="true">Ativado</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Mensagem de manutenção</span>
+            <textarea id="cfgMaintenanceMessage" class="input"></textarea>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn btn-primary" id="btnSaveSettings">
+        Salvar configurações
+      </button>
+    </div>
+
+  </div>
+</section>
 
   </main>
 </div>
