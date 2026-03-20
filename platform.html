@@ -43,6 +43,7 @@
       <button class="nav-link" data-section="users">Usuários</button>
       <button class="nav-link" data-section="logs">Logs</button>
       <button class="nav-link" data-section="settings">Configurações</button>
+      <button class="nav-link" data-section="support">Suporte</button>
     </nav>
 
     <div class="platform-sidebox">
@@ -433,6 +434,53 @@
           <button class="btn btn-primary" id="btnSaveSettings" type="button">
             Salvar configurações
           </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-support">
+      <div class="section-head">
+        <div>
+          <h2>Suporte</h2>
+          <p>Área reservada para o módulo de suporte da plataforma.</p>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn btn-primary" id="btnOpenSupportPage" type="button">
+            Ir para suporte
+          </button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Central de suporte</h4>
+            <p class="muted">
+              Este menu já está preparado para direcionar futuramente para a página de suporte, onde serão tratados chamados manuais e automáticos, categorias, severidade, responsáveis e histórico de atendimento.
+            </p>
+
+            <label class="field">
+              <span>Status do módulo</span>
+              <input type="text" class="input" value="Em preparação" readonly>
+            </label>
+
+            <label class="field">
+              <span>Próxima etapa</span>
+              <input type="text" class="input" value="Integrar navegação para a página de suporte" readonly>
+            </label>
+          </div>
+
+          <div class="form-section">
+            <h4>Escopo previsto</h4>
+            <ul class="muted" style="margin:0; padding-left:18px; line-height:1.8;">
+              <li>Abertura manual de chamados</li>
+              <li>Geração automática de tickets por eventos da plataforma</li>
+              <li>Classificação por categoria, subcategoria e severidade</li>
+              <li>Notificação para responsáveis do tenant e equipe de suporte</li>
+              <li>Painel operacional de acompanhamento</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
