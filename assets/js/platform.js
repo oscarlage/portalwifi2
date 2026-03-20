@@ -4,6 +4,9 @@
   const SUPABASE_URL = window.PORTAL_SUPABASE_URL;
   const SUPABASE_ANON_KEY = window.PORTAL_SUPABASE_ANON_KEY;
 
+  const TENANT_WORKSPACE_URL = "/estabelecimento/index.html";
+  const SUPPORT_PAGE_URL = "/support.html";
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
     console.error("Supabase não configurado.");
     window.location.replace("/login.html?error=supabase_not_configured");
@@ -43,6 +46,7 @@
     btnReloadTenants: document.getElementById("btnReloadTenants"),
     btnReloadLogs: document.getElementById("btnReloadLogs"),
     btnLogout: document.getElementById("btnLogout"),
+    btnOpenSupportPage: document.getElementById("btnOpenSupportPage"),
 
     btnOpenCreateTenant: document.getElementById("btnOpenCreateTenant"),
     btnOpenCreateTenant2: document.getElementById("btnOpenCreateTenant2"),
@@ -257,6 +261,7 @@
     try {
       sessionStorage.removeItem("tenant_id");
       sessionStorage.removeItem("tenant_role");
+      sessionStorage.removeItem("tenant_unit_id");
     } catch (err) {
       console.warn("Falha ao limpar sessão do tenant:", err);
     }
@@ -371,6 +376,31 @@
     els.sections.forEach((section) => {
       section.classList.toggle("active", section.id === `section-${sectionName}`);
     });
+  }
+
+  function openTenantWorkspace(tenantId) {
+    if (!tenantId) {
+      alert("Tenant inválido.");
+      return;
+    }
+
+    const url = `${TENANT_WORKSPACE_URL}?tenant_id=${encodeURIComponent(tenantId)}`;
+    window.location.href = url;
+  }
+
+  async function openSupportPage() {
+    await writeAuditLog({
+      action: "access_support",
+      module: "platform",
+      target_type: "support",
+      result: "success",
+      message: "Acesso solicitado ao módulo de suporte.",
+      meta: {
+        redirect_url: SUPPORT_PAGE_URL
+      }
+    });
+
+    window.location.href = SUPPORT_PAGE_URL;
   }
 
   function resetTenantModal() {
@@ -539,7 +569,14 @@
     }
 
     const tenantNames = memberships
-      .map((m) => `${m.tenant_name || m.tenant_id || "—"}${m.role ? ` (${m.role})` : ""}`)
+      .map((m) => {
+        const parts = [
+          m.tenant_name || m.tenant_id || "—",
+          m.unit_name ? ` / ${m.unit_name}` : "",
+          m.role ? ` (${m.role})` : ""
+        ];
+        return parts.join("");
+      })
       .join("\n");
 
     alert(`Vínculos do usuário:\n\n${tenantNames}`);
@@ -579,7 +616,9 @@
     const status = (els.tenantStatusFilter?.value || "").trim().toLowerCase();
 
     return state.tenants.filter((tenant) => {
-      const haystack = [tenant.name, tenant.slug].join(" ").toLowerCase();
+      const haystack = [tenant.name, tenant.slug, tenant.contact_email, tenant.city, tenant.timezone]
+        .join(" ")
+        .toLowerCase();
       const okSearch = !search || haystack.includes(search);
       const okStatus = !status || String(tenant.status || "").toLowerCase() === status;
       return okSearch && okStatus;
@@ -667,10 +706,11 @@
         <td>${escapeHtml(tenant.slug || "—")}</td>
         <td>${statusBadge(tenant.status)}</td>
         <td>—</td>
-        <td>—</td>
+        <td>${escapeHtml(tenant.contact_email || "—")}</td>
         <td>${formatDate(tenant.created_at)}</td>
         <td>
           <div class="actions">
+            <button class="btn btn-primary btn-sm" type="button" data-tenant-action="manage" data-id="${escapeHtml(tenant.id)}">Gerenciar</button>
             <button class="btn btn-light btn-sm" type="button" data-tenant-action="edit" data-id="${escapeHtml(tenant.id)}">Editar</button>
           </div>
         </td>
@@ -1026,7 +1066,12 @@
     }
 
     const oldTenant = state.tenants.find((t) => String(t.id) === String(tenantId)) || null;
-    const newData = { name, slug, status };
+    const newData = {
+      name,
+      slug,
+      status,
+      updated_at: new Date().toISOString()
+    };
 
     const { error } = await sb
       .from("tenants")
@@ -1562,6 +1607,8 @@
       openModal(els.modalCreateUser);
     });
 
+    els.btnOpenSupportPage?.addEventListener("click", openSupportPage);
+
     els.btnCreateTenantConfirm?.addEventListener("click", createTenant);
     els.btnUpdateTenantConfirm?.addEventListener("click", updateTenant);
     els.btnCreateUserConfirm?.addEventListener("click", createUser);
@@ -1636,6 +1683,11 @@
       if (tenantActionBtn) {
         const action = tenantActionBtn.getAttribute("data-tenant-action");
         const tenantId = tenantActionBtn.getAttribute("data-id");
+
+        if (action === "manage") {
+          openTenantWorkspace(tenantId);
+          return;
+        }
 
         if (action === "edit") {
           openEditTenantModal(tenantId);
