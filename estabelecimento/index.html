@@ -63,7 +63,14 @@
       console.log(obj);
     }
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   if (!window.__PORTAL_SUPABASE_CLIENT__) {
+  window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+}
+
+const sb = window.__PORTAL_SUPABASE_CLIENT__;
 
     async function clearAndGoLogin(reason) {
       try {
