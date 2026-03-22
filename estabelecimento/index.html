@@ -3,28 +3,79 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portal WiFi</title>
+  <title>Portal WiFi — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#fff;
+      --text:#0f172a;
+      --muted:#475569;
+      --line:rgba(15,23,42,.12);
+      --pri:#4f46e5;
+      --ok:#16a34a;
+      --warn:#d97706;
+      --danger:#dc2626
+    }
+    *{box-sizing:border-box}
     body{
       margin:0;
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-      background:#f6f7fb;
-      color:#0f172a;
+      background:var(--bg);
+      color:var(--text)
     }
-    .box{
-      width:min(92vw,560px);
-      background:#fff;
-      border:1px solid rgba(15,23,42,.12);
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
       border-radius:16px;
-      padding:24px;
-      box-shadow:0 10px 24px rgba(15,23,42,.06);
+      padding:18px;
+      box-shadow:0 10px 24px rgba(15,23,42,.06)
     }
-    h1{margin:0 0 8px}
-    p{margin:0;color:#475569}
+    h1{font-size:22px;margin:0 0 10px}
+    h2{font-size:16px;margin:0 0 12px}
+    p{margin:8px 0;color:var(--muted)}
+    label{display:block;font-weight:600;font-size:13px;margin:10px 0 6px}
+    input{
+      width:100%;
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      font-size:14px;
+      outline:none
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    button{
+      border:0;
+      border-radius:12px;
+      padding:10px 14px;
+      font-weight:700;
+      background:var(--pri);
+      color:#fff;
+      cursor:pointer
+    }
+    button.secondary{background:#0f172a}
+    button.ghost{
+      background:transparent;
+      color:var(--pri);
+      border:1px solid rgba(79,70,229,.35)
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-size:12px;
+      color:var(--muted)
+    }
+    .dot{width:8px;height:8px;border-radius:99px;background:#94a3b8}
+    .dot.ok{background:var(--ok)}
+    .dot.bad{background:var(--danger)}
     pre{
       white-space:pre-wrap;
       word-break:break-word;
@@ -32,137 +83,231 @@
       color:#e5e7eb;
       border-radius:12px;
       padding:12px;
+      border:1px solid rgba(255,255,255,.08);
       font-size:12px;
       max-height:260px;
-      overflow:auto;
-      margin-top:16px;
+      overflow:auto
     }
+    .warn{color:var(--warn);font-weight:700}
+    .danger{color:var(--danger);font-weight:800}
+    a{color:var(--pri);text-decoration:none}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
-  <div class="box">
-    <h1>Portal WiFi</h1>
-    <p id="status">Verificando acesso...</p>
-    <pre id="log"></pre>
+  <div class="wrap">
+    <h1>Portal WiFi — Login</h1>
+    <p>Acesse sua conta para entrar na plataforma.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Entrar / Criar conta</h2>
+
+        <div class="pill">
+          <span class="dot" id="cfgDot"></span>
+          <span id="cfgText">Config não carregada</span>
+        </div>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="seuemail@empresa.com" autocomplete="email" />
+
+        <label for="password">Senha</label>
+        <input id="password" type="password" placeholder="********" autocomplete="current-password" />
+
+        <div class="row">
+          <button id="btnSignIn">Entrar</button>
+          <button id="btnSignUp" class="ghost">Criar conta</button>
+          <button id="btnSignOut" class="secondary">Sair</button>
+        </div>
+
+        <p id="msg" class="warn"></p>
+      </div>
+
+      <div class="card">
+        <h2>Status da Sessão</h2>
+        <p><b>Usuário:</b> <span id="userEmail">—</span></p>
+        <p><b>User ID:</b> <span id="userId">—</span></p>
+        <p><b>Acesso:</b> <span id="access">—</span></p>
+
+        <h2 style="margin-top:14px">Debug</h2>
+        <pre id="log"></pre>
+      </div>
+    </div>
   </div>
 
   <script>
-    const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+    if (window.__PORTALWIFI_LOGIN_INIT__) {
+      console.warn("Login já inicializado — ignorando execução duplicada.");
+    } else {
+      window.__PORTALWIFI_LOGIN_INIT__ = true;
 
-    const $ = (id) => document.getElementById(id);
+      const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
 
-    function setStatus(text) {
-      $("status").textContent = text;
-    }
+      const $ = (id) => document.getElementById(id);
 
-    function addLog(obj) {
-      const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-      $("log").textContent += ($("log").textContent ? "\n" : "") + s;
-      console.log(obj);
-    }
+      const log = (obj) => {
+        const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+        $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
+      };
 
-   if (!window.__PORTAL_SUPABASE_CLIENT__) {
-  window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
-}
+      const setMsg = (t, isErr = false) => {
+        $("msg").textContent = t || "";
+        $("msg").className = isErr ? "danger" : "warn";
+      };
 
-const sb = window.__PORTAL_SUPABASE_CLIENT__;
+      const setCfg = (ok, text) => {
+        $("cfgDot").className = "dot " + (ok ? "ok" : "bad");
+        $("cfgText").textContent = text;
+      };
 
-    async function clearAndGoLogin(reason) {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        console.error("Erro ao sair:", e);
-      }
-
-      sessionStorage.removeItem("tenant_id");
-      sessionStorage.removeItem("tenant_role");
-
-      const qs = reason ? "?erro=" + encodeURIComponent(reason) : "";
-      window.location.replace("/login.html" + qs);
-    }
-
-    async function main() {
-      try {
-        setStatus("Lendo sessão...");
-
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        addLog({ step: "session", sessionError, hasSession: !!sessionData?.session });
-
-        if (sessionError) {
-          await clearAndGoLogin("sessao_invalida");
-          return;
-        }
-
-        const session = sessionData.session;
-
-        if (!session || !session.user) {
-          window.location.replace("/login.html");
-          return;
-        }
-
-        const userId = session.user.id;
-
-        setStatus("Consultando perfil...");
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("user_id, email, status, is_platform_user, platform_role")
-          .eq("user_id", userId)
-          .single();
-
-        addLog({ step: "profile", profile, profileError });
-
-        if (profileError || !profile) {
-          await clearAndGoLogin("perfil_nao_encontrado");
-          return;
-        }
-
-        if (profile.status !== "active") {
-          await clearAndGoLogin("usuario_inativo");
-          return;
-        }
-
-        if (profile.is_platform_user === true) {
+      function clearTenantSession() {
+        try {
           sessionStorage.removeItem("tenant_id");
           sessionStorage.removeItem("tenant_role");
-          setStatus("Redirecionando para a plataforma...");
-          window.location.replace("/platform.html");
-          return;
+          sessionStorage.removeItem("tenant_unit_id");
+        } catch (err) {
+          console.warn("Falha ao limpar sessionStorage:", err);
+        }
+      }
+
+      const okUrl = typeof SUPABASE_URL === "string"
+        && SUPABASE_URL.startsWith("https://")
+        && SUPABASE_URL.includes(".supabase.co");
+
+      const okKey = typeof SUPABASE_ANON_KEY === "string"
+        && SUPABASE_ANON_KEY.startsWith("sb_");
+
+      if (!okUrl || !okKey) {
+        setCfg(false, "Faltam credenciais (SUPABASE_URL / SUPABASE_ANON_KEY).");
+        log({ okUrl, okKey });
+      } else {
+        setCfg(true, "Config OK (Supabase URL + Publishable key)");
+
+        if (!window.__PORTAL_SUPABASE_CLIENT__) {
+          window.__PORTAL_SUPABASE_CLIENT__ = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
         }
 
-        setStatus("Consultando vínculo do tenant...");
-        const { data: memberships, error: membershipError } = await supabase
-          .from("tenant_members")
-          .select("tenant_id, role, is_active")
-          .eq("user_id", userId)
-          .eq("is_active", true)
-          .limit(1);
+        const sb = window.__PORTAL_SUPABASE_CLIENT__;
 
-        addLog({ step: "membership", memberships, membershipError });
-
-        if (membershipError || !memberships || memberships.length === 0) {
-          await clearAndGoLogin("sem_vinculo_ativo");
-          return;
+        function render(session) {
+          const user = session?.user || null;
+          $("userEmail").textContent = user?.email || "—";
+          $("userId").textContent = user?.id || "—";
+          $("access").textContent = session?.access_token ? "logado (token OK)" : "deslogado";
         }
 
-        const membership = memberships[0];
+        async function refreshSession() {
+          const { data, error } = await sb.auth.getSession();
 
-        sessionStorage.setItem("tenant_id", membership.tenant_id);
-        sessionStorage.setItem("tenant_role", membership.role);
+          if (error) {
+            log({ getSession_error: error });
+            setMsg(error.message, true);
+            render(null);
+            return null;
+          }
 
-        setStatus("Redirecionando para o estabelecimento...");
-        window.location.replace("/estabelecimento/index.html");
-      } catch (err) {
-        addLog({ step: "fatal", message: err.message, stack: err.stack });
-        await clearAndGoLogin("falha_autenticacao");
+          render(data.session);
+          return data.session;
+        }
+
+        async function goToRootRouter() {
+          window.location.href = "/";
+        }
+
+        $("btnSignIn").onclick = async () => {
+          try {
+            setMsg("Entrando...");
+
+            const email = $("email").value.trim();
+            const password = $("password").value;
+
+            if (!email || !password) {
+              setMsg("Informe email e senha.", true);
+              return;
+            }
+
+            const { data, error } = await sb.auth.signInWithPassword({
+              email,
+              password
+            });
+
+            if (error) throw error;
+
+            log({ signIn: "ok", user: data.user?.email });
+            setMsg("Login OK. Redirecionando...");
+
+            await refreshSession();
+            await goToRootRouter();
+          } catch (e) {
+            log({ signIn_error: { message: e.message, status: e.status } });
+            setMsg("Erro no login: " + e.message, true);
+          }
+        };
+
+        $("btnSignUp").onclick = async () => {
+          try {
+            setMsg("Criando conta...");
+
+            const email = $("email").value.trim();
+            const password = $("password").value;
+
+            if (!email || !password) {
+              setMsg("Informe email e senha.", true);
+              return;
+            }
+
+            const { data, error } = await sb.auth.signUp({
+              email,
+              password
+            });
+
+            if (error) throw error;
+
+            log({ signUp: "ok", user: data.user?.email });
+            setMsg("Conta criada. Se não exigir confirmação por email, você será redirecionado.");
+
+            await refreshSession();
+
+            if (data.session) {
+              await goToRootRouter();
+            }
+          } catch (e) {
+            log({ signUp_error: { message: e.message, status: e.status } });
+            setMsg("Erro no cadastro: " + e.message, true);
+          }
+        };
+
+        $("btnSignOut").onclick = async () => {
+          try {
+            setMsg("Saindo...");
+
+            const { error } = await sb.auth.signOut();
+            if (error) throw error;
+
+            clearTenantSession();
+
+            log({ signOut: "ok" });
+            setMsg("Saiu.");
+            await refreshSession();
+          } catch (e) {
+            log({ signOut_error: { message: e.message, status: e.status } });
+            setMsg("Erro no logout: " + e.message, true);
+          }
+        };
+
+        sb.auth.onAuthStateChange((event, session) => {
+          log({ auth_event: event, hasSession: !!session });
+          render(session);
+        });
+
+        refreshSession();
       }
     }
-
-    main();
   </script>
 </body>
 </html>
