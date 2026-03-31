@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/oscarlage/portalwifi2/issues"
   },
-  "homepage": "https://github.com/oscarlage/portalwifi2#readme"
+  "homepage": "https://github.com/oscarlage/portalwifi2#readme",
+  "devDependencies": {
+    "wrangler": "^4.78.0"
+  }
 }
