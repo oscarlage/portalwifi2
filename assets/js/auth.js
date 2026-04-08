@@ -16,6 +16,14 @@ const ACTIVE_TENANT_ID_KEY = "portalwifi.activeTenantId"
 const ACTIVE_TENANT_NAME_KEY = "portalwifi.activeTenantName"
 const ACTIVE_TENANT_SLUG_KEY = "portalwifi.activeTenantSlug"
 
+function requiresPasswordSetup(profile) {
+  return !!(profile && (profile.must_change_password === true || profile.password_reset_required === true))
+}
+
+function redirectToPasswordChange() {
+  window.location.replace("/reset-password.html")
+}
+
 function clearStoredAccessContext() {
   sessionStorage.removeItem("tenant_id")
   sessionStorage.removeItem("tenant_role")
@@ -108,6 +116,11 @@ export async function checkAuthRedirect() {
     if (profileError || !profile) {
       console.error("perfil não encontrado:", profileError)
       await redirectToLogin("profile_not_found")
+      return
+    }
+
+    if (profile.status === "pending" && requiresPasswordSetup(profile)) {
+      redirectToPasswordChange()
       return
     }
 

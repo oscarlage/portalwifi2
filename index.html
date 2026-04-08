@@ -91,6 +91,14 @@
         return import("/assets/js/core/permissions.js");
       }
 
+      function requiresPasswordSetup(profile) {
+        return !!(profile && (profile.must_change_password === true || profile.password_reset_required === true));
+      }
+
+      function redirectToPasswordChange() {
+        window.location.replace("/reset-password.html");
+      }
+
       function persistAccessContext(access) {
         sessionStorage.setItem("portalwifi.authContext", JSON.stringify({
           scope: access.scope,
@@ -187,7 +195,7 @@
 
           const { data: profile, error: profileError } = await sb
             .from("profiles")
-            .select("user_id,email,full_name,status,is_platform_user,platform_role")
+            .select("user_id,email,full_name,status,is_platform_user,platform_role,must_change_password,password_reset_required")
             .eq("user_id", userId)
             .single();
 
@@ -201,6 +209,14 @@
             setStatus("Falha: perfil não encontrado. Redirecionando...", "err");
             setTimeout(() => {
               signOutAndRedirect("profile_not_found");
+            }, 700);
+            return;
+          }
+
+          if (profile.status === "pending" && requiresPasswordSetup(profile)) {
+            setStatus("Primeiro acesso ou reset de senha pendente. Redirecionando para troca de senha...", "ok");
+            setTimeout(() => {
+              redirectToPasswordChange();
             }, 700);
             return;
           }

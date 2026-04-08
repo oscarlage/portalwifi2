@@ -202,6 +202,24 @@
           window.location.href = "/";
         }
 
+        async function getProfile(userId) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("user_id,status,must_change_password,password_reset_required")
+            .eq("user_id", userId)
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          return data;
+        }
+
+        function requiresPasswordSetup(profile) {
+          return !!(profile && (profile.must_change_password === true || profile.password_reset_required === true));
+        }
+
 
         $("btnSignIn").onclick = async () => {
           try {
@@ -224,6 +242,13 @@
 
             log({ signIn: "ok", user: data.user?.email });
             setMsg("Login OK. Redirecionando...");
+
+            const profile = await getProfile(data.user.id);
+
+            if (profile.status === "pending" && requiresPasswordSetup(profile)) {
+              window.location.href = "/reset-password.html";
+              return;
+            }
 
             await refreshSession();
             await goToRootRouter();

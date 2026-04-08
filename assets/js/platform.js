@@ -316,6 +316,115 @@
     return TENANT_ROLES.includes(String(value || "").trim().toLowerCase());
   }
 
+  function shouldForcePasswordChange() {
+    return els.cfgForcePasswordChange?.value !== "false";
+  }
+
+  function getEffectiveUserStatus(requestedStatus, forcePasswordChange) {
+    const normalized = String(requestedStatus || "pending").trim().toLowerCase();
+
+    if (!forcePasswordChange) {
+      return normalized;
+    }
+
+    if (normalized === "blocked" || normalized === "disabled") {
+      return normalized;
+    }
+
+    return "pending";
+  }
+
+  function getPasswordSetupFlags(forcePasswordChange, isReset = false) {
+    return {
+      must_change_password: !!forcePasswordChange,
+      password_reset_required: !!isReset
+    };
+  }
+
+  function isMembershipEnabledForStatus(status) {
+    const normalized = String(status || "active").trim().toLowerCase();
+    return normalized !== "blocked" && normalized !== "disabled";
+  }
+
+  function getResetPasswordRedirectUrl() {
+    return `${window.location.origin}/reset-password.html`;
+  }
+
+  async function markUserPasswordResetRequired(userId) {
+    const payload = {
+      status: "pending",
+      must_change_password: true,
+      password_reset_required: true,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await sb
+      .from("profiles")
+      .update(payload)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return payload;
+  }
+
+  async function activateUserMemberships(userId) {
+    const { error } = await sb
+      .from("tenant_members")
+      .update({
+        is_active: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async function sendPasswordReset(user) {
+    if (!user?.email) {
+      alert("Usuário sem e-mail válido para reset de senha.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Enviar redefinição de senha para ${user.email}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await sb.auth.resetPasswordForEmail(user.email, {
+      redirectTo: getResetPasswordRedirectUrl()
+    });
+
+    if (error) {
+      console.error("Erro ao enviar reset de senha:", error);
+      alert(`Erro ao enviar reset de senha: ${error.message}`);
+      return;
+    }
+
+    const markPayload = await markUserPasswordResetRequired(user.user_id);
+    await activateUserMemberships(user.user_id);
+
+    await writeAuditLog({
+      action: "user_updated",
+      module: "users",
+      target_type: "user",
+      target_id: user.user_id,
+      target_label: user.full_name,
+      tenant_id: Array.isArray(user.memberships) ? user.memberships[0]?.tenant_id || null : null,
+      tenant_name: getPrimaryTenantNames(user),
+      result: "success",
+      message: "Reset de senha solicitado pelo administrador.",
+      new_data: markPayload
+    });
+
+    await refreshAll();
+    alert("Reset de senha enviado. O usuário receberá um link para definir uma nova senha.");
+  }
+
   function clearTenantSessionStorage() {
     try {
       sessionStorage.removeItem("tenant_id");
@@ -827,6 +936,7 @@
             <div class="actions">
               <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.user_id || "")}">Editar</button>
               <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.user_id || "")}">Vínculos</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="reset-password" data-id="${escapeHtml(user.user_id || "")}">Resetar senha</button>
             </div>
           </td>
         </tr>
@@ -850,6 +960,7 @@
             <div class="actions">
               <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.user_id || "")}">Editar</button>
               <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.user_id || "")}">Vínculos</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="reset-password" data-id="${escapeHtml(user.user_id || "")}">Resetar senha</button>
             </div>
           </td>
         </tr>
@@ -1461,7 +1572,7 @@
     const email = (els.userEmail?.value || "").trim().toLowerCase();
     const phone = (els.userPhone?.value || "").trim();
     const userType = (els.userType?.value || "platform_readonly").trim();
-    const status = (els.userStatus?.value || els.cfgDefaultUserStatus?.value || "active").trim();
+    const requestedStatus = (els.userStatus?.value || els.cfgDefaultUserStatus?.value || "active").trim();
     const tenantId = (els.userTenantId?.value || "").trim() || null;
     const password = (els.userPassword?.value || "").trim();
     const passwordConfirm = (els.userPasswordConfirm?.value || "").trim();
@@ -1509,6 +1620,9 @@
     }
 
     const roleData = getProfileScopeAndRole(userType, tenantId);
+  const forcePasswordChange = shouldForcePasswordChange();
+  const status = getEffectiveUserStatus(requestedStatus, forcePasswordChange);
+  const passwordFlags = getPasswordSetupFlags(forcePasswordChange, false);
 
     const { data: currentSessionData, error: currentSessionError } = await sb.auth.getSession();
 
@@ -1548,6 +1662,7 @@
           email,
           phone,
           user_type: userType,
+          requested_status: requestedStatus,
           status,
           tenant_id: tenantId
         }
@@ -1584,6 +1699,8 @@
       platform_role: roleData.platformRole,
       status,
       is_platform_user: roleData.isPlatformUser,
+      must_change_password: passwordFlags.must_change_password,
+      password_reset_required: passwordFlags.password_reset_required,
       updated_at: new Date().toISOString()
     };
 
@@ -1609,6 +1726,7 @@
         new_data: {
           ...profilePayload,
           user_type: userType,
+          requested_status: requestedStatus,
           tenant_id: tenantId
         }
       });
@@ -1621,7 +1739,7 @@
         tenant_id: tenantId,
         user_id: authUserId,
         role: roleData.membershipRole,
-        is_active: status === "active"
+        is_active: isMembershipEnabledForStatus(status)
       });
 
       if (insertMembership.error) {
@@ -1643,6 +1761,7 @@
             email,
             phone,
             user_type: userType,
+            requested_status: requestedStatus,
             status,
             tenant_id: tenantId
           }
@@ -1667,6 +1786,7 @@
         email,
         phone,
         user_type: userType,
+        requested_status: requestedStatus,
         status,
         tenant_id: tenantId
       }
@@ -1677,7 +1797,11 @@
     await refreshAll();
     setActiveSection("users");
 
-    alert("Usuário criado com sucesso.");
+    if (forcePasswordChange) {
+      alert("Usuário criado com sucesso. O primeiro acesso exigirá troca de senha e o status permanecerá pendente até a conclusão.");
+    } else {
+      alert("Usuário criado com sucesso.");
+    }
   }
 
   async function updateUser() {
@@ -1805,7 +1929,7 @@
           tenant_id: tenantId,
           user_id: userId,
           role: roleData.membershipRole,
-          is_active: status === "active"
+            is_active: isMembershipEnabledForStatus(status)
         });
 
       if (insertMembership.error) {
@@ -2048,6 +2172,14 @@
 
         if (action === "link") {
           openUserLinksModal(userId);
+          return;
+        }
+
+        if (action === "reset-password") {
+          const user = state.users.find((item) => String(item.user_id) === String(userId));
+          if (user) {
+            await sendPasswordReset(user);
+          }
           return;
         }
       }
