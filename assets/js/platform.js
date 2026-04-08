@@ -432,6 +432,10 @@
     document.body.style.overflow = "";
   }
 
+  function normalizeInitialModalState() {
+    closeAllModals();
+  }
+
   function setActiveSection(sectionName) {
     els.navLinks.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.section === sectionName);
@@ -2106,9 +2110,14 @@
         window.location.replace("/login.html");
       }
     });
+
+    window.addEventListener("pageshow", () => {
+      normalizeInitialModalState();
+    });
   }
 
   async function init() {
+    normalizeInitialModalState();
     bindEvents();
     resetUserModal();
     resetEditUserModal();
