@@ -544,23 +544,23 @@ export default {
       }
 
       if (url.pathname === "/lead" && request.method === "POST") {
-        return handleLeadCapture(request, env);
+        return await handleLeadCapture(request, env);
       }
 
       if (url.pathname === "/api/admin/leads" && request.method === "GET") {
-        return handleAdminLeads(url, env);
+        return await handleAdminLeads(url, env);
       }
 
       if (url.pathname === "/api/admin/dashboard/summary" && request.method === "GET") {
-        return handleDashboardSummary(url, env);
+        return await handleDashboardSummary(url, env);
       }
 
       if (url.pathname === "/api/admin/reports/peak-hours" && request.method === "GET") {
-        return handlePeakHours(url, env);
+        return await handlePeakHours(url, env);
       }
 
       if (url.pathname === "/api/admin/campaigns" || url.pathname.startsWith("/api/admin/campaigns/")) {
-        return handleCampaigns(request, url, env);
+        return await handleCampaigns(request, url, env);
       }
 
       return json(
