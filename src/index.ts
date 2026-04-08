@@ -164,25 +164,6 @@ async function supabaseRpc<T>(env: Env, fnName: string, payload: JsonRecord): Pr
   });
 }
 
-async function probeSupabase(env: Env): Promise<Record<string, unknown>> {
-  try {
-    const rows = await supabaseSelect<Array<{ id: string }>>(
-      env,
-      "tenants?select=id&limit=1",
-    );
-
-    return {
-      ok: true,
-      rows: Array.isArray(rows) ? rows.length : 0,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "unknown probe error",
-    };
-  }
-}
-
 function normalizePhone(value: unknown): string | null {
   const digits = String(value || "").replace(/\D+/g, "");
   return digits || null;
@@ -576,7 +557,6 @@ export default {
       }
 
       if (url.pathname === "/health") {
-        const includeProbe = url.searchParams.get("probe") === "supabase";
         return json({
           ok: true,
           service: "portalwifi-api",
@@ -586,7 +566,6 @@ export default {
             hmacSharedSecret: Boolean(env.HMAC_SHARED_SECRET),
           },
           supabase: getSafeSupabaseDiagnostics(env),
-          ...(includeProbe ? { supabaseProbe: await probeSupabase(env) } : {}),
           now: new Date().toISOString(),
         });
       }
