@@ -15,6 +15,9 @@
   const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
   const PAGE_KEY = "portalwifi.estabelecimento.page";
   const SESSION_TENANT_ID_KEY = "tenant_id";
+  const SESSION_TENANT_ROLE_KEY = "tenant_role";
+  const AUTH_CONTEXT_KEY = "portalwifi.authContext";
+  const TENANT_MEMBERSHIPS_KEY = "portalwifi.tenantMemberships";
 
   const DEFAULT_PAGE = "/estabelecimento/home.html";
 
@@ -82,12 +85,130 @@
     }
   }
 
+  function safeJsonParse(value, fallback) {
+    try {
+      return value ? JSON.parse(value) : fallback;
+    } catch (error) {
+      console.warn("Falha ao interpretar contexto salvo:", error);
+      return fallback;
+    }
+  }
+
+  function getStoredAccessContext() {
+    const access = safeJsonParse(sessionStorage.getItem(AUTH_CONTEXT_KEY), null);
+    const memberships = safeJsonParse(sessionStorage.getItem(TENANT_MEMBERSHIPS_KEY), []);
+
+    if (access && Array.isArray(memberships)) {
+      return {
+        ...access,
+        memberships
+      };
+    }
+
+    const legacyTenantId = sessionStorage.getItem(SESSION_TENANT_ID_KEY);
+    const legacyTenantRole = sessionStorage.getItem(SESSION_TENANT_ROLE_KEY);
+
+    if (legacyTenantId) {
+      return {
+        scope: "tenant",
+        platformRole: null,
+        tenantRole: legacyTenantRole || "tenant_viewer",
+        canAccessGlobalAdmin: false,
+        canAccessTenantAdmin: true,
+        memberships: [{
+          tenant_id: legacyTenantId,
+          role: legacyTenantRole || "tenant_viewer",
+          is_active: true
+        }]
+      };
+    }
+
+    return null;
+  }
+
   function getStoredTenant() {
     return {
       id: localStorage.getItem(TENANT_ID_KEY),
       name: localStorage.getItem(TENANT_NAME_KEY),
       slug: localStorage.getItem(TENANT_SLUG_KEY)
     };
+  }
+
+  function clearTenantContext() {
+    sessionStorage.removeItem(SESSION_TENANT_ID_KEY);
+    sessionStorage.removeItem(SESSION_TENANT_ROLE_KEY);
+    sessionStorage.removeItem("tenant_unit_id");
+    sessionStorage.removeItem(AUTH_CONTEXT_KEY);
+    sessionStorage.removeItem(TENANT_MEMBERSHIPS_KEY);
+    localStorage.removeItem(TENANT_ID_KEY);
+    localStorage.removeItem(TENANT_NAME_KEY);
+    localStorage.removeItem(TENANT_SLUG_KEY);
+  }
+
+  async function ensureTenantAccess() {
+    const tenant = getStoredTenant();
+    const access = getStoredAccessContext();
+
+    if (!access) {
+      clearTenantContext();
+      window.location.replace("/login.html?error=no_access_context");
+      return null;
+    }
+
+    const permissions = await import("./core/permissions.js");
+    const targetTenantId = tenant.id || access.memberships[0]?.tenant_id || null;
+
+    if (targetTenantId && !permissions.canAccessTenantAdmin({ platform_role: access.platformRole }, access.memberships, targetTenantId)) {
+      if (access.canAccessGlobalAdmin) {
+        window.location.replace("/platform.html?error=tenant_access_denied");
+      } else {
+        clearTenantContext();
+        window.location.replace("/login.html?error=tenant_access_denied");
+      }
+      return null;
+    }
+
+    if (!tenant.id && targetTenantId) {
+      localStorage.setItem(TENANT_ID_KEY, targetTenantId);
+      sessionStorage.setItem(SESSION_TENANT_ID_KEY, targetTenantId);
+    }
+
+    return {
+      access,
+      permissions,
+      tenantId: targetTenantId
+    };
+  }
+
+  function applyNavigationPermissions(permissionState) {
+    if (!permissionState) {
+      return;
+    }
+
+    const { access, permissions, tenantId } = permissionState;
+
+    const visibility = {
+      "/estabelecimento/home.html": true,
+      "/estabelecimento/clientes.html": true,
+      "/estabelecimento/campanhas.html": permissions.canManageCampaigns({ platform_role: access.platformRole }, access.memberships, tenantId),
+      "/estabelecimento/configuracoes.html": permissions.canManageSettings({ platform_role: access.platformRole }, access.memberships, tenantId),
+      "/estabelecimento/relatorios.html": permissions.canViewReports({ platform_role: access.platformRole }, access.memberships, tenantId)
+    };
+
+    buttons.forEach((btn) => {
+      const page = btn.dataset.page || DEFAULT_PAGE;
+      const allowed = visibility[page] !== false;
+
+      btn.hidden = !allowed;
+      btn.disabled = !allowed;
+      btn.setAttribute("aria-hidden", allowed ? "false" : "true");
+    });
+
+    const currentPage = getInitialPage();
+    if (visibility[currentPage] === false) {
+      const fallbackPage = Object.entries(visibility).find(([, allowed]) => allowed)?.[0] || DEFAULT_PAGE;
+      localStorage.setItem(PAGE_KEY, fallbackPage);
+    }
   }
 
   function updateTenantShell() {
@@ -193,7 +314,16 @@
     loadPage(page, false);
   });
 
-  syncTenantContext();
-  updateTenantShell();
-  loadPage(getInitialPage(), false);
+  (async function init() {
+    syncTenantContext();
+    const permissionState = await ensureTenantAccess();
+
+    if (!permissionState) {
+      return;
+    }
+
+    applyNavigationPermissions(permissionState);
+    updateTenantShell();
+    loadPage(getInitialPage(), false);
+  })();
 })();

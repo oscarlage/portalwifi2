@@ -1,13 +1,16 @@
 const GLOBAL_ADMIN_ROLES = Object.freeze([
 	'platform_admin',
 	'platform_operator',
+	'platform_operations',
 	'platform_support',
 	'platform_viewer',
+	'platform_readonly',
 ]);
 
 const TENANT_ADMIN_ROLES = Object.freeze([
 	'tenant_admin',
 	'tenant_manager',
+	'tenant_marketing',
 	'tenant_viewer',
 ]);
 
@@ -18,7 +21,9 @@ function normalizeString(value) {
 }
 
 function normalizeRole(role) {
-	const normalized = normalizeString(role);
+	const normalized = normalizeString(role)
+		.replace('platform_read_only', 'platform_readonly')
+		.replace('platform_operation', 'platform_operations');
 	return ALL_ROLES.includes(normalized) ? normalized : null;
 }
 
@@ -51,6 +56,7 @@ export function getTenantRoleRank(role) {
 
 	if (normalized === 'tenant_admin') return 300;
 	if (normalized === 'tenant_manager') return 200;
+	if (normalized === 'tenant_marketing') return 150;
 	if (normalized === 'tenant_viewer') return 100;
 	return 0;
 }
@@ -59,9 +65,9 @@ export function getPlatformRoleRank(role) {
 	const normalized = normalizeRole(role);
 
 	if (normalized === 'platform_admin') return 400;
-	if (normalized === 'platform_operator') return 300;
+	if (normalized === 'platform_operator' || normalized === 'platform_operations') return 300;
 	if (normalized === 'platform_support') return 200;
-	if (normalized === 'platform_viewer') return 100;
+	if (normalized === 'platform_viewer' || normalized === 'platform_readonly') return 100;
 	return 0;
 }
 

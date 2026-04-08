@@ -321,6 +321,11 @@
       sessionStorage.removeItem("tenant_id");
       sessionStorage.removeItem("tenant_role");
       sessionStorage.removeItem("tenant_unit_id");
+      sessionStorage.removeItem("portalwifi.authContext");
+      sessionStorage.removeItem("portalwifi.tenantMemberships");
+      localStorage.removeItem("portalwifi.activeTenantId");
+      localStorage.removeItem("portalwifi.activeTenantName");
+      localStorage.removeItem("portalwifi.activeTenantSlug");
     } catch (err) {
       console.warn("Falha ao limpar sessão do tenant:", err);
     }

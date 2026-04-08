@@ -76,8 +76,54 @@
         try {
           sessionStorage.removeItem("tenant_id");
           sessionStorage.removeItem("tenant_role");
+          sessionStorage.removeItem("tenant_unit_id");
+          sessionStorage.removeItem("portalwifi.authContext");
+          sessionStorage.removeItem("portalwifi.tenantMemberships");
+          localStorage.removeItem("portalwifi.activeTenantId");
+          localStorage.removeItem("portalwifi.activeTenantName");
+          localStorage.removeItem("portalwifi.activeTenantSlug");
         } catch (e) {
           console.warn("Falha ao limpar sessionStorage:", e);
+        }
+      }
+
+      async function loadPermissionsModule() {
+        return import("/assets/js/core/permissions.js");
+      }
+
+      function persistAccessContext(access) {
+        sessionStorage.setItem("portalwifi.authContext", JSON.stringify({
+          scope: access.scope,
+          platformRole: access.platformRole,
+          tenantRole: access.tenantRole,
+          canAccessGlobalAdmin: access.canAccessGlobalAdmin,
+          canAccessTenantAdmin: access.canAccessTenantAdmin
+        }));
+        sessionStorage.setItem("portalwifi.tenantMemberships", JSON.stringify(access.memberships || []));
+      }
+
+      async function hydrateActiveTenant(tenantId) {
+        if (!tenantId) return;
+
+        try {
+          const { data } = await sb
+            .from("tenants")
+            .select("id,name,slug")
+            .eq("id", tenantId)
+            .maybeSingle();
+
+          localStorage.setItem("portalwifi.activeTenantId", tenantId);
+
+          if (data?.name) {
+            localStorage.setItem("portalwifi.activeTenantName", data.name);
+          }
+
+          if (data?.slug) {
+            localStorage.setItem("portalwifi.activeTenantSlug", data.slug);
+          }
+        } catch (e) {
+          console.warn("Falha ao hidratar tenant ativo:", e);
+          localStorage.setItem("portalwifi.activeTenantId", tenantId);
         }
       }
 
@@ -107,6 +153,7 @@
 
       async function init() {
         try {
+          const permissions = await loadPermissionsModule();
           setStatus("Verificando sessão...");
 
           const { data: sessionData, error: sessionError } = await sb.auth.getSession();
@@ -166,7 +213,30 @@
             return;
           }
 
-          if (profile.is_platform_user === true) {
+          const { data: memberships, error: membershipError } = await sb
+            .from("tenant_members")
+            .select("tenant_id,role,is_active,unit_id")
+            .eq("user_id", userId)
+            .eq("is_active", true);
+
+          addLog({
+            step: "membership",
+            memberships,
+            membershipError: membershipError ? membershipError.message : null
+          });
+
+          if (membershipError) {
+            setStatus("Falha ao consultar vínculos. Redirecionando...", "err");
+            setTimeout(() => {
+              signOutAndRedirect("membership_error");
+            }, 900);
+            return;
+          }
+
+          const access = permissions.resolveAccessContext(profile, memberships || []);
+          persistAccessContext(access);
+
+          if (permissions.canAccessGlobalAdmin(profile, memberships || [])) {
             clearTenantSession();
             setStatus("Usuário global detectado. Redirecionando para platform.html...", "ok");
             setTimeout(() => {
@@ -175,22 +245,7 @@
             return;
           }
 
-          setStatus("Consultando vínculo do tenant...");
-
-          const { data: memberships, error: membershipError } = await sb
-            .from("tenant_members")
-            .select("tenant_id,role,is_active")
-            .eq("user_id", userId)
-            .eq("is_active", true)
-            .limit(1);
-
-          addLog({
-            step: "membership",
-            memberships,
-            membershipError: membershipError ? membershipError.message : null
-          });
-
-          if (membershipError || !memberships || memberships.length === 0) {
+          if (!permissions.canAccessTenantAdmin(profile, memberships || [])) {
             setStatus("Falha: sem vínculo ativo de tenant. Redirecionando...", "err");
             setTimeout(() => {
               signOutAndRedirect("no_active_membership");
@@ -198,13 +253,18 @@
             return;
           }
 
-          const membership = memberships[0];
+          const membership = access.memberships[0];
           sessionStorage.setItem("tenant_id", membership.tenant_id);
           sessionStorage.setItem("tenant_role", membership.role);
+          if (membership.unit_id) {
+            sessionStorage.setItem("tenant_unit_id", membership.unit_id);
+          }
+
+          await hydrateActiveTenant(membership.tenant_id);
 
           setStatus("Usuário tenant detectado. Redirecionando para estabelecimento...", "ok");
           setTimeout(() => {
-            window.location.replace("/estabelecimento/index.html");
+            window.location.replace(`/estabelecimento/index.html?tenant_id=${encodeURIComponent(membership.tenant_id)}`);
           }, 800);
 
         } catch (err) {
