@@ -1,6 +1,17 @@
 import { getSupabaseClient } from '../core/supabase-client.js';
+import { summarizeLeads } from './lead-service.js';
 
 const DEFAULT_TENANT_KEY = 'portalwifi.activeTenantId';
+const API_BASE = resolveApiBase();
+
+function resolveApiBase() {
+	return String(
+		window.PORTAL_SETTINGS?.apiBase ||
+		document.body?.dataset?.apiBase ||
+		localStorage.getItem('portal_api_base') ||
+		'https://portalwifi-api.oscar-lage.workers.dev'
+	).replace(/\/$/, '');
+}
 
 function getTenantId(explicitTenantId = null) {
 	return explicitTenantId || localStorage.getItem(DEFAULT_TENANT_KEY) || '';
@@ -22,6 +33,49 @@ function normalizeSession(session = {}) {
 		auth_method: session.auth_method || '',
 		created_at: session.created_at || null,
 		updated_at: session.updated_at || null,
+	};
+}
+
+function buildQuery(params) {
+	const query = new URLSearchParams();
+
+	Object.entries(params).forEach(([key, value]) => {
+		if (value !== undefined && value !== null && value !== '') {
+			query.set(key, value);
+		}
+	});
+
+	return query.toString();
+}
+
+function normalizeDateFilterRange(filters = {}) {
+	const now = new Date();
+	const end = filters.date_to ? new Date(filters.date_to) : new Date(now);
+	const start = filters.date_from ? new Date(filters.date_from) : new Date(now);
+
+	if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+		return { date_from: filters.date_from || '', date_to: filters.date_to || '' };
+	}
+
+	if (filters.period === 'today') {
+		start.setHours(0, 0, 0, 0);
+		end.setHours(23, 59, 59, 999);
+	} else if (filters.period === '7d') {
+		start.setDate(now.getDate() - 6);
+		start.setHours(0, 0, 0, 0);
+		end.setHours(23, 59, 59, 999);
+	} else if (filters.period === '30d') {
+		start.setDate(now.getDate() - 29);
+		start.setHours(0, 0, 0, 0);
+		end.setHours(23, 59, 59, 999);
+	} else {
+		start.setHours(0, 0, 0, 0);
+		end.setHours(23, 59, 59, 999);
+	}
+
+	return {
+		date_from: start.toISOString(),
+		date_to: end.toISOString(),
 	};
 }
 
@@ -111,6 +165,8 @@ export async function summarizeSessions(tenantId, filters = {}) {
 
 export async function getPeakHours(tenantId, filters = {}) {
 	const sessions = await listSessions(tenantId, filters);
+	const hourFrom = Number(filters.hour_from ?? 0);
+	const hourTo = Number(filters.hour_to ?? 23);
 	const buckets = Array.from({ length: 24 }, (_, hour) => ({
 		hour,
 		label: `${String(hour).padStart(2, '0')}:00`,
@@ -130,6 +186,64 @@ export async function getPeakHours(tenantId, filters = {}) {
 		buckets[date.getHours()].value += 1;
 	});
 
-	return buckets;
+	return buckets.filter((bucket) => bucket.hour >= hourFrom && bucket.hour <= hourTo);
+}
+
+export async function getReportSummary(tenantId, filters = {}) {
+	const resolvedTenantId = getTenantId(tenantId);
+
+	if (!resolvedTenantId) {
+		throw new Error('tenantId é obrigatório para gerar resumo.');
+	}
+
+	const query = buildQuery({ tenant_id: resolvedTenantId, ...filters });
+
+	try {
+		const response = await fetch(`${API_BASE}/api/admin/dashboard/summary?${query}`);
+		const payload = await response.json().catch(() => ({}));
+
+		if (!response.ok || payload.ok === false) {
+			throw new Error(payload.detail || payload.error || 'Falha ao carregar resumo.');
+		}
+
+		return payload.summary || {};
+	} catch (error) {
+		console.warn('Falha ao buscar resumo via Worker, usando fallback local.', error);
+		const normalizedRange = normalizeDateFilterRange(filters);
+		const sessionSummary = await summarizeSessions(resolvedTenantId, normalizedRange);
+		const leadSummary = await summarizeLeads(resolvedTenantId, normalizedRange);
+
+		return {
+			connected: sessionSummary.total,
+			new_customers: leadSummary.total,
+			returning_customers: Math.max(sessionSummary.total - leadSummary.total, 0),
+			marketing_optin: leadSummary.marketingOptin,
+		};
+	}
+}
+
+export async function getPeakHoursReport(tenantId, filters = {}) {
+	const resolvedTenantId = getTenantId(tenantId);
+
+	if (!resolvedTenantId) {
+		throw new Error('tenantId é obrigatório para horários de pico.');
+	}
+
+	const query = buildQuery({ tenant_id: resolvedTenantId, ...filters });
+
+	try {
+		const response = await fetch(`${API_BASE}/api/admin/reports/peak-hours?${query}`);
+		const payload = await response.json().catch(() => ({}));
+
+		if (!response.ok || payload.ok === false) {
+			throw new Error(payload.detail || payload.error || 'Falha ao carregar horários de pico.');
+		}
+
+		return payload.hours || [];
+	} catch (error) {
+		console.warn('Falha ao buscar horários de pico via Worker, usando fallback local.', error);
+		const normalizedRange = normalizeDateFilterRange(filters);
+		return getPeakHours(resolvedTenantId, { ...filters, ...normalizedRange });
+	}
 }
 

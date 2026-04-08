@@ -78,6 +78,21 @@ async function fetchLeadListFromSupabase(tenantId, filters = {}) {
 		query = query.ilike('city', `%${filters.city}%`);
 	}
 
+	if (filters.date_from) {
+		const startDate = new Date(filters.date_from);
+		if (!Number.isNaN(startDate.getTime())) {
+			query = query.gte('created_at', startDate.toISOString());
+		}
+	}
+
+	if (filters.date_to) {
+		const endDate = new Date(filters.date_to);
+		if (!Number.isNaN(endDate.getTime())) {
+			endDate.setHours(23, 59, 59, 999);
+			query = query.lte('created_at', endDate.toISOString());
+		}
+	}
+
 	if (filters.search) {
 		const search = String(filters.search).trim();
 		query = query.or([

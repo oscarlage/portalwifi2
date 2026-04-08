@@ -1,5 +1,4 @@
 (async function () {
-  const API_BASE = "https://portalwifi-api.oscar-lage.workers.dev";
   const TENANT_ID_KEY = "portalwifi.activeTenantId";
 
   const tbody = document.getElementById("clientesTable");
@@ -8,6 +7,7 @@
   const tenantId = localStorage.getItem(TENANT_ID_KEY);
 
   let allRows = [];
+  let listContacts = null;
 
   function onlyDigits(v) {
     return (v || "").replace(/\D+/g, "");
@@ -94,6 +94,16 @@
     renderRows(filtered);
   }
 
+  async function loadContactService() {
+    if (listContacts) {
+      return listContacts;
+    }
+
+    const module = await import("./services/contact-service.js");
+    listContacts = module.listContacts;
+    return listContacts;
+  }
+
   async function loadClients() {
     if (!tenantId) {
       console.error("Nenhum tenant ativo selecionado.");
@@ -118,17 +128,8 @@
     }
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/admin/leads?tenant_id=${encodeURIComponent(tenantId)}`
-      );
-
-      const data = await res.json();
-
-      if (!data.ok) {
-        throw new Error(data.detail || data.error || "Falha ao carregar clientes.");
-      }
-
-      allRows = Array.isArray(data.data) ? data.data : [];
+      const fetchContacts = await loadContactService();
+      allRows = await fetchContacts(tenantId);
       renderRows(allRows);
 
     } catch (err) {

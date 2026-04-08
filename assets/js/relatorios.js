@@ -1,7 +1,6 @@
 (function () {
   "use strict";
 
-  const API_BASE = "https://portalwifi-api.oscar-lage.workers.dev";
   const TENANT_ID_KEY = "portalwifi.activeTenantId";
   const TENANT_NAME_KEY = "portalwifi.activeTenantName";
   const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
@@ -23,6 +22,8 @@
 
   let peakHoursChart = null;
   let customersMixChart = null;
+  let loadReportSummary = null;
+  let loadPeakHoursReport = null;
 
   function getTenantContext() {
     return {
@@ -78,52 +79,22 @@
     };
   }
 
-  function buildQuery(paramsObj) {
-    const qs = new URLSearchParams();
-    Object.entries(paramsObj).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        qs.set(key, value);
-      }
-    });
-    return qs.toString();
-  }
-
-  async function fetchSummary(tenantId, filters) {
-    const qs = buildQuery({
-      tenant_id: tenantId,
-      period: filters.period,
-      date_from: filters.date_from,
-      date_to: filters.date_to
-    });
-
-    const res = await fetch(`${API_BASE}/api/admin/dashboard/summary?${qs}`);
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      throw new Error(data.detail || data.error || "Falha ao carregar resumo.");
+  async function ensureReportServices() {
+    if (loadReportSummary && loadPeakHoursReport) {
+      return {
+        getReportSummary: loadReportSummary,
+        getPeakHoursReport: loadPeakHoursReport
+      };
     }
 
-    return data;
-  }
+    const module = await import("./services/session-service.js");
+    loadReportSummary = module.getReportSummary;
+    loadPeakHoursReport = module.getPeakHoursReport;
 
-  async function fetchPeakHours(tenantId, filters) {
-    const qs = buildQuery({
-      tenant_id: tenantId,
-      period: filters.period,
-      date_from: filters.date_from,
-      date_to: filters.date_to,
-      hour_from: filters.hour_from,
-      hour_to: filters.hour_to
-    });
-
-    const res = await fetch(`${API_BASE}/api/admin/reports/peak-hours?${qs}`);
-    const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      throw new Error(data.detail || data.error || "Falha ao carregar horários de pico.");
-    }
-
-    return data;
+    return {
+      getReportSummary: loadReportSummary,
+      getPeakHoursReport: loadPeakHoursReport
+    };
   }
 
   function renderInsights(summary, peakHoursResponse) {
@@ -132,7 +103,7 @@
     const returning = safeNumber(summary.returning_customers);
     const marketingOptin = safeNumber(summary.marketing_optin);
 
-    const topHour = (peakHoursResponse.hours || []).reduce((best, current) => {
+    const topHour = (peakHoursResponse || []).reduce((best, current) => {
       if (!best || safeNumber(current.value) > safeNumber(best.value)) return current;
       return best;
     }, null);
@@ -176,11 +147,11 @@
     peakHoursChart = new Chart(peakHoursCanvas, {
       type: "bar",
       data: {
-        labels: (hoursResponse.hours || []).map(item => item.label),
+        labels: (hoursResponse || []).map(item => item.label),
         datasets: [
           {
             label: "Conexões por hora",
-            data: (hoursResponse.hours || []).map(item => safeNumber(item.value)),
+            data: (hoursResponse || []).map(item => safeNumber(item.value)),
             borderWidth: 1
           }
         ]
@@ -259,11 +230,10 @@
 
     try {
       const filters = getFilters();
+      const services = await ensureReportServices();
 
-      const summaryResponse = await fetchSummary(tenantId, filters);
-      const peakHoursResponse = await fetchPeakHours(tenantId, filters);
-
-      const summary = summaryResponse.summary || {};
+      const summary = await services.getReportSummary(tenantId, filters);
+      const peakHoursResponse = await services.getPeakHoursReport(tenantId, filters);
 
       setText(elConnections, summary.connected ?? 0);
       setText(elNewCustomers, summary.new_customers ?? 0);
