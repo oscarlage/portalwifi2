@@ -11,6 +11,11 @@ interface DateRange {
   to: string;
 }
 
+interface TenantRecord {
+  id: string;
+  timezone: string | null;
+}
+
 class HttpError extends Error {
   status: number;
 
@@ -214,8 +219,22 @@ function getHourRange(searchParams: URLSearchParams): { from: number; to: number
 }
 
 async function findTenantId(env: Env, tenantId?: string | null, tenantSlug?: string | null): Promise<string> {
+  const tenant = await findTenant(env, tenantId, tenantSlug);
+  return tenant.id;
+}
+
+async function findTenant(env: Env, tenantId?: string | null, tenantSlug?: string | null): Promise<TenantRecord> {
   if (isUuid(tenantId || null)) {
-    return tenantId as string;
+    const rows = await supabaseSelect<Array<TenantRecord>>(
+      env,
+      `tenants?select=id,timezone&id=eq.${tenantId}&limit=1`,
+    );
+
+    if (!rows.length) {
+      throw new HttpError(404, "Tenant não encontrado para o id informado.");
+    }
+
+    return rows[0];
   }
 
   const normalizedSlug = normalizeText(tenantSlug)?.toLowerCase();
@@ -223,9 +242,9 @@ async function findTenantId(env: Env, tenantId?: string | null, tenantSlug?: str
     throw new HttpError(400, "tenant_id ou tenant_slug é obrigatório.");
   }
 
-  const rows = await supabaseSelect<Array<{ id: string }>>(
+  const rows = await supabaseSelect<Array<TenantRecord>>(
     env,
-    `tenants?select=id&slug=eq.${encodeURIComponent(normalizedSlug)}&limit=1`,
+    `tenants?select=id,timezone&slug=eq.${encodeURIComponent(normalizedSlug)}&limit=1`,
   );
 
   if (!rows.length) {
@@ -233,6 +252,15 @@ async function findTenantId(env: Env, tenantId?: string | null, tenantSlug?: str
   }
 
   return rows[0].id;
+}
+
+function getTenantHour(date: Date, timezone: string | null | undefined): number {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    timeZone: timezone || "UTC",
+  });
+  return Number(formatter.format(date));
 }
 
 async function handleLeadCapture(request: Request, env: Env): Promise<Response> {
@@ -358,13 +386,13 @@ async function handleDashboardSummary(url: URL, env: Env): Promise<Response> {
 }
 
 async function handlePeakHours(url: URL, env: Env): Promise<Response> {
-  const tenantId = await findTenantId(env, url.searchParams.get("tenant_id"), url.searchParams.get("tenant_slug"));
+  const tenant = await findTenant(env, url.searchParams.get("tenant_id"), url.searchParams.get("tenant_slug"));
   const timestampRange = getTimestampRange(url.searchParams);
   const hourRange = getHourRange(url.searchParams);
 
   const sessions = await supabaseSelect<Array<{ login_time: string }>>(
     env,
-    `wifi_sessions?select=login_time&tenant_id=eq.${tenantId}&login_time=gte.${encodeURIComponent(timestampRange.from)}&login_time=lte.${encodeURIComponent(timestampRange.to)}&order=login_time.asc`,
+    `wifi_sessions?select=login_time&tenant_id=eq.${tenant.id}&login_time=gte.${encodeURIComponent(timestampRange.from)}&login_time=lte.${encodeURIComponent(timestampRange.to)}&order=login_time.asc`,
   );
 
   const counts = new Map<number, number>();
@@ -374,7 +402,7 @@ async function handlePeakHours(url: URL, env: Env): Promise<Response> {
 
   sessions.forEach((item) => {
     const date = new Date(item.login_time);
-    const hour = date.getUTCHours();
+    const hour = getTenantHour(date, tenant.timezone);
     if (counts.has(hour)) {
       counts.set(hour, (counts.get(hour) || 0) + 1);
     }
@@ -431,6 +459,15 @@ async function handleCampaigns(request: Request, url: URL, env: Env): Promise<Re
   if (request.method === "DELETE") {
     if (!isUuid(campaignId)) {
       return json({ ok: false, error: "campaign id inválido." }, { status: 400 });
+    }
+
+    const existing = await supabaseSelect<Array<{ id: string }>>(
+      env,
+      `wifi_campaigns?select=id&id=eq.${campaignId}&limit=1`,
+    );
+
+    if (!existing.length) {
+      return json({ ok: false, error: "campaign id não encontrado." }, { status: 404 });
     }
 
     await supabaseMutate<Array<JsonRecord>>(
