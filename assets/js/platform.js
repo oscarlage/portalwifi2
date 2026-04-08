@@ -2143,7 +2143,7 @@
       }
     });
 
-    document.addEventListener("click", (event) => {
+    document.addEventListener("click", async (event) => {
       const tenantActionBtn = event.target.closest("[data-tenant-action]");
       if (tenantActionBtn) {
         const action = tenantActionBtn.getAttribute("data-tenant-action");
