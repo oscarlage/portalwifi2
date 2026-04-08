@@ -6,6 +6,7 @@
 
   const TENANT_WORKSPACE_URL = "/estabelecimento/index.html";
   const SUPPORT_PAGE_URL = "/support.html";
+  const API_BASE = (window.PORTAL_API_BASE || localStorage.getItem("portal_api_base") || "https://portalwifi-api.oscar-lage.workers.dev").replace(/\/$/, "");
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
     console.error("Supabase não configurado.");
@@ -35,7 +36,8 @@
   const state = {
     tenants: [],
     users: [],
-    logs: []
+    logs: [],
+    health: null
   };
 
   const els = {
@@ -98,6 +100,10 @@
     userStatusFilter: document.getElementById("userStatusFilter"),
     userTypeFilter: document.getElementById("userTypeFilter"),
     userTenantFilter: document.getElementById("userTenantFilter"),
+    tenantHealthSearch: document.getElementById("tenantHealthSearch"),
+    tenantHealthStatusFilter: document.getElementById("tenantHealthStatusFilter"),
+    tenantHealthCriticalityFilter: document.getElementById("tenantHealthCriticalityFilter"),
+    tenantHealthPeriodFilter: document.getElementById("tenantHealthPeriodFilter"),
 
     logSearch: document.getElementById("logSearch"),
     logModuleFilter: document.getElementById("logModuleFilter"),
@@ -106,7 +112,11 @@
 
     tenantsTableBody: document.getElementById("tenantsTableBody"),
     usersTableBody: document.getElementById("usersTableBody"),
+    globalUsersTableBody: document.getElementById("globalUsersTableBody"),
+    tenantAccessTableBody: document.getElementById("tenantAccessTableBody"),
     logsTableBody: document.getElementById("logsTableBody"),
+    tenantHealthTableBody: document.getElementById("tenantHealthTableBody"),
+    alertsTableBody: document.getElementById("alertsTableBody"),
 
     metricTotalTenants: document.getElementById("metricTotalTenants"),
     metricActiveTenants: document.getElementById("metricActiveTenants"),
@@ -140,6 +150,16 @@
     cfgMaintenanceMode: document.getElementById("cfgMaintenanceMode"),
     cfgMaintenanceMessage: document.getElementById("cfgMaintenanceMessage"),
 
+    healthOverviewCards: document.getElementById("healthOverviewCards"),
+    healthOverviewHighlights: document.getElementById("healthOverviewHighlights"),
+    healthOverviewServices: document.getElementById("healthOverviewServices"),
+    captiveMetricsCards: document.getElementById("captiveMetricsCards"),
+    captiveMetricsInsights: document.getElementById("captiveMetricsInsights"),
+    sessionsAuthCards: document.getElementById("sessionsAuthCards"),
+    sessionsAuthDetails: document.getElementById("sessionsAuthDetails"),
+    radiusHealthPanel: document.getElementById("radiusHealthPanel"),
+    databaseHealthPanel: document.getElementById("databaseHealthPanel"),
+
     settingsTabs: document.querySelectorAll(".tab"),
     settingsTabContents: document.querySelectorAll(".tab-content")
   };
@@ -165,6 +185,23 @@
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "—";
     return d.toLocaleDateString("pt-BR");
+  }
+
+  function formatRelativeDateTime(value) {
+    if (!value) return "Sem atividade";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Sem atividade";
+
+    const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+    if (minutes < 1) return "Agora mesmo";
+    if (minutes < 60) return `${minutes} min atrás`;
+
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} h atrás`;
+
+    const days = Math.round(hours / 24);
+    return `${days} dia(s) atrás`;
   }
 
   function statusBadge(status) {
@@ -219,6 +256,28 @@
       platform: "Plataforma"
     };
     return map[module] || module || "—";
+  }
+
+  function healthScoreBadge(score) {
+    const safeScore = Number(score) || 0;
+    let tone = "healthy";
+    if (safeScore < 85) tone = "degraded";
+    if (safeScore < 65) tone = "critical";
+    return `<span class="score-pill ${tone}">${escapeHtml(String(safeScore))}</span>`;
+  }
+
+  function healthStatusBadge(status) {
+    const tone = String(status || "healthy").toLowerCase();
+    const map = {
+      healthy: "Saudável",
+      degraded: "Degradado",
+      critical: "Crítico",
+      online: "Online",
+      prepared: "Preparado",
+      placeholder: "Placeholder",
+      unavailable: "Indisponível"
+    };
+    return `<span class="badge ${escapeHtml(tone === "online" ? "active" : tone === "prepared" ? "pending" : tone === "placeholder" ? "pending" : tone)}">${escapeHtml(map[tone] || tone || "—")}</span>`;
   }
 
   function prettifyJson(value) {
@@ -659,6 +718,30 @@
     });
   }
 
+  function getUsersByContext(kind) {
+    return getFilteredUsers().filter((user) => {
+      const isGlobal = user.is_platform_user === true || isPlatformRole(user.platform_role);
+      const hasTenantAccess = Number(user.tenant_count || 0) > 0 || safeMemberships(user).length > 0;
+
+      if (kind === "global") return isGlobal;
+      if (kind === "tenant") return hasTenantAccess;
+      return true;
+    });
+  }
+
+  function safeMemberships(user) {
+    return Array.isArray(user.memberships) ? user.memberships : [];
+  }
+
+  function getPrimaryTenantRole(user) {
+    const memberships = safeMemberships(user);
+    return memberships.length ? memberships[0].role || "—" : "—";
+  }
+
+  function getPrimaryTenantNames(user) {
+    return user.tenant_names || "—";
+  }
+
   function getFilteredLogs() {
     const search = (els.logSearch?.value || "").trim().toLowerCase();
     const module = (els.logModuleFilter?.value || "").trim().toLowerCase();
@@ -719,33 +802,17 @@
   }
 
   function renderUsersTable() {
-    if (!els.usersTableBody) return;
+    const globalRows = getUsersByContext("global");
+    const tenantRows = getUsersByContext("tenant");
 
-    const rows = getFilteredUsers();
-
-    if (!rows.length) {
-      els.usersTableBody.innerHTML = `
-        <tr>
-          <td colspan="9" class="empty-row">Nenhum usuário encontrado.</td>
-        </tr>
-      `;
-      return;
-    }
-
-    els.usersTableBody.innerHTML = rows.map((user) => {
-      const scope = user.scope || "—";
-      const role = deriveUserType(user) || "—";
-      const tenantsLabel = user.tenant_names || "—";
-
-      return `
+    if (els.globalUsersTableBody) {
+      els.globalUsersTableBody.innerHTML = globalRows.length ? globalRows.map((user) => `
         <tr>
           <td>${escapeHtml(user.full_name || "—")}</td>
           <td>${escapeHtml(user.email || "—")}</td>
-          <td>${escapeHtml(scope)}</td>
-          <td>${escapeHtml(role)}</td>
-          <td>${escapeHtml(tenantsLabel)}</td>
+          <td>${escapeHtml(user.scope || "global")}</td>
+          <td>${escapeHtml(String(user.platform_role || "platform_readonly"))}</td>
           <td>${statusBadge(user.status)}</td>
-          <td>${firstAccessBadge(user.last_login_at)}</td>
           <td>${formatDateTime(user.last_login_at)}</td>
           <td>
             <div class="actions">
@@ -754,8 +821,39 @@
             </div>
           </td>
         </tr>
+      `).join("") : `
+        <tr>
+          <td colspan="7" class="empty-row">Nenhum usuário global encontrado.</td>
+        </tr>
       `;
-    }).join("");
+    }
+
+    if (els.tenantAccessTableBody) {
+      els.tenantAccessTableBody.innerHTML = tenantRows.length ? tenantRows.map((user) => `
+        <tr>
+          <td>${escapeHtml(user.full_name || "—")}</td>
+          <td>${escapeHtml(user.email || "—")}</td>
+          <td>${escapeHtml(getPrimaryTenantRole(user))}</td>
+          <td>${escapeHtml(getPrimaryTenantNames(user))}</td>
+          <td>${statusBadge(user.status)}</td>
+          <td>${formatDateTime(user.last_login_at)}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-light btn-sm" type="button" data-user-action="edit" data-id="${escapeHtml(user.user_id || "")}">Editar</button>
+              <button class="btn btn-light btn-sm" type="button" data-user-action="link" data-id="${escapeHtml(user.user_id || "")}">Vínculos</button>
+            </div>
+          </td>
+        </tr>
+      `).join("") : `
+        <tr>
+          <td colspan="7" class="empty-row">Nenhum acesso local encontrado.</td>
+        </tr>
+      `;
+    }
+
+    if (els.usersTableBody) {
+      els.usersTableBody.innerHTML = "";
+    }
   }
 
   function renderLogsTable() {
@@ -812,6 +910,224 @@
     if (els.metricBlockedUsers) els.metricBlockedUsers.textContent = String(blockedUsers);
   }
 
+  function getFilteredTenantHealthRows() {
+    const rows = Array.isArray(state.health?.tenantHealth) ? state.health.tenantHealth : [];
+    const search = (els.tenantHealthSearch?.value || "").trim().toLowerCase();
+    const status = (els.tenantHealthStatusFilter?.value || "").trim().toLowerCase();
+    const severity = (els.tenantHealthCriticalityFilter?.value || "").trim().toLowerCase();
+
+    return rows.filter((row) => {
+      const haystack = [row.tenantName, row.tenantSlug].join(" ").toLowerCase();
+      const okSearch = !search || haystack.includes(search);
+      const okStatus = !status || row.healthStatus === status;
+      const okSeverity = !severity || row.severity === severity;
+      return okSearch && okStatus && okSeverity;
+    });
+  }
+
+  function renderTenantHealthTable() {
+    if (!els.tenantHealthTableBody) return;
+
+    const rows = getFilteredTenantHealthRows();
+    els.tenantHealthTableBody.innerHTML = rows.length ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.tenantName)}</td>
+        <td>${healthStatusBadge(row.healthStatus)}</td>
+        <td>${healthScoreBadge(row.healthScore)}</td>
+        <td>${escapeHtml(String(row.sessions || 0))}</td>
+        <td>${escapeHtml(String(row.authentications || 0))}</td>
+        <td>${escapeHtml(`${row.failures || 0} / ${row.alerts || 0}`)}</td>
+        <td>${escapeHtml(formatRelativeDateTime(row.lastActivityAt))}</td>
+      </tr>
+    `).join("") : `
+      <tr>
+        <td colspan="7" class="empty-row">Nenhum tenant encontrado para os filtros atuais.</td>
+      </tr>
+    `;
+  }
+
+  function renderHealthOverview() {
+    if (!state.health) return;
+
+    const overview = state.health.overview;
+
+    if (els.healthOverviewCards) {
+      const cards = [
+        ["Health score global", overview.platformHealthScore],
+        ["Sessões ativas", overview.activeSessions],
+        ["Autenticações hoje", overview.authenticationsToday],
+        ["Alertas abertos", overview.openAlerts],
+        ["Tenants degradados", overview.tenantsDegraded],
+        ["Tenants críticos", overview.tenantsCritical],
+        ["Login success rate", `${overview.loginSuccessRate || 0}%`],
+        ["Última checagem", formatDateTime(overview.lastCheckAt)]
+      ];
+
+      els.healthOverviewCards.innerHTML = cards.map(([label, value]) => `
+        <article class="metric-card">
+          <div class="metric-label">${escapeHtml(String(label))}</div>
+          <div class="metric-value">${escapeHtml(String(value ?? "—"))}</div>
+        </article>
+      `).join("");
+    }
+
+    if (els.healthOverviewHighlights) {
+      els.healthOverviewHighlights.innerHTML = `
+        <h3>Destaques operacionais</h3>
+        <ul class="health-bullets">
+          <li>${overview.tenantsActive} tenant(s) ativos no contexto global.</li>
+          <li>${overview.incidentsActive} incidente(s) de alta severidade em aberto.</li>
+          <li>Tempo médio de sessão: ${overview.averageSessionTime || 0}s.</li>
+          <li>Latência média de autenticação: ${overview.averageAuthenticationTime || "n/d"}.</li>
+        </ul>
+      `;
+    }
+
+    if (els.healthOverviewServices) {
+      els.healthOverviewServices.innerHTML = `
+        <h3>Serviços críticos</h3>
+        <div class="health-status-row"><span>Worker API</span>${healthStatusBadge(overview.workerStatus)}</div>
+        <div class="health-status-row"><span>Banco de dados</span>${healthStatusBadge(overview.databaseStatus)}</div>
+        <div class="health-status-row"><span>RADIUS</span>${healthStatusBadge(overview.radiusStatus)}</div>
+      `;
+    }
+  }
+
+  function renderCaptiveMetrics() {
+    if (!state.health || !els.captiveMetricsCards) return;
+
+    const metrics = state.health.captiveMetrics;
+    const cards = [
+      ["Acessos ao portal", metrics.portalAccesses],
+      ["Autenticações", metrics.authentications],
+      ["Taxa de conversão", metrics.conversionRate == null ? "N/D" : `${metrics.conversionRate}%`],
+      ["Taxa de abandono", metrics.abandonmentRate == null ? "N/D" : `${metrics.abandonmentRate}%`],
+      ["Leads capturados", metrics.leadsCaptured],
+      ["Opt-ins", metrics.optIns],
+      ["Campanhas exibidas", metrics.campaignsDisplayed],
+      ["Dispositivos únicos", metrics.uniqueDevices]
+    ];
+
+    els.captiveMetricsCards.innerHTML = cards.map(([label, value]) => `
+      <article class="metric-card">
+        <div class="metric-label">${escapeHtml(String(label))}</div>
+        <div class="metric-value">${escapeHtml(String(value ?? "—"))}</div>
+      </article>
+    `).join("");
+
+    if (els.captiveMetricsInsights) {
+      els.captiveMetricsInsights.innerHTML = `
+        <h3>Leitura rápida</h3>
+        <ul class="health-bullets">
+          <li>${metrics.concurrentSessions} sessão(ões) simultânea(s) no snapshot atual.</li>
+          <li>${metrics.campaignsConverted} conversão(ões) derivadas de campanha no período observado.</li>
+          <li>Tempo estimado até autenticar: ${metrics.timeToAuthenticate == null ? "N/D" : `${metrics.timeToAuthenticate}s`}.</li>
+        </ul>
+      `;
+    }
+  }
+
+  function renderSessionsAuth() {
+    if (!state.health || !els.sessionsAuthCards) return;
+
+    const metrics = state.health.sessionsAuth;
+    const cards = [
+      ["Sessões ativas", metrics.activeSessions],
+      ["Sessões encerradas", metrics.closedSessions],
+      ["Falhas de autenticação", metrics.failedAuthentications],
+      ["Autenticações com sucesso", metrics.successfulAuthentications],
+      ["Latência média", `${metrics.averageLatencyMs || 0} ms`],
+      ["Tempo médio de sessão", `${metrics.averageSessionTime || 0}s`]
+    ];
+
+    els.sessionsAuthCards.innerHTML = cards.map(([label, value]) => `
+      <article class="metric-card">
+        <div class="metric-label">${escapeHtml(String(label))}</div>
+        <div class="metric-value">${escapeHtml(String(value ?? "—"))}</div>
+      </article>
+    `).join("");
+
+    if (els.sessionsAuthDetails) {
+      const authMethods = Object.entries(metrics.topAuthMethods || {}).map(([key, value]) => `${key}: ${value}`).join(" | ") || "Sem distribuição disponível.";
+      els.sessionsAuthDetails.innerHTML = `
+        <h3>Indicadores técnicos</h3>
+        <p class="muted">Distribuição recente por método: ${escapeHtml(authMethods)}</p>
+      `;
+    }
+  }
+
+  function renderRadiusHealth() {
+    if (!state.health || !els.radiusHealthPanel) return;
+    const metrics = state.health.radius;
+    els.radiusHealthPanel.innerHTML = `
+      <h3>Coleta RADIUS</h3>
+      <div class="health-status-row"><span>Status</span>${healthStatusBadge(metrics.status)}</div>
+      <div class="health-status-row"><span>Disponibilidade estimada</span><strong>${escapeHtml(String(metrics.availability))}%</strong></div>
+      <div class="health-status-row"><span>Tempo de resposta</span><strong>${escapeHtml(String(metrics.responseTimeMs || 0))} ms</strong></div>
+      <div class="health-status-row"><span>Autenticações processadas</span><strong>${escapeHtml(String(metrics.processedAuthentications || 0))}</strong></div>
+      <p class="muted">Módulo preparado para integração dedicada. Quando o backend específico não estiver disponível, os indicadores usam fallback seguro e documentação explícita.</p>
+    `;
+  }
+
+  function renderDatabaseHealth() {
+    if (!state.health || !els.databaseHealthPanel) return;
+    const metrics = state.health.database;
+    els.databaseHealthPanel.innerHTML = `
+      <h3>Conectividade</h3>
+      <div class="health-status-row"><span>Status</span>${healthStatusBadge(metrics.status)}</div>
+      <div class="health-status-row"><span>Latência</span><strong>${escapeHtml(String(metrics.latencyMs || 0))} ms</strong></div>
+      <div class="health-status-row"><span>Última checagem</span><strong>${escapeHtml(formatDateTime(metrics.lastCheckAt))}</strong></div>
+      <div class="health-status-row"><span>Erros recentes</span><strong>${escapeHtml(String(metrics.recentErrors || 0))}</strong></div>
+      <p class="muted">Tabelas críticas monitoradas: ${escapeHtml(metrics.criticalTables.join(", "))}.</p>
+    `;
+  }
+
+  function renderAlertsTable() {
+    if (!els.alertsTableBody) return;
+    const rows = Array.isArray(state.health?.alerts) ? state.health.alerts : [];
+    els.alertsTableBody.innerHTML = rows.length ? rows.map((alert) => `
+      <tr>
+        <td>${escapeHtml(alert.type || "—")}</td>
+        <td>${healthStatusBadge(alert.severity === "high" ? "critical" : alert.severity === "medium" ? "degraded" : "healthy")}</td>
+        <td>${escapeHtml(alert.origin || "—")}</td>
+        <td>${escapeHtml(alert.tenantName || "—")}</td>
+        <td>${escapeHtml(alert.status || "open")}</td>
+        <td>${escapeHtml(alert.description || "—")}</td>
+        <td>${escapeHtml(alert.evidence || "—")}</td>
+      </tr>
+    `).join("") : `
+      <tr>
+        <td colspan="7" class="empty-row">Nenhum alerta aberto no snapshot atual.</td>
+      </tr>
+    `;
+  }
+
+  async function loadHealth() {
+    if (!window.PortalPlatformHealthService) return;
+
+    try {
+      state.health = await window.PortalPlatformHealthService.loadSnapshot({
+        supabase: sb,
+        apiBase: API_BASE,
+        tenants: state.tenants,
+        users: state.users,
+        logs: state.logs
+      });
+    } catch (error) {
+      console.warn("Falha ao carregar observabilidade:", error);
+      state.health = null;
+      return;
+    }
+
+    renderHealthOverview();
+    renderTenantHealthTable();
+    renderCaptiveMetrics();
+    renderSessionsAuth();
+    renderRadiusHealth();
+    renderDatabaseHealth();
+    renderAlertsTable();
+  }
+
   async function loadTenants() {
     if (!els.tenantsTableBody) return;
 
@@ -842,11 +1158,19 @@
   }
 
   async function loadUsers() {
-    if (!els.usersTableBody) return;
+    if (!els.globalUsersTableBody && !els.tenantAccessTableBody && !els.usersTableBody) return;
 
-    els.usersTableBody.innerHTML = `
-      <tr><td colspan="9" class="empty-row">Carregando usuários...</td></tr>
-    `;
+    if (els.globalUsersTableBody) {
+      els.globalUsersTableBody.innerHTML = `
+        <tr><td colspan="7" class="empty-row">Carregando usuários globais...</td></tr>
+      `;
+    }
+
+    if (els.tenantAccessTableBody) {
+      els.tenantAccessTableBody.innerHTML = `
+        <tr><td colspan="7" class="empty-row">Carregando acessos de tenant...</td></tr>
+      `;
+    }
 
     const { data, error } = await sb
       .from("v_platform_users")
@@ -855,9 +1179,16 @@
 
     if (error) {
       console.error("Erro ao carregar usuários:", error);
-      els.usersTableBody.innerHTML = `
-        <tr><td colspan="9" class="empty-row">Erro ao carregar usuários.</td></tr>
-      `;
+      if (els.globalUsersTableBody) {
+        els.globalUsersTableBody.innerHTML = `
+          <tr><td colspan="7" class="empty-row">Erro ao carregar usuários globais.</td></tr>
+        `;
+      }
+      if (els.tenantAccessTableBody) {
+        els.tenantAccessTableBody.innerHTML = `
+          <tr><td colspan="7" class="empty-row">Erro ao carregar acessos de tenant.</td></tr>
+        `;
+      }
       state.users = [];
       renderMetrics();
       return;
@@ -927,6 +1258,7 @@
     await loadUsers();
     await loadLogs();
     await loadSettings();
+    await loadHealth();
   }
 
   async function writeAuditLog(payload) {
@@ -1752,6 +2084,11 @@
     [els.userSearch, els.userStatusFilter, els.userTypeFilter, els.userTenantFilter].forEach((el) => {
       el?.addEventListener("input", renderUsersTable);
       el?.addEventListener("change", renderUsersTable);
+    });
+
+    [els.tenantHealthSearch, els.tenantHealthStatusFilter, els.tenantHealthCriticalityFilter, els.tenantHealthPeriodFilter].forEach((el) => {
+      el?.addEventListener("input", renderTenantHealthTable);
+      el?.addEventListener("change", renderTenantHealthTable);
     });
 
     [els.logSearch, els.logModuleFilter, els.logResultFilter, els.logActionFilter].forEach((el) => {

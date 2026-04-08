@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portal WiFi</title>
+  <title>Nexora Command Center</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,14 +14,14 @@
 
 <header class="platform-topbar">
   <div class="topbar-left">
-    <div class="platform-title">Portal WiFi — Plataforma</div>
-    <div class="platform-subtitle">Gestão de tenants, acessos e operação SaaS</div>
+    <div class="platform-title">Nexora Command Center</div>
+    <div class="platform-subtitle">Gestão global da plataforma SaaS, tenants e operação corporativa.</div>
   </div>
 
   <div class="topbar-right">
     <div class="session-pill">
       <span class="dot"></span>
-      <span>Sessão ativa</span>
+      <span>Contexto global ativo</span>
     </div>
 
     <button class="btn btn-light" id="btnRefreshPlatform" type="button">
@@ -38,16 +38,30 @@
 
   <aside class="platform-sidebar">
     <nav class="platform-nav">
+      <div class="nav-group-label">Gestão da Plataforma</div>
       <button class="nav-link active" data-section="overview">Visão geral</button>
       <button class="nav-link" data-section="tenants">Tenants</button>
-      <button class="nav-link" data-section="users">Usuários</button>
-      <button class="nav-link" data-section="logs">Logs</button>
-      <button class="nav-link" data-section="settings">Configurações</button>
-      <button class="nav-link" data-section="support">Suporte</button>
+      <button class="nav-link" data-section="users">Identidade &amp; acessos</button>
+      <button class="nav-link" data-section="logs">Logs globais</button>
+      <button class="nav-link" data-section="settings">Configurações globais</button>
+      <button class="nav-link" data-section="support">Suporte global</button>
+
+      <div class="nav-group-label">Operações &amp; Saúde</div>
+      <button class="nav-link" data-section="health-overview">Visão geral de saúde</button>
+      <button class="nav-link" data-section="tenant-health">Saúde dos tenants</button>
+      <button class="nav-link" data-section="captive-metrics">Métricas do captive portal</button>
+      <button class="nav-link" data-section="sessions-auth">Sessões &amp; autenticações</button>
+      <button class="nav-link" data-section="radius-health">RADIUS</button>
+      <button class="nav-link" data-section="database-health">Banco de dados</button>
+      <button class="nav-link" data-section="alerts">Alertas &amp; incidentes</button>
     </nav>
 
     <div class="platform-sidebox">
-      <div class="sidebox-title">Ações rápidas</div>
+      <div class="sidebox-title">Contexto global Nexora</div>
+
+      <p class="sidebox-copy">
+        Esta área concentra a operação SaaS global. A gestão do tenant permanece isolada no workspace operacional de cada cliente.
+      </p>
 
       <button class="btn btn-primary full" id="btnOpenCreateTenant" type="button">
         Novo tenant
@@ -65,7 +79,19 @@
       <div class="section-head">
         <div>
           <h1>Visão geral</h1>
-          <p>Resumo operacional da plataforma multitenant.</p>
+          <p>Resumo da operação global da Nexora, separado do workspace operacional dos tenants.</p>
+        </div>
+      </div>
+
+      <div class="context-banner">
+        <div>
+          <div class="context-banner-label">Contexto atual</div>
+          <strong>Gestão da Plataforma Nexora</strong>
+          <p>Use esta área para administração central, governança, suporte e observabilidade da solução.</p>
+        </div>
+        <div class="context-banner-badges">
+          <span class="badge active">Global admin</span>
+          <span class="badge pending">Observabilidade habilitada</span>
         </div>
       </div>
 
@@ -171,8 +197,8 @@
     <section class="section" id="section-users">
       <div class="section-head">
         <div>
-          <h2>Usuários</h2>
-          <p>Gestão de usuários globais e dos tenants.</p>
+          <h2>Identidade &amp; acessos</h2>
+          <p>Separação visual entre usuários globais da Nexora e acessos locais vinculados aos tenants.</p>
         </div>
 
         <div class="section-actions">
@@ -183,6 +209,10 @@
       </div>
 
       <div class="panel-card">
+        <p class="section-note">
+          O filtro abaixo continua centralizado para não quebrar a operação atual, mas os resultados passam a ser exibidos em blocos distintos por contexto administrativo.
+        </p>
+
         <div class="toolbar">
           <input
             type="text"
@@ -217,27 +247,68 @@
           </select>
         </div>
 
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Usuário</th>
-                <th>Email</th>
-                <th>Escopo</th>
-                <th>Papel</th>
-                <th>Tenant(s)</th>
-                <th>Status</th>
-                <th>Primeiro acesso</th>
-                <th>Último acesso</th>
-                <th style="width:360px;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody">
-              <tr>
-                <td colspan="9" class="empty-row">Carregando usuários...</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="split-panels">
+          <div class="split-panel">
+            <div class="subsection-head">
+              <div>
+                <h3>Usuários globais</h3>
+                <p>Perfis corporativos responsáveis pela operação da plataforma SaaS.</p>
+              </div>
+              <span class="subsection-badge">Contexto global</span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Email</th>
+                    <th>Escopo</th>
+                    <th>Papel global</th>
+                    <th>Status</th>
+                    <th>Último acesso</th>
+                    <th style="width:220px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="globalUsersTableBody">
+                  <tr>
+                    <td colspan="7" class="empty-row">Carregando usuários globais...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="split-panel">
+            <div class="subsection-head">
+              <div>
+                <h3>Acessos de tenant</h3>
+                <p>Perfis locais e vínculos operacionais mantidos por tenant.</p>
+              </div>
+              <span class="subsection-badge alt">Contexto do tenant</span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Email</th>
+                    <th>Papel local</th>
+                    <th>Tenant(s)</th>
+                    <th>Status</th>
+                    <th>Último acesso</th>
+                    <th style="width:220px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tenantAccessTableBody">
+                  <tr>
+                    <td colspan="7" class="empty-row">Carregando acessos de tenant...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -315,11 +386,197 @@
       </div>
     </section>
 
+    <section class="section" id="section-health-overview">
+      <div class="section-head">
+        <div>
+          <h2>Visão geral de saúde</h2>
+          <p>Visão executiva da saúde da plataforma, dos tenants e dos serviços críticos.</p>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="healthOverviewCards">
+        <article class="metric-card">
+          <div class="metric-label">Carregando</div>
+          <div class="metric-value">...</div>
+        </article>
+      </div>
+
+      <div class="summary-grid">
+        <div class="panel-card" id="healthOverviewHighlights">
+          <h3>Destaques operacionais</h3>
+          <p class="muted">Processando visão consolidada...</p>
+        </div>
+
+        <div class="panel-card" id="healthOverviewServices">
+          <h3>Serviços críticos</h3>
+          <p class="muted">Aguardando coleta...</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-tenant-health">
+      <div class="section-head">
+        <div>
+          <h2>Saúde dos tenants</h2>
+          <p>Monitoramento operacional por tenant com foco em atividade, risco e continuidade.</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="toolbar">
+          <input type="text" id="tenantHealthSearch" class="input" placeholder="Buscar tenant por nome ou slug">
+
+          <select id="tenantHealthStatusFilter" class="input select">
+            <option value="">Todos status</option>
+            <option value="healthy">Saudável</option>
+            <option value="degraded">Degradado</option>
+            <option value="critical">Crítico</option>
+          </select>
+
+          <select id="tenantHealthCriticalityFilter" class="input select">
+            <option value="">Todas criticidades</option>
+            <option value="high">Alta</option>
+            <option value="medium">Média</option>
+            <option value="low">Baixa</option>
+          </select>
+
+          <select id="tenantHealthPeriodFilter" class="input select">
+            <option value="today">Hoje</option>
+            <option value="7d">7 dias</option>
+            <option value="30d">30 dias</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tenant</th>
+                <th>Status operacional</th>
+                <th>Health score</th>
+                <th>Sessões</th>
+                <th>Autenticações</th>
+                <th>Falhas / alertas</th>
+                <th>Última atividade</th>
+              </tr>
+            </thead>
+            <tbody id="tenantHealthTableBody">
+              <tr>
+                <td colspan="7" class="empty-row">Carregando saúde dos tenants...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-captive-metrics">
+      <div class="section-head">
+        <div>
+          <h2>Métricas do captive portal</h2>
+          <p>Métricas globais de acesso, conversão, leads e comportamento operacional do portal.</p>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="captiveMetricsCards">
+        <article class="metric-card">
+          <div class="metric-label">Carregando</div>
+          <div class="metric-value">...</div>
+        </article>
+      </div>
+
+      <div class="panel-card" id="captiveMetricsInsights">
+        <h3>Leitura rápida</h3>
+        <p class="muted">Aguardando dados do captive portal...</p>
+      </div>
+    </section>
+
+    <section class="section" id="section-sessions-auth">
+      <div class="section-head">
+        <div>
+          <h2>Sessões &amp; autenticações</h2>
+          <p>Visão técnica de sessões ativas, latência proxy, atividade recente e disponibilidade de dados.</p>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="sessionsAuthCards">
+        <article class="metric-card">
+          <div class="metric-label">Carregando</div>
+          <div class="metric-value">...</div>
+        </article>
+      </div>
+
+      <div class="panel-card" id="sessionsAuthDetails">
+        <h3>Indicadores técnicos</h3>
+        <p class="muted">Aguardando coleta...</p>
+      </div>
+    </section>
+
+    <section class="section" id="section-radius-health">
+      <div class="section-head">
+        <div>
+          <h2>RADIUS</h2>
+          <p>Estrutura preparada para evolução do monitoramento RADIUS, com fallback seguro quando não houver integração dedicada.</p>
+        </div>
+      </div>
+
+      <div class="panel-card" id="radiusHealthPanel">
+        <h3>Coleta RADIUS</h3>
+        <p class="muted">Aguardando status do serviço...</p>
+      </div>
+    </section>
+
+    <section class="section" id="section-database-health">
+      <div class="section-head">
+        <div>
+          <h2>Banco de dados</h2>
+          <p>Saúde do Supabase e consistência mínima dos componentes críticos usados pela operação.</p>
+        </div>
+      </div>
+
+      <div class="panel-card" id="databaseHealthPanel">
+        <h3>Conectividade</h3>
+        <p class="muted">Aguardando diagnóstico do banco...</p>
+      </div>
+    </section>
+
+    <section class="section" id="section-alerts">
+      <div class="section-head">
+        <div>
+          <h2>Alertas &amp; incidentes</h2>
+          <p>Fila operacional consolidada a partir de sinais reais e placeholders documentados para integrações futuras.</p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Severidade</th>
+                <th>Origem</th>
+                <th>Tenant</th>
+                <th>Status</th>
+                <th>Descrição</th>
+                <th>Evidência</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody">
+              <tr>
+                <td colspan="7" class="empty-row">Carregando alertas e incidentes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="section-settings">
       <div class="section-head">
         <div>
           <h2>Configurações</h2>
-          <p>Preferências globais da plataforma.</p>
+          <p>Preferências globais da plataforma, separadas das configurações específicas dos tenants.</p>
         </div>
       </div>
 
@@ -441,8 +698,8 @@
     <section class="section" id="section-support">
       <div class="section-head">
         <div>
-          <h2>Suporte</h2>
-          <p>Área reservada para o módulo de suporte da plataforma.</p>
+          <h2>Suporte global</h2>
+          <p>Canal corporativo para atendimento, chamados operacionais e acompanhamento de incidentes da plataforma.</p>
         </div>
 
         <div class="section-actions">
@@ -868,6 +1125,7 @@ window.PORTAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/js/services/platform-health.js"></script>
 <script src="/assets/js/platform.js"></script>
 
 </body>

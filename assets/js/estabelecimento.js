@@ -14,6 +14,7 @@
   const TENANT_NAME_KEY = "portalwifi.activeTenantName";
   const TENANT_SLUG_KEY = "portalwifi.activeTenantSlug";
   const PAGE_KEY = "portalwifi.estabelecimento.page";
+  const SESSION_TENANT_ID_KEY = "tenant_id";
 
   const DEFAULT_PAGE = "/estabelecimento/home.html";
 
@@ -45,21 +46,39 @@
     return params.get("tenant");
   }
 
-  function syncTenantFromUrl() {
+  function getQueryTenantId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tenant_id");
+  }
+
+  function syncTenantContext() {
     const queryTenantSlug = getQueryTenantSlug();
+    const queryTenantId = getQueryTenantId();
+    const sessionTenantId = sessionStorage.getItem(SESSION_TENANT_ID_KEY);
 
-    if (!queryTenantSlug) return;
+    if (queryTenantId) {
+      localStorage.setItem(TENANT_ID_KEY, queryTenantId);
+    } else if (sessionTenantId && !localStorage.getItem(TENANT_ID_KEY)) {
+      localStorage.setItem(TENANT_ID_KEY, sessionTenantId);
+    }
 
-    localStorage.setItem(TENANT_SLUG_KEY, queryTenantSlug);
+    if (queryTenantSlug) {
+      localStorage.setItem(TENANT_SLUG_KEY, queryTenantSlug);
 
-    const savedName = localStorage.getItem(TENANT_NAME_KEY);
-    if (!savedName) {
-      const label = queryTenantSlug
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
+      const savedName = localStorage.getItem(TENANT_NAME_KEY);
+      if (!savedName) {
+        const label = queryTenantSlug
+          .split("-")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
 
-      localStorage.setItem(TENANT_NAME_KEY, label);
+        localStorage.setItem(TENANT_NAME_KEY, label);
+      }
+    }
+
+    if (!localStorage.getItem(TENANT_NAME_KEY)) {
+      const fallbackLabel = queryTenantSlug || queryTenantId || sessionTenantId || "Estabelecimento";
+      localStorage.setItem(TENANT_NAME_KEY, fallbackLabel);
     }
   }
 
@@ -126,6 +145,10 @@
       url.searchParams.set("tenant", tenant.slug);
     }
 
+    if (tenant.id) {
+      url.searchParams.set("tenant_id", tenant.id);
+    }
+
     return url.pathname + url.search;
   }
 
@@ -170,7 +193,7 @@
     loadPage(page, false);
   });
 
-  syncTenantFromUrl();
+  syncTenantContext();
   updateTenantShell();
   loadPage(getInitialPage(), false);
 })();

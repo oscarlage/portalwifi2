@@ -24,5 +24,45 @@
     "DEFAULT_CAMPAIGN_ID": "26903891-1602-40c7-818d-678f8cfb0015",
     "DEV_ALLOW_FAKE_MAC": "true",
     "TENANT_ID": "8814c725-ff72-41f2-be86-e9671bcc6c7b"
+  },
+  "env": {
+    "dev": {
+      "name": "portalwifi-api-dev",
+      "kv_namespaces": [
+        {
+          "binding": "DEDUP_KV",
+          "id": "5b0792da66a344c4937ba03a448e7f84"
+        },
+        {
+          "binding": "NONCES_KV",
+          "id": "bc8cb39546d34c31bdd41388dea14b89"
+        }
+      ],
+      "vars": {
+        "ALLOWED_ORIGINS": "*",
+        "DEFAULT_CAMPAIGN_ID": "26903891-1602-40c7-818d-678f8cfb0015",
+        "DEV_ALLOW_FAKE_MAC": "true",
+        "TENANT_ID": "8814c725-ff72-41f2-be86-e9671bcc6c7b"
+      }
+    },
+    "prod": {
+      "name": "portalwifi-api-prod",
+      "kv_namespaces": [
+        {
+          "binding": "DEDUP_KV",
+          "id": "5b0792da66a344c4937ba03a448e7f84"
+        },
+        {
+          "binding": "NONCES_KV",
+          "id": "bc8cb39546d34c31bdd41388dea14b89"
+        }
+      ],
+      "vars": {
+        "ALLOWED_ORIGINS": "https://portalwifi2.pages.dev",
+        "DEFAULT_CAMPAIGN_ID": "26903891-1602-40c7-818d-678f8cfb0015",
+        "DEV_ALLOW_FAKE_MAC": "false",
+        "TENANT_ID": "8814c725-ff72-41f2-be86-e9671bcc6c7b"
+      }
+    }
   }
 }
