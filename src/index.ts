@@ -67,6 +67,32 @@ function getSupabaseConfig(env: Env): { url: string; serviceRoleKey: string } {
   return { url, serviceRoleKey };
 }
 
+function getSafeSupabaseDiagnostics(env: Env): Record<string, unknown> {
+  const rawUrl = env.SUPABASE_URL?.trim() || "";
+
+  if (!rawUrl) {
+    return {
+      configured: false,
+    };
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    return {
+      configured: true,
+      origin: parsed.origin,
+      pathname: parsed.pathname,
+      containsRestV1: parsed.pathname.includes("/rest/v1"),
+    };
+  } catch {
+    return {
+      configured: true,
+      invalidUrl: true,
+      preview: rawUrl.slice(0, 64),
+    };
+  }
+}
+
 function createSupabaseHeaders(serviceRoleKey: string, extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
   headers.set("apikey", serviceRoleKey);
@@ -85,7 +111,7 @@ async function parseJsonBody<T>(request: Request): Promise<T> {
 async function readSupabaseResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json") && text
+  const payload = contentType.toLowerCase().includes("json") && text
     ? JSON.parse(text) as T | { message?: string; error?: string; details?: string }
     : null;
 
@@ -95,7 +121,7 @@ async function readSupabaseResponse<T>(response: Response): Promise<T> {
         || (payload as { message?: string; error?: string; details?: string }).error
         || (payload as { message?: string; error?: string; details?: string }).details
       : "";
-    throw new HttpError(response.status, errorMessage || `Erro Supabase ${response.status}`);
+    throw new HttpError(response.status, errorMessage || text || `Erro Supabase ${response.status}`);
   }
 
   return (payload ?? null) as T;
@@ -136,6 +162,25 @@ async function supabaseRpc<T>(env: Env, fnName: string, payload: JsonRecord): Pr
     },
     body: JSON.stringify(payload),
   });
+}
+
+async function probeSupabase(env: Env): Promise<Record<string, unknown>> {
+  try {
+    const rows = await supabaseSelect<Array<{ id: string }>>(
+      env,
+      "tenants?select=id&limit=1",
+    );
+
+    return {
+      ok: true,
+      rows: Array.isArray(rows) ? rows.length : 0,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "unknown probe error",
+    };
+  }
 }
 
 function normalizePhone(value: unknown): string | null {
@@ -531,6 +576,7 @@ export default {
       }
 
       if (url.pathname === "/health") {
+        const includeProbe = url.searchParams.get("probe") === "supabase";
         return json({
           ok: true,
           service: "portalwifi-api",
@@ -539,6 +585,8 @@ export default {
             supabaseServiceRoleKey: Boolean(env.SUPABASE_SERVICE_ROLE_KEY),
             hmacSharedSecret: Boolean(env.HMAC_SHARED_SECRET),
           },
+          supabase: getSafeSupabaseDiagnostics(env),
+          ...(includeProbe ? { supabaseProbe: await probeSupabase(env) } : {}),
           now: new Date().toISOString(),
         });
       }
