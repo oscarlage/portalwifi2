@@ -38,6 +38,7 @@
 
   let currentTenantId = null;
   let currentUser = null;
+  let canManageCurrentTenant = true;
 
   const DEFAULT_FIELDS = [
     {
@@ -141,6 +142,78 @@
     if (!saveStatus) return;
     saveStatus.textContent = message || "";
     saveStatus.style.color = isError ? "#ff8d8d" : "#7be2aa";
+  }
+
+  function readStoredJson(key, fallback) {
+    try {
+      const value = sessionStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function getStoredAccessContext() {
+    const access = readStoredJson("portalwifi.authContext", null);
+    const memberships = readStoredJson("portalwifi.tenantMemberships", []);
+
+    if (access && Array.isArray(memberships)) {
+      return { ...access, memberships };
+    }
+
+    const tenantId = sessionStorage.getItem("tenant_id");
+    const tenantRole = sessionStorage.getItem("tenant_role") || "tenant_viewer";
+
+    if (!tenantId) {
+      return null;
+    }
+
+    return {
+      scope: "tenant",
+      platformRole: null,
+      tenantRole,
+      canAccessGlobalAdmin: false,
+      canAccessTenantAdmin: true,
+      memberships: [{ tenant_id: tenantId, role: tenantRole, is_active: true }]
+    };
+  }
+
+  function applyReadOnlyMode(readOnly) {
+    canManageCurrentTenant = !readOnly;
+
+    if (!form) return;
+
+    Array.from(form.elements || []).forEach((element) => {
+      if (!(element instanceof HTMLElement)) return;
+      if (element.type === "submit") {
+        element.disabled = readOnly;
+        element.hidden = readOnly;
+        return;
+      }
+      element.disabled = readOnly;
+    });
+
+    if (readOnly) {
+      setStatus("Seu perfil possui acesso somente leitura para as configurações deste tenant.");
+    }
+  }
+
+  async function resolvePagePermissions() {
+    const access = getStoredAccessContext();
+
+    if (!access) {
+      applyReadOnlyMode(true);
+      return;
+    }
+
+    const permissions = await import("./core/permissions.js");
+    const allowed = permissions.canManageSettings(
+      { platform_role: access.platformRole },
+      access.memberships || [],
+      currentTenantId || access.memberships?.[0]?.tenant_id || null
+    );
+
+    applyReadOnlyMode(!allowed);
   }
 
   function byId(id) {
@@ -687,6 +760,12 @@
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (!canManageCurrentTenant) {
+      setStatus("Seu perfil possui acesso somente leitura para as configurações deste tenant.", true);
+      return;
+    }
+
     setStatus("Salvando...");
 
     try {
@@ -712,6 +791,7 @@
 
       const membership = await getTenantIdForUser(currentUser.id);
       currentTenantId = membership.tenant_id;
+      await resolvePagePermissions();
 
       const tenantName = await getTenantName(currentTenantId);
 

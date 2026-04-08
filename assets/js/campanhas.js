@@ -13,6 +13,7 @@
   const TENANT_ID =
     SETTINGS.tenantId ||
     document.body.dataset.tenantId ||
+    localStorage.getItem("portalwifi.activeTenantId") ||
     localStorage.getItem("portal_tenant_id") ||
     "";
 
@@ -64,6 +65,7 @@
 
   let campaignsCache = [];
   let isSaving = false;
+  let canManageCurrentTenant = true;
 
   function escapeHtml(str) {
     return String(str || "")
@@ -72,6 +74,83 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function readStoredJson(key, fallback) {
+    try {
+      const value = sessionStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function getStoredAccessContext() {
+    const access = readStoredJson("portalwifi.authContext", null);
+    const memberships = readStoredJson("portalwifi.tenantMemberships", []);
+
+    if (access && Array.isArray(memberships)) {
+      return { ...access, memberships };
+    }
+
+    const tenantId = sessionStorage.getItem("tenant_id");
+    const tenantRole = sessionStorage.getItem("tenant_role") || "tenant_viewer";
+
+    if (!tenantId) {
+      return null;
+    }
+
+    return {
+      scope: "tenant",
+      platformRole: null,
+      tenantRole,
+      canAccessGlobalAdmin: false,
+      canAccessTenantAdmin: true,
+      memberships: [{ tenant_id: tenantId, role: tenantRole, is_active: true }]
+    };
+  }
+
+  function setReadOnlyMode(readOnly) {
+    canManageCurrentTenant = !readOnly;
+
+    if (openCampaignModalBtn) {
+      openCampaignModalBtn.disabled = readOnly;
+      openCampaignModalBtn.hidden = readOnly;
+      openCampaignModalBtn.title = readOnly ? "Seu perfil não pode alterar campanhas deste tenant." : "";
+    }
+
+    if (deleteCampaignBtn) {
+      deleteCampaignBtn.disabled = readOnly;
+    }
+  }
+
+  function renderActionButtons(item) {
+    if (!canManageCurrentTenant) {
+      return '<span class="muted-center">Somente leitura</span>';
+    }
+
+    return `
+      <button type="button" class="table-action" data-action="edit" data-id="${item.id}">Editar</button>
+      <button type="button" class="table-action" data-action="delete" data-id="${item.id}">Excluir</button>
+    `;
+  }
+
+  async function resolvePagePermissions() {
+    const access = getStoredAccessContext();
+
+    if (!access) {
+      setReadOnlyMode(true);
+      return;
+    }
+
+    const permissions = await import("./core/permissions.js");
+    const allowed = permissions.canManageCampaigns(
+      { platform_role: access.platformRole },
+      access.memberships || [],
+      TENANT_ID || access.memberships?.[0]?.tenant_id || null
+    );
+
+    setReadOnlyMode(!allowed);
   }
 
   function isValidHttpUrl(value) {
@@ -357,10 +436,7 @@
         <td>${activeBadge(!!item.active)}</td>
         <td>${escapeHtml(formatDateRange(item.starts_at, item.ends_at))}</td>
         <td>${Number(item.priority || 0)}</td>
-        <td>
-          <button type="button" class="table-action" data-action="edit" data-id="${item.id}">Editar</button>
-          <button type="button" class="table-action" data-action="delete" data-id="${item.id}">Excluir</button>
-        </td>
+        <td>${renderActionButtons(item)}</td>
       </tr>
     `).join("");
   }
@@ -700,6 +776,11 @@
     event.preventDefault();
     if (isSaving) return;
 
+    if (!canManageCurrentTenant) {
+      alert("Seu perfil possui acesso somente leitura para campanhas deste tenant.");
+      return;
+    }
+
     try {
       const payload = getPayloadFromForm();
       const error = validatePayload(payload);
@@ -728,6 +809,11 @@
   }
 
   async function handleDeleteById(id, title) {
+    if (!canManageCurrentTenant) {
+      alert("Seu perfil possui acesso somente leitura para campanhas deste tenant.");
+      return;
+    }
+
     const confirmed = confirm(`Deseja excluir a campanha "${title}"?`);
     if (!confirmed) return;
 
@@ -778,6 +864,7 @@
   }
 
   openCampaignModalBtn.addEventListener("click", () => {
+    if (!canManageCurrentTenant) return;
     resetForm();
     openModal(false);
   });
@@ -828,8 +915,11 @@
     }
   });
 
-  applyPortalThemeVars();
-  bindPreviewInputs();
-  resetForm();
-  loadCampaigns();
+  (async function init() {
+    await resolvePagePermissions();
+    applyPortalThemeVars();
+    bindPreviewInputs();
+    resetForm();
+    await loadCampaigns();
+  })();
 })();
