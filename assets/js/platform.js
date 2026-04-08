@@ -57,6 +57,7 @@
     btnOpenCreateUser: document.getElementById("btnOpenCreateUser"),
     btnCreateUserConfirm: document.getElementById("btnCreateUserConfirm"),
     btnGeneratePassword: document.getElementById("btnGeneratePassword"),
+    btnGenerateEditPassword: document.getElementById("btnGenerateEditPassword"),
 
     btnUpdateTenantConfirm: document.getElementById("btnUpdateTenantConfirm"),
     btnUpdateUserConfirm: document.getElementById("btnUpdateUserConfirm"),
@@ -93,6 +94,8 @@
     editUserType: document.getElementById("editUserType"),
     editUserStatus: document.getElementById("editUserStatus"),
     editUserTenantId: document.getElementById("editUserTenantId"),
+    editTemporaryPassword: document.getElementById("editTemporaryPassword"),
+    editTemporaryPasswordHint: document.getElementById("editTemporaryPasswordHint"),
 
     tenantSearch: document.getElementById("tenantSearch"),
     tenantStatusFilter: document.getElementById("tenantStatusFilter"),
@@ -425,6 +428,98 @@
     alert("Reset de senha enviado. O usuário receberá um link para definir uma nova senha.");
   }
 
+  async function generateTemporaryPasswordForUser(user) {
+    if (!user?.user_id || !user?.email) {
+      alert("Usuário inválido para geração de senha provisória.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Gerar e gravar uma nova senha provisória para ${user.email}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const { data: sessionData } = await sb.auth.getSession();
+    const accessToken = sessionData?.session?.access_token || "";
+
+    if (!accessToken) {
+      alert("Sua sessão expirou. Faça login novamente para continuar.");
+      return;
+    }
+
+    if (els.btnGenerateEditPassword) {
+      els.btnGenerateEditPassword.disabled = true;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/users/temp-password`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          user_id: user.user_id
+        })
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Falha ao gerar senha provisória.");
+      }
+
+      if (els.editTemporaryPassword) {
+        els.editTemporaryPassword.value = result.temporary_password || "";
+        els.editTemporaryPassword.focus();
+        els.editTemporaryPassword.select();
+      }
+
+      await writeAuditLog({
+        action: "user_updated",
+        module: "users",
+        target_type: "user",
+        target_id: user.user_id,
+        target_label: user.full_name,
+        tenant_id: Array.isArray(user.memberships) ? user.memberships[0]?.tenant_id || null : null,
+        tenant_name: getPrimaryTenantNames(user),
+        result: "success",
+        message: "Senha provisória gerada manualmente pela plataforma.",
+        new_data: {
+          status: "pending",
+          must_change_password: true,
+          password_reset_required: false
+        }
+      });
+
+      await refreshAll();
+      if (els.editUserStatus) {
+        els.editUserStatus.value = "pending";
+      }
+
+      alert("Senha provisória gerada. Compartilhe-a por um canal seguro; o usuário será obrigado a trocá-la no próximo acesso.");
+    } catch (error) {
+      console.error("Erro ao gerar senha provisória:", error);
+
+      await writeAuditLog({
+        action: "user_updated",
+        module: "users",
+        target_type: "user",
+        target_id: user.user_id,
+        target_label: user.full_name,
+        tenant_id: Array.isArray(user.memberships) ? user.memberships[0]?.tenant_id || null : null,
+        tenant_name: getPrimaryTenantNames(user),
+        result: "error",
+        message: `Falha ao gerar senha provisória: ${error instanceof Error ? error.message : "erro desconhecido"}`
+      });
+
+      alert(`Erro ao gerar senha provisória: ${error instanceof Error ? error.message : "erro desconhecido"}`);
+    } finally {
+      if (els.btnGenerateEditPassword) {
+        els.btnGenerateEditPassword.disabled = false;
+      }
+    }
+  }
+
   function clearTenantSessionStorage() {
     try {
       sessionStorage.removeItem("tenant_id");
@@ -621,6 +716,7 @@
     if (els.editUserType) els.editUserType.value = "platform_readonly";
     if (els.editUserStatus) els.editUserStatus.value = "active";
     if (els.editUserTenantId) els.editUserTenantId.value = "";
+    if (els.editTemporaryPassword) els.editTemporaryPassword.value = "";
   }
 
   function renderTenantFilters() {
@@ -2098,6 +2194,17 @@
       if (isPlatformRole(currentType) && els.editUserTenantId) {
         els.editUserTenantId.value = "";
       }
+    });
+
+    els.btnGenerateEditPassword?.addEventListener("click", async () => {
+      const userId = (els.editUserId?.value || "").trim();
+      const user = state.users.find((item) => String(item.user_id) === String(userId));
+      if (!user) {
+        alert("Abra um usuário válido para gerar a senha provisória.");
+        return;
+      }
+
+      await generateTemporaryPasswordForUser(user);
     });
 
     els.btnRefreshPlatform?.addEventListener("click", refreshAll);

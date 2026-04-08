@@ -16,6 +16,11 @@ interface TenantRecord {
   timezone: string | null;
 }
 
+interface AuthUserRecord {
+  id: string;
+  email?: string | null;
+}
+
 class HttpError extends Error {
   status: number;
 
@@ -100,6 +105,13 @@ function createSupabaseHeaders(serviceRoleKey: string, extra?: HeadersInit): Hea
   return headers;
 }
 
+function createSupabaseUserHeaders(apiKey: string, bearerToken: string, extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  headers.set("apikey", apiKey);
+  headers.set("authorization", `Bearer ${bearerToken}`);
+  return headers;
+}
+
 async function parseJsonBody<T>(request: Request): Promise<T> {
   try {
     return (await request.json()) as T;
@@ -164,6 +176,22 @@ async function supabaseRpc<T>(env: Env, fnName: string, payload: JsonRecord): Pr
   });
 }
 
+async function supabaseAuthRequest<T>(
+  env: Env,
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const { url, serviceRoleKey } = getSupabaseConfig(env);
+  const response = await fetch(`${url}/auth/v1/${path}`, {
+    ...init,
+    headers: createSupabaseHeaders(serviceRoleKey, {
+      accept: "application/json",
+      ...(init.headers || {}),
+    }),
+  });
+  return readSupabaseResponse<T>(response);
+}
+
 function normalizePhone(value: unknown): string | null {
   const digits = String(value || "").replace(/\D+/g, "");
   return digits || null;
@@ -185,6 +213,40 @@ function normalizeText(value: unknown): string | null {
 
 function isUuid(value: string | null | undefined): value is string {
   return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function getBearerToken(request: Request): string {
+  const authHeader = request.headers.get("authorization") || "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match?.[1]) {
+    throw new HttpError(401, "Token de autorização não informado.");
+  }
+  return match[1].trim();
+}
+
+function generateTemporaryPassword(length = 16): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const specials = "!@#$%*+-_";
+  const all = `${upper}${lower}${digits}${specials}`;
+  const cryptoValues = crypto.getRandomValues(new Uint32Array(length + 4));
+  const required = [upper, lower, digits, specials].map((group, index) => group[cryptoValues[index] % group.length]);
+  const generated = [];
+
+  for (let index = 0; index < length - required.length; index += 1) {
+    generated.push(all[cryptoValues[index + required.length] % all.length]);
+  }
+
+  const combined = required.concat(generated);
+  for (let index = combined.length - 1; index > 0; index -= 1) {
+    const swapIndex = cryptoValues[(index + 1) % cryptoValues.length] % (index + 1);
+    const current = combined[index];
+    combined[index] = combined[swapIndex];
+    combined[swapIndex] = current;
+  }
+
+  return combined.join("");
 }
 
 function toDateOnly(value: Date): string {
@@ -287,6 +349,130 @@ function getTenantHour(date: Date, timezone: string | null | undefined): number 
     timeZone: timezone || "UTC",
   });
   return Number(formatter.format(date));
+}
+
+async function getRequesterProfile(request: Request, env: Env): Promise<JsonRecord> {
+  const { url, serviceRoleKey } = getSupabaseConfig(env);
+  const bearerToken = getBearerToken(request);
+
+  const authResponse = await fetch(`${url}/auth/v1/user`, {
+    headers: createSupabaseUserHeaders(serviceRoleKey, bearerToken, {
+      accept: "application/json",
+    }),
+  });
+
+  const authUser = await readSupabaseResponse<AuthUserRecord>(authResponse);
+  if (!authUser?.id) {
+    throw new HttpError(401, "Sessão inválida para operação administrativa.");
+  }
+
+  const profiles = await supabaseSelect<Array<JsonRecord>>(
+    env,
+    `profiles?select=user_id,email,full_name,platform_role,is_platform_user,status&user_id=eq.${authUser.id}&limit=1`,
+  );
+
+  const profile = profiles[0];
+  if (!profile) {
+    throw new HttpError(403, "Perfil do solicitante não encontrado.");
+  }
+
+  return profile;
+}
+
+async function ensureAdminPasswordAccess(request: Request, env: Env): Promise<JsonRecord> {
+  const requesterProfile = await getRequesterProfile(request, env);
+  const requesterRole = String(requesterProfile.platform_role || "").trim().toLowerCase();
+  const allowedRoles = new Set(["platform_admin", "platform_support", "platform_operations"]);
+
+  if (requesterProfile.is_platform_user !== true || !allowedRoles.has(requesterRole)) {
+    throw new HttpError(403, "Você não tem permissão para redefinir senhas diretamente.");
+  }
+
+  const requesterStatus = String(requesterProfile.status || "active").trim().toLowerCase();
+  if (requesterStatus === "blocked" || requesterStatus === "disabled") {
+    throw new HttpError(403, "Seu acesso administrativo não permite esta operação.");
+  }
+
+  return requesterProfile;
+}
+
+async function handleAdminTemporaryPassword(request: Request, env: Env): Promise<Response> {
+  const requesterProfile = await ensureAdminPasswordAccess(request, env);
+  const body = await parseJsonBody<{ user_id?: string }>(request);
+  const userId = normalizeText(body.user_id);
+
+  if (!isUuid(userId)) {
+    return json({ ok: false, error: "user_id inválido." }, { status: 400 });
+  }
+
+  const targetProfiles = await supabaseSelect<Array<JsonRecord>>(
+    env,
+    `profiles?select=user_id,email,full_name,status,must_change_password,password_reset_required&user_id=eq.${userId}&limit=1`,
+  );
+  const targetProfile = targetProfiles[0];
+
+  if (!targetProfile) {
+    return json({ ok: false, error: "Usuário não encontrado." }, { status: 404 });
+  }
+
+  const temporaryPassword = generateTemporaryPassword();
+
+  await supabaseAuthRequest<JsonRecord>(env, `admin/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      password: temporaryPassword,
+    }),
+  });
+
+  const now = new Date().toISOString();
+  const updatedProfiles = await supabaseMutate<Array<JsonRecord>>(
+    env,
+    `profiles?user_id=eq.${userId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        status: "pending",
+        must_change_password: true,
+        password_reset_required: false,
+        updated_at: now,
+      }),
+    },
+  );
+
+  await supabaseMutate<Array<JsonRecord>>(
+    env,
+    `tenant_members?user_id=eq.${userId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        is_active: true,
+        updated_at: now,
+      }),
+    },
+  );
+
+  return json({
+    ok: true,
+    user_id: userId,
+    email: targetProfile.email || null,
+    full_name: targetProfile.full_name || null,
+    temporary_password: temporaryPassword,
+    profile: updatedProfiles[0] || null,
+    actor: {
+      user_id: requesterProfile.user_id || null,
+      full_name: requesterProfile.full_name || null,
+      email: requesterProfile.email || null,
+    },
+  });
 }
 
 async function handleLeadCapture(request: Request, env: Env): Promise<Response> {
@@ -588,6 +774,10 @@ export default {
 
       if (url.pathname === "/api/admin/campaigns" || url.pathname.startsWith("/api/admin/campaigns/")) {
         return await handleCampaigns(request, url, env);
+      }
+
+      if (url.pathname === "/api/admin/users/temp-password" && request.method === "POST") {
+        return await handleAdminTemporaryPassword(request, env);
       }
 
       return json(

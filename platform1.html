@@ -1013,9 +1013,18 @@
             </select>
           </label>
 
+          <label class="field">
+            <span>Senha provisória gerada</span>
+            <input type="text" id="editTemporaryPassword" class="input" readonly placeholder="Gere uma senha temporária para este usuário">
+          </label>
+
           <p class="muted">
             Usuário global: papel do tipo Platform e sem vínculo com tenant.
             Usuário de tenant: papel do tipo Tenant e tenant obrigatório.
+          </p>
+
+          <p class="muted" id="editTemporaryPasswordHint">
+            Ao gerar a senha provisória, o Auth é atualizado imediatamente, o usuário volta para pendente e será obrigado a trocar a senha no próximo acesso.
           </p>
         </div>
       </div>
@@ -1024,6 +1033,10 @@
     <div class="modal-foot">
       <button class="btn btn-light" data-close="modalEditUser" type="button">
         Cancelar
+      </button>
+
+      <button class="btn btn-light" id="btnGenerateEditPassword" type="button">
+        Gerar senha provisória
       </button>
 
       <button class="btn btn-primary" id="btnUpdateUserConfirm" type="button">
