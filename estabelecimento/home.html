@@ -27,7 +27,7 @@
 
   <section class="panel-card">
     <h2>Dicas para seu negócio</h2>
-    <p id="tenantInfo" class="muted" style="margin-top:-6px;margin-bottom:14px;">
+    <p id="tenantInfo" class="muted tenant-inline-info">
       Carregando tenant...
     </p>
 
@@ -90,7 +90,7 @@
         }
 
         elInsightsBox.innerHTML = `
-          <ul class="bullets" style="margin:0;padding-left:18px;">
+          <ul class="bullets">
             ${insights.map(item => `<li>${item}</li>`).join("")}
           </ul>
         `;
@@ -99,7 +99,7 @@
       if (!tenantId) {
         setText(elTenantInfo, "Nenhum tenant ativo foi selecionado.");
         if (elInsightsBox) {
-          elInsightsBox.innerHTML = `<p style="color:#ffb4b4;">Selecione um tenant no platform antes de abrir o painel.</p>`;
+          elInsightsBox.innerHTML = `<p class="text-danger">Selecione um tenant no platform antes de abrir o painel.</p>`;
         }
         return;
       }
@@ -133,7 +133,7 @@
 
         if (elInsightsBox) {
           elInsightsBox.innerHTML = `
-            <p style="color:#ffb4b4;">
+            <p class="text-danger">
               Não foi possível carregar os dados do dashboard.
             </p>
           `;

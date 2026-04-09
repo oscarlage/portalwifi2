@@ -210,6 +210,27 @@ body{
   gap:12px;
 }
 
+.actions-col-wide{
+  width: 320px;
+}
+
+.actions-col-medium{
+  width: 220px;
+}
+
+.actions-col-narrow{
+  width: 160px;
+}
+
+.bullets{
+  margin: 0;
+  padding-left: 18px;
+}
+
+.bullets-relaxed{
+  line-height: 1.8;
+}
+
 .subsection-head{
   display:flex;
   justify-content:space-between;

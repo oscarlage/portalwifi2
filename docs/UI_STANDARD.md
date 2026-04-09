@@ -82,5 +82,4 @@
 
 ## Pendências Conhecidas
 
-- `estabelecimento/campanhas.html` ainda possui bloco de estilo inline próprio que deve ser absorvido futuramente pelo CSS compartilhado.
 - `platform2.html` usa Tailwind inline e permanece fora da trilha principal de produção.

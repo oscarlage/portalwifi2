@@ -131,5 +131,6 @@ Unificar a interface do ecossistema Nexora em um único padrão visual claro, co
 
 - `platform.css` já era a referência mais próxima do padrão alvo.
 - `estabelecimento.css` foi trazido para o mesmo eixo visual do global.
+- `estabelecimento/campanhas.html` deixou de depender de CSS inline e passou a usar regras escopadas no stylesheet compartilhado do tenant.
 - `styles.css` deixou de ser um tema escuro isolado e passou a usar a base clara comum.
 - Páginas com CSS inline de autenticação migraram para `public-ui.css`.
