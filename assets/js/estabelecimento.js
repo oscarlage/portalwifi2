@@ -9,7 +9,6 @@
   const userMenu = document.getElementById("userMenu");
   const userMenuTrigger = document.getElementById("userMenuTrigger");
   const userMenuDropdown = document.getElementById("userMenuDropdown");
-  const userMenuLabel = document.getElementById("userMenuLabel");
 
   const tenantNameEl = document.getElementById("tenantName");
   const tenantSlugEl = document.getElementById("tenantSlug");
@@ -228,7 +227,10 @@
     if (tenantNameEl) tenantNameEl.textContent = displayName;
     if (tenantSlugEl) tenantSlugEl.textContent = displaySub;
     if (workspaceBrandTitle) workspaceBrandTitle.textContent = displayName;
-    if (userMenuLabel) userMenuLabel.textContent = displayName;
+    if (userMenuTrigger) {
+      userMenuTrigger.setAttribute("aria-label", `Abrir menu da conta de ${displayName}`);
+      userMenuTrigger.setAttribute("title", displayName);
+    }
     if (tenantNameFooterEl) {
       tenantNameFooterEl.textContent = tenant.name || tenant.slug || tenant.id || "Não selecionado";
     }
