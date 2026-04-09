@@ -248,19 +248,19 @@ body{
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid #d9dee8;
   border-radius: 999px;
-  background: rgba(255,255,255,.92);
-  color: var(--text);
-  box-shadow: var(--ds-shadow-sm);
-  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+  background: rgba(255,255,255,.96);
+  color: #8e98aa;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
 
 .user-trigger:hover,
 .user-menu.is-open .user-trigger{
-  border-color: rgba(79, 107, 237, 0.3);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
-  transform: translateY(-1px);
+  border-color: #cfd6e2;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .user-avatar{
@@ -270,8 +270,8 @@ body{
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #eef2f7;
-  color: #8a94a6;
+  background: #f3f5f8;
+  color: #97a0b0;
 }
 
 .user-avatar svg{
@@ -289,11 +289,11 @@ body{
   top: calc(100% + 10px);
   right: 0;
   width: 210px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(255,255,255,.96);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  padding: 10px 0;
+  border: 1px solid #e5e9f0;
+  border-radius: 14px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
   z-index: 40;
 }
 
@@ -302,30 +302,30 @@ body{
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 10px 12px;
+  padding: 9px 16px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 0;
   background: transparent;
-  color: var(--text);
+  color: #5b6472;
   box-shadow: none !important;
   text-align: left;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
 }
 
 .user-dropdown-item:hover{
-  background: #f6f8fb;
-  color: var(--text);
+  background: #f7f9fc;
+  color: #2f3745;
   transform: none;
 }
 
 .user-dropdown-item.danger{
-  color: var(--danger);
+  color: #6a7280;
 }
 
 .user-dropdown-item.danger:hover{
-  background: rgba(214, 69, 69, 0.08);
-  color: var(--danger);
+  background: #f7f9fc;
+  color: #2f3745;
 }
 
 .frame-wrap{
