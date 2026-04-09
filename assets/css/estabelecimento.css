@@ -1129,6 +1129,21 @@ td{
     padding: 20px;
   }
 
+  .topbar{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .topbar-actions,
+  .user-menu,
+  .user-trigger{
+    width: 100%;
+  }
+
+  .user-dropdown{
+    width: min(100%, 280px);
+  }
+
   .page-header{
     align-items: flex-start;
   }
@@ -1713,6 +1728,23 @@ th{
 }
 
 @media (max-width: 760px){
+  .topbar{
+    padding: 22px 20px 16px;
+  }
+
+  .topbar h1{
+    font-size: 28px;
+  }
+
+  .user-trigger-copy small{
+    max-width: 140px;
+  }
+
+  .frame-wrap,
+  .frame-page{
+    padding: 16px;
+  }
+
   .campaigns-page .form-grid,
   .campaigns-page .check-grid{
     grid-template-columns: 1fr;
