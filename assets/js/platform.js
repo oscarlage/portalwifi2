@@ -460,6 +460,10 @@
       els.btnGenerateEditPassword.disabled = true;
     }
 
+    if (els.editTemporaryPassword) {
+      els.editTemporaryPassword.value = temporaryPassword;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/api/admin/users/temp-password`, {
         method: "POST",
