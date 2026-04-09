@@ -1730,33 +1730,48 @@
     }
 
     const roleData = getProfileScopeAndRole(userType, tenantId);
-  const forcePasswordChange = shouldForcePasswordChange();
-  const status = getEffectiveUserStatus(requestedStatus, forcePasswordChange);
-  const passwordFlags = getPasswordSetupFlags(forcePasswordChange, false);
+    const forcePasswordChange = shouldForcePasswordChange();
+    const status = getEffectiveUserStatus(requestedStatus, forcePasswordChange);
+    const passwordFlags = getPasswordSetupFlags(forcePasswordChange, false);
 
     const { data: currentSessionData, error: currentSessionError } = await sb.auth.getSession();
 
-    if (currentSessionError || !currentSessionData?.session) {
+    if (currentSessionError || !currentSessionData?.session?.access_token) {
       alert("Sua sessão expirou. Faça login novamente.");
       await signOutAndRedirect("session_expired");
       return;
     }
 
-    const adminSession = currentSessionData.session;
-
-    const authCreate = await sb.auth.signUp({
+    const createPayload = {
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName
-        }
-      }
+      full_name: fullName,
+      phone: phone || null,
+      status,
+      scope: roleData.scope,
+      platform_role: roleData.platformRole,
+      is_platform_user: roleData.isPlatformUser,
+      must_change_password: passwordFlags.must_change_password,
+      password_reset_required: passwordFlags.password_reset_required,
+      tenant_id: tenantId,
+      membership_role: roleData.membershipRole
+    };
+
+    const response = await fetch(`${API_BASE}/api/admin/users`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${currentSessionData.session.access_token}`
+      },
+      body: JSON.stringify(createPayload)
     });
 
-    if (authCreate.error) {
-      console.error("Erro ao criar autenticação do usuário:", authCreate.error);
-      alert(`Erro ao criar autenticação do usuário: ${authCreate.error.message}`);
+    const createResult = await response.json().catch(() => null);
+
+    if (!response.ok || !createResult?.ok) {
+      const errorMessage = createResult?.error || "Falha ao criar usuário no Auth.";
+      console.error("Erro ao criar autenticação do usuário:", errorMessage);
+      alert(`Erro ao criar autenticação do usuário: ${errorMessage}`);
 
       await writeAuditLog({
         action: "user_created",
@@ -1766,7 +1781,7 @@
         tenant_id: tenantId,
         tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
         result: "error",
-        message: `Falha ao criar autenticação do usuário: ${authCreate.error.message}`,
+        message: `Falha ao criar autenticação do usuário: ${errorMessage}`,
         new_data: {
           full_name: fullName,
           email,
@@ -1781,104 +1796,11 @@
       return;
     }
 
-    const authUserId = authCreate.data?.user?.id || null;
+    const authUserId = createResult?.user?.id || null;
 
     if (!authUserId) {
       alert("Não foi possível obter o ID do usuário criado.");
       return;
-    }
-
-    try {
-      const { error: restoreError } = await sb.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token
-      });
-
-      if (restoreError) {
-        console.warn("Falha ao restaurar sessão do administrador:", restoreError);
-      }
-    } catch (restoreErr) {
-      console.warn("Erro ao tentar restaurar sessão do administrador:", restoreErr);
-    }
-
-    const profilePayload = {
-      full_name: fullName,
-      email,
-      phone: phone || null,
-      scope: roleData.scope,
-      platform_role: roleData.platformRole,
-      status,
-      is_platform_user: roleData.isPlatformUser,
-      must_change_password: passwordFlags.must_change_password,
-      password_reset_required: passwordFlags.password_reset_required,
-      updated_at: new Date().toISOString()
-    };
-
-    const updateProfile = await sb
-      .from("profiles")
-      .update(profilePayload)
-      .eq("user_id", authUserId);
-
-    if (updateProfile.error) {
-      console.error("Erro ao atualizar profile:", updateProfile.error);
-      alert(`Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`);
-
-      await writeAuditLog({
-        action: "user_created",
-        module: "users",
-        target_type: "user",
-        target_id: authUserId,
-        target_label: fullName,
-        tenant_id: tenantId,
-        tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
-        result: "error",
-        message: `Usuário autenticado criado, mas falhou ao atualizar perfil: ${updateProfile.error.message}`,
-        new_data: {
-          ...profilePayload,
-          user_type: userType,
-          requested_status: requestedStatus,
-          tenant_id: tenantId
-        }
-      });
-
-      return;
-    }
-
-    if (tenantId && roleData.membershipRole) {
-      const insertMembership = await sb.from("tenant_members").insert({
-        tenant_id: tenantId,
-        user_id: authUserId,
-        role: roleData.membershipRole,
-        is_active: isMembershipEnabledForStatus(status)
-      });
-
-      if (insertMembership.error) {
-        console.error("Erro ao gravar vínculo do tenant:", insertMembership.error);
-        alert(`Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`);
-
-        await writeAuditLog({
-          action: "user_created",
-          module: "users",
-          target_type: "user",
-          target_id: authUserId,
-          target_label: fullName,
-          tenant_id: tenantId,
-          tenant_name: state.tenants.find((t) => String(t.id) === String(tenantId))?.name || null,
-          result: "error",
-          message: `Usuário criado, mas falhou ao vincular ao tenant: ${insertMembership.error.message}`,
-          new_data: {
-            full_name: fullName,
-            email,
-            phone,
-            user_type: userType,
-            requested_status: requestedStatus,
-            status,
-            tenant_id: tenantId
-          }
-        });
-
-        return;
-      }
     }
 
     await writeAuditLog({

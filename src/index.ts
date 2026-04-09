@@ -21,6 +21,14 @@ interface AuthUserRecord {
   email?: string | null;
 }
 
+interface AdminCreatedUserResponse {
+  id: string;
+  email?: string | null;
+  user_metadata?: {
+    full_name?: string | null;
+  } | null;
+}
+
 class HttpError extends Error {
   status: number;
 
@@ -480,6 +488,137 @@ async function handleAdminTemporaryPassword(request: Request, env: Env): Promise
   });
 }
 
+async function handleAdminCreateUser(request: Request, env: Env): Promise<Response> {
+  await ensureAdminPasswordAccess(request, env);
+  const body = await parseJsonBody<{
+    email?: string;
+    password?: string;
+    full_name?: string;
+    phone?: string | null;
+    status?: string;
+    scope?: string | null;
+    platform_role?: string | null;
+    is_platform_user?: boolean;
+    must_change_password?: boolean;
+    password_reset_required?: boolean;
+    tenant_id?: string | null;
+    membership_role?: string | null;
+  }>(request);
+
+  const email = normalizeText(body.email)?.toLowerCase();
+  const password = normalizeText(body.password);
+  const fullName = normalizeText(body.full_name);
+  const phone = normalizeText(body.phone);
+  const status = normalizeText(body.status) || "pending";
+  const scope = normalizeText(body.scope) || "tenant";
+  const platformRole = normalizeText(body.platform_role);
+  const isPlatformUser = body.is_platform_user === true;
+  const mustChangePassword = body.must_change_password === true;
+  const passwordResetRequired = body.password_reset_required === true;
+  const tenantId = normalizeText(body.tenant_id);
+  const membershipRole = normalizeText(body.membership_role);
+
+  if (!email) {
+    return json({ ok: false, error: "email é obrigatório." }, { status: 400 });
+  }
+
+  if (!password || password.length < 8) {
+    return json({ ok: false, error: "password deve ter pelo menos 8 caracteres." }, { status: 400 });
+  }
+
+  if (!fullName) {
+    return json({ ok: false, error: "full_name é obrigatório." }, { status: 400 });
+  }
+
+  if (membershipRole && !tenantId) {
+    return json({ ok: false, error: "tenant_id é obrigatório para usuários vinculados a tenant." }, { status: 400 });
+  }
+
+  let createdUser: AdminCreatedUserResponse | null = null;
+
+  try {
+    createdUser = await supabaseAuthRequest<AdminCreatedUserResponse>(env, "admin/users", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+        },
+      }),
+    });
+
+    if (!createdUser?.id) {
+      throw new HttpError(500, "Não foi possível obter o id do usuário criado.");
+    }
+
+    const now = new Date().toISOString();
+    const updatedProfiles = await supabaseMutate<Array<JsonRecord>>(
+      env,
+      `profiles?user_id=eq.${createdUser.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          phone,
+          status,
+          scope,
+          platform_role: platformRole,
+          is_platform_user: isPlatformUser,
+          must_change_password: mustChangePassword,
+          password_reset_required: passwordResetRequired,
+          updated_at: now,
+        }),
+      },
+    );
+
+    if (tenantId && membershipRole) {
+      await supabaseMutate<Array<JsonRecord>>(env, "tenant_members", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          user_id: createdUser.id,
+          role: membershipRole,
+          is_active: status !== "blocked" && status !== "disabled",
+        }),
+      });
+    }
+
+    return json({
+      ok: true,
+      user: {
+        id: createdUser.id,
+        email,
+        full_name: fullName,
+      },
+      profile: updatedProfiles[0] || null,
+    }, { status: 201 });
+  } catch (error) {
+    if (createdUser?.id) {
+      try {
+        await supabaseAuthRequest<JsonRecord>(env, `admin/users/${createdUser.id}`, {
+          method: "DELETE",
+        });
+      } catch (rollbackError) {
+        console.error("Falha ao reverter usuário criado parcialmente:", rollbackError);
+      }
+    }
+
+    throw error;
+  }
+}
+
 async function handleLeadCapture(request: Request, env: Env): Promise<Response> {
   const body = await parseJsonBody<JsonRecord>(request);
   const tenantId = await findTenantId(
@@ -783,6 +922,10 @@ export default {
 
       if (url.pathname === "/api/admin/users/temp-password" && request.method === "POST") {
         return await handleAdminTemporaryPassword(request, env);
+      }
+
+      if (url.pathname === "/api/admin/users" && request.method === "POST") {
+        return await handleAdminCreateUser(request, env);
       }
 
       return json(
