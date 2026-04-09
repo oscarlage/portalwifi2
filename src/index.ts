@@ -398,11 +398,16 @@ async function ensureAdminPasswordAccess(request: Request, env: Env): Promise<Js
 
 async function handleAdminTemporaryPassword(request: Request, env: Env): Promise<Response> {
   const requesterProfile = await ensureAdminPasswordAccess(request, env);
-  const body = await parseJsonBody<{ user_id?: string }>(request);
+  const body = await parseJsonBody<{ user_id?: string; temporary_password?: string }>(request);
   const userId = normalizeText(body.user_id);
+  const providedTemporaryPassword = normalizeText(body.temporary_password);
 
   if (!isUuid(userId)) {
     return json({ ok: false, error: "user_id inválido." }, { status: 400 });
+  }
+
+  if (providedTemporaryPassword && providedTemporaryPassword.length < 8) {
+    return json({ ok: false, error: "A senha provisória deve ter pelo menos 8 caracteres." }, { status: 400 });
   }
 
   const targetProfiles = await supabaseSelect<Array<JsonRecord>>(
@@ -415,7 +420,7 @@ async function handleAdminTemporaryPassword(request: Request, env: Env): Promise
     return json({ ok: false, error: "Usuário não encontrado." }, { status: 404 });
   }
 
-  const temporaryPassword = generateTemporaryPassword();
+  const temporaryPassword = providedTemporaryPassword || generateTemporaryPassword();
 
   await supabaseAuthRequest<JsonRecord>(env, `admin/users/${userId}`, {
     method: "PUT",

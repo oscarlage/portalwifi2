@@ -434,7 +434,16 @@
       return;
     }
 
-    const confirmed = window.confirm(`Gerar e gravar uma nova senha provisória para ${user.email}?`);
+    const draftTemporaryPassword = (els.editTemporaryPassword?.value || "").trim();
+    const temporaryPassword = draftTemporaryPassword || generatePassword();
+
+    if (temporaryPassword.length < 8) {
+      alert("A senha provisória deve ter pelo menos 8 caracteres.");
+      els.editTemporaryPassword?.focus();
+      return;
+    }
+
+    const confirmed = window.confirm(`Aplicar uma nova senha provisória para ${user.email}?`);
     if (!confirmed) {
       return;
     }
@@ -459,7 +468,8 @@
           authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          user_id: user.user_id
+          user_id: user.user_id,
+          temporary_password: temporaryPassword
         })
       });
 
@@ -469,7 +479,7 @@
       }
 
       if (els.editTemporaryPassword) {
-        els.editTemporaryPassword.value = result.temporary_password || "";
+        els.editTemporaryPassword.value = result.temporary_password || temporaryPassword;
         els.editTemporaryPassword.focus();
         els.editTemporaryPassword.select();
       }
