@@ -28,7 +28,7 @@
   <section class="panel-card">
     <h2>Dicas para seu negócio</h2>
     <p id="tenantInfo" class="muted tenant-inline-info">
-      Carregando tenant...
+      Carregando cliente...
     </p>
 
     <div id="insightsBox">
@@ -86,7 +86,7 @@
         if (returning > 0) {
           insights.push(`${returning} cliente(s) recorrente(s) retornaram no período.`);
         } else {
-          insights.push("A lógica de recorrência ainda está em evolução para este tenant.");
+          insights.push("A lógica de recorrência ainda está em evolução para este cliente.");
         }
 
         elInsightsBox.innerHTML = `
@@ -97,16 +97,16 @@
       }
 
       if (!tenantId) {
-        setText(elTenantInfo, "Nenhum tenant ativo foi selecionado.");
+        setText(elTenantInfo, "Nenhum cliente ativo foi selecionado.");
         if (elInsightsBox) {
-          elInsightsBox.innerHTML = `<p class="text-danger">Selecione um tenant no platform antes de abrir o painel.</p>`;
+          elInsightsBox.innerHTML = `<p class="text-danger">Selecione um cliente no Command Center antes de abrir o painel.</p>`;
         }
         return;
       }
 
       setText(
         elTenantInfo,
-        `Tenant ativo: ${tenantName || tenantSlug || tenantId}`
+        `Cliente ativo: ${tenantName || tenantSlug || tenantId}`
       );
 
       try {

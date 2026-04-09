@@ -11,15 +11,9 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div>
+      <div class="sidebar-header-block">
         <div class="brand-title" id="workspaceBrandTitle">Cliente</div>
         <div class="brand-sub">Gestão operacional isolada do cliente</div>
-      </div>
-
-      <div class="side-tenant-box">
-        <div class="side-tenant-label">Cliente ativo</div>
-        <div class="side-tenant-value" id="tenantName">Carregando...</div>
-        <div class="brand-sub" id="tenantSlug">Preparando contexto...</div>
       </div>
 
       <nav class="side-nav" aria-label="Menu do cliente">
@@ -29,14 +23,6 @@
         <button class="nav-item" data-page="/estabelecimento/configuracoes.html" type="button">Configurações</button>
         <button class="nav-item" data-page="/estabelecimento/relatorios.html" type="button">Relatórios &amp; métricas</button>
       </nav>
-
-      <div class="side-footer">
-        <div class="side-tenant-box">
-          <div class="side-tenant-label">Contexto</div>
-          <div class="side-tenant-value" id="tenantNameFooter">Aguardando...</div>
-        </div>
-        <a href="/logout.html">Encerrar sessão</a>
-      </div>
     </aside>
 
     <main class="main">
@@ -45,9 +31,22 @@
           <h1 id="pageTitle">Dashboard</h1>
           <p id="pageSubtitle">Visão geral do movimento do Wi-Fi.</p>
         </div>
-        <div class="session-pill">
-          <span class="dot"></span>
-          <span>Contexto do cliente</span>
+        <div class="topbar-actions">
+          <div class="user-menu" id="userMenu">
+            <button type="button" class="user-trigger" id="userMenuTrigger" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenuDropdown">
+              <span class="user-avatar" aria-hidden="true">U</span>
+              <span class="user-trigger-copy">
+                <strong>Conta</strong>
+                <small id="userMenuLabel">Cliente</small>
+              </span>
+            </button>
+
+            <div class="user-dropdown hidden" id="userMenuDropdown" role="menu" aria-label="Menu da conta">
+              <button type="button" class="user-dropdown-item" data-user-action="settings" role="menuitem">Configurações</button>
+              <button type="button" class="user-dropdown-item" data-user-action="change-password" role="menuitem">Mudar senha</button>
+              <button type="button" class="user-dropdown-item danger" data-user-action="logout" role="menuitem">Encerrar sessão</button>
+            </div>
+          </div>
         </div>
       </header>
 

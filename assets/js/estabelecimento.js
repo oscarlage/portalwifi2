@@ -6,6 +6,10 @@
   const title = document.getElementById("pageTitle");
   const subtitle = document.getElementById("pageSubtitle");
   const workspaceBrandTitle = document.getElementById("workspaceBrandTitle");
+  const userMenu = document.getElementById("userMenu");
+  const userMenuTrigger = document.getElementById("userMenuTrigger");
+  const userMenuDropdown = document.getElementById("userMenuDropdown");
+  const userMenuLabel = document.getElementById("userMenuLabel");
 
   const tenantNameEl = document.getElementById("tenantName");
   const tenantSlugEl = document.getElementById("tenantSlug");
@@ -224,11 +228,45 @@
     if (tenantNameEl) tenantNameEl.textContent = displayName;
     if (tenantSlugEl) tenantSlugEl.textContent = displaySub;
     if (workspaceBrandTitle) workspaceBrandTitle.textContent = displayName;
+    if (userMenuLabel) userMenuLabel.textContent = displayName;
     if (tenantNameFooterEl) {
       tenantNameFooterEl.textContent = tenant.name || tenant.slug || tenant.id || "Não selecionado";
     }
 
     document.title = `Nexora - ${displayName}`;
+  }
+
+  function getCurrentPage() {
+    const savedPage = localStorage.getItem(PAGE_KEY);
+    return savedPage && pageMeta[savedPage] ? savedPage : DEFAULT_PAGE;
+  }
+
+  function openUserMenu() {
+    if (!userMenu || !userMenuTrigger || !userMenuDropdown) return;
+    userMenuDropdown.classList.remove("hidden");
+    userMenu.classList.add("is-open");
+    userMenuTrigger.setAttribute("aria-expanded", "true");
+  }
+
+  function closeUserMenu() {
+    if (!userMenu || !userMenuTrigger || !userMenuDropdown) return;
+    userMenuDropdown.classList.add("hidden");
+    userMenu.classList.remove("is-open");
+    userMenuTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleUserMenu() {
+    if (!userMenuDropdown || userMenuDropdown.classList.contains("hidden")) {
+      openUserMenu();
+      return;
+    }
+
+    closeUserMenu();
+  }
+
+  function applyEmbeddedFrameLayout() {
+    if (!frame?.contentDocument?.body) return;
+    frame.contentDocument.body.classList.add("embedded-shell");
   }
 
   function ensureTenantSelected() {
@@ -289,6 +327,7 @@
     updateHeader(targetPage);
     setActiveByPage(targetPage);
     localStorage.setItem(PAGE_KEY, targetPage);
+    closeUserMenu();
 
     if (pushState) {
       history.pushState({ page: targetPage }, "", buildShellUrl(targetPage));
@@ -311,6 +350,49 @@
       const page = btn.dataset.page || DEFAULT_PAGE;
       loadPage(page, true);
     });
+  });
+
+  frame?.addEventListener("load", () => {
+    applyEmbeddedFrameLayout();
+  });
+
+  userMenuTrigger?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleUserMenu();
+  });
+
+  document.addEventListener("click", (event) => {
+    const userActionBtn = event.target.closest("[data-user-action]");
+    if (userActionBtn) {
+      const action = userActionBtn.getAttribute("data-user-action");
+
+      if (action === "settings") {
+        loadPage("/estabelecimento/configuracoes.html", true);
+        return;
+      }
+
+      if (action === "change-password") {
+        const returnUrl = buildShellUrl(getCurrentPage());
+        window.location.href = `/reset-password.html?mode=self-service&return=${encodeURIComponent(returnUrl)}`;
+        return;
+      }
+
+      if (action === "logout") {
+        window.location.href = "/logout.html";
+        return;
+      }
+    }
+
+    if (userMenu && !userMenu.contains(event.target)) {
+      closeUserMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeUserMenu();
+    }
   });
 
   window.addEventListener("popstate", () => {
