@@ -1,1 +1,113 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Portal WiFi - Encerrar sessão</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--bg: #f6f7fb;
+			--card: #ffffff;
+			--text: #0f172a;
+			--muted: #475569;
+			--line: rgba(15,23,42,.12);
+			--primary: #0f766e;
+			--danger: #dc2626;
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			padding: 24px;
+			font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+			background: linear-gradient(180deg, #eef5ff 0%, #f8fafc 100%);
+			color: var(--text);
+		}
+		.card {
+			width: min(100%, 480px);
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 20px;
+			padding: 28px;
+			box-shadow: 0 20px 50px rgba(15,23,42,.08);
+		}
+		h1 { margin: 0 0 8px; font-size: 28px; }
+		p { margin: 0 0 12px; color: var(--muted); line-height: 1.5; }
+		.status { min-height: 24px; font-size: 14px; color: var(--muted); }
+		.status.error { color: var(--danger); }
+		a {
+			display: inline-flex;
+			margin-top: 16px;
+			color: var(--primary);
+			text-decoration: none;
+			font-weight: 700;
+		}
+	</style>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+	<main class="card">
+		<h1>Encerrando sessão</h1>
+		<p>Estamos finalizando seu acesso e limpando o contexto do tenant.</p>
+		<div id="status" class="status">Saindo...</div>
+		<a href="/login.html">Ir para o login</a>
+	</main>
+
+	<script>
+		(() => {
+			if (window.__PORTALWIFI_LOGOUT_INIT__) {
+				return;
+			}
+			window.__PORTALWIFI_LOGOUT_INIT__ = true;
+
+			const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
+			const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
+			const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+			const statusEl = document.getElementById("status");
+
+			function setStatus(message, tone = "") {
+				statusEl.textContent = message || "";
+				statusEl.className = `status ${tone}`.trim();
+			}
+
+			function clearContext() {
+				sessionStorage.removeItem("tenant_id");
+				sessionStorage.removeItem("tenant_role");
+				sessionStorage.removeItem("tenant_unit_id");
+				sessionStorage.removeItem("portalwifi.authContext");
+				sessionStorage.removeItem("portalwifi.tenantMemberships");
+				localStorage.removeItem("portalwifi.activeTenantId");
+				localStorage.removeItem("portalwifi.activeTenantName");
+				localStorage.removeItem("portalwifi.activeTenantSlug");
+				localStorage.removeItem("portalwifi.estabelecimento.page");
+			}
+
+			async function finishLogout() {
+				try {
+					clearContext();
+					const { error } = await sb.auth.signOut();
+					if (error) {
+						throw error;
+					}
+					setStatus("Sessão encerrada. Redirecionando...");
+				} catch (error) {
+					console.error(error);
+					clearContext();
+					setStatus(error.message || "Falha ao encerrar sessão. Redirecionando mesmo assim.", "error");
+				} finally {
+					window.setTimeout(() => {
+						window.location.replace("/login.html");
+					}, 350);
+				}
+			}
+
+			finishLogout();
+		})();
+	</script>
+</body>
+</html>
 
