@@ -500,6 +500,7 @@
   }
 
   function resetForm() {
+    if (!campaignForm) return;
     campaignForm.reset();
     campaignId.value = "";
     currentManagedMediaPath = "";
@@ -515,8 +516,10 @@
 
     applyRenderConfigToForm(getDefaultRenderConfig());
     populateButtonSourceOptions("manual", "");
-    deleteCampaignBtn.classList.add("hidden");
-    campaignModalTitle.textContent = "Nova campanha";
+    deleteCampaignBtn?.classList.add("hidden");
+    if (campaignModalTitle) {
+      campaignModalTitle.textContent = "Nova campanha";
+    }
     resetMediaUploadState();
     updateCampaignImageState();
     renderPreview();
@@ -1194,7 +1197,7 @@
     });
   }
 
-  openCampaignModalBtn.addEventListener("click", () => {
+  openCampaignModalBtn?.addEventListener("click", () => {
     if (!canManageCurrentTenant) return;
     resetForm();
     openModal(false);
@@ -1213,8 +1216,8 @@
     renderPreview();
   });
 
-  closeCampaignModalBtn.addEventListener("click", closeModal);
-  cancelCampaignModalBtn.addEventListener("click", closeModal);
+  closeCampaignModalBtn?.addEventListener("click", closeModal);
+  cancelCampaignModalBtn?.addEventListener("click", closeModal);
   closeCampaignMediaModalBtn?.addEventListener("click", closeMediaModal);
   cancelCampaignMediaModalBtn?.addEventListener("click", closeMediaModal);
   selectCampaignMediaBtn?.addEventListener("click", () => campaignMediaFileInput?.click());
@@ -1234,7 +1237,7 @@
     }
   });
 
-  campaignModal.addEventListener("click", (event) => {
+  campaignModal?.addEventListener("click", (event) => {
     if (event.target === campaignModal) {
       closeModal();
     }
@@ -1265,9 +1268,9 @@
     }
   });
 
-  campaignForm.addEventListener("submit", handleSave);
+  campaignForm?.addEventListener("submit", handleSave);
 
-  deleteCampaignBtn.addEventListener("click", async () => {
+  deleteCampaignBtn?.addEventListener("click", async () => {
     const id = campaignId.value;
     if (!id) return;
     const item = getCampaignById(id);
@@ -1275,7 +1278,7 @@
     await handleDeleteById(id, item.title || "sem título");
   });
 
-  campaignTable.addEventListener("click", async (event) => {
+  campaignTable?.addEventListener("click", async (event) => {
     const button = event.target.closest("button[data-action]");
     if (!button) return;
 
