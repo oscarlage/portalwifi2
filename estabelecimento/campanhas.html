@@ -312,14 +312,79 @@
 
             <div class="preview-wrap">
               <div class="preview-card">
-                <label>Redes e canais reaproveitados de Configurações</label>
-                <div class="social-source-summary" id="campaignSocialLinksSummary">
-                  Carregando canais configurados...
-                </div>
-                <div class="input-help">
-                  Instagram, Facebook, WhatsApp e site passam a ser herdados automaticamente das Configurações do portal, evitando divergência entre campanha e identidade do estabelecimento.
-                </div>
-</script>
+                <div class="preview-inner" id="campaignPreview"></div>
+              </div>
+
+              <div class="preview-meta">
+                <h4>Resumo técnico</h4>
+                <div class="meta-list" id="campaignPreviewMeta"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div>
+            <button type="button" class="btn-danger hidden" id="deleteCampaignBtn">Excluir campanha</button>
+          </div>
+
+          <div class="modal-actions-row">
+            <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancelar</button>
+            <button type="submit" class="btn-primary">Salvar campanha</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="campaignMediaModal" aria-hidden="true">
+    <div class="modal-card modal-card-compact" role="dialog" aria-modal="true" aria-labelledby="campaignMediaModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="campaignMediaModalTitle">Inserir mídia da campanha</h2>
+          <div class="top-note">A mídia será mantida enquanto a campanha estiver ativa. Ao vencer, ser removida ou ter a arte substituída, ela será descartada pela plataforma.</div>
+        </div>
+        <button type="button" class="modal-close" id="closeCampaignMediaModal" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="section-block no-margin">
+          <h3>Arquivo da mídia</h3>
+          <p class="section-hint">Envie um arquivo em JPG, PNG ou WEBP. O sistema gerará a URL pública e preencherá automaticamente o campo da campanha.</p>
+
+          <div class="upload-dropzone" id="campaignMediaDropzone">
+            <input type="file" id="campaignMediaFile" accept="image/png,image/jpeg,image/webp" hidden>
+            <strong>Selecionar imagem</strong>
+            <span>Escolha um banner ou imagem promocional com até 5 MB.</span>
+            <button type="button" class="btn-secondary" id="selectCampaignMediaBtn">Escolher arquivo</button>
+          </div>
+
+          <div class="upload-selected-file" id="campaignMediaFileName">Nenhum arquivo selecionado.</div>
+          <div class="input-help input-help-emphasis" id="campaignMediaUploadStatus">A URL será criada automaticamente após o envio.</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div></div>
+        <div class="modal-actions-row">
+          <button type="button" class="btn-secondary" id="cancelCampaignMediaModal">Cancelar</button>
+          <button type="button" class="btn-primary" id="confirmCampaignMediaUpload">Enviar mídia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.PORTAL_SETTINGS = {
+      apiBase: "https://portalwifi-api.oscar-lage.workers.dev",
+      tenantId: "8814c725-ff72-41f2-be86-e9671bcc6c7b",
+      primaryColor: "#0f766e",
+      secondaryColor: "#1e293b",
+      textColor: "#ffffff",
+      buttonColor: "#ffffff",
+      buttonTextColor: "#0f172a"
+    };
+  </script>
 
   <script src="/assets/js/campanhas.js"></script>
 </body>
