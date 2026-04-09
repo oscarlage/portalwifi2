@@ -307,6 +307,13 @@
     helpDrawer.setAttribute("aria-hidden", "true");
   }
 
+  function normalizeHelpDrawerState() {
+    if (!helpDrawer || !helpDrawerBackdrop) return;
+    helpDrawer.classList.remove("is-open");
+    helpDrawerBackdrop.classList.remove("is-open");
+    helpDrawer.setAttribute("aria-hidden", "true");
+  }
+
   function mergeFields(savedFields) {
     const incoming = safeJsonArray(savedFields, DEFAULT_FIELDS);
     const map = new Map();
@@ -829,7 +836,16 @@
         }
       });
 
+      window.addEventListener("pageshow", normalizeHelpDrawerState);
+      window.addEventListener("pagehide", normalizeHelpDrawerState);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          normalizeHelpDrawerState();
+        }
+      });
+
       bindContextHelp(document);
+      normalizeHelpDrawerState();
       setStatus("");
     } catch (err) {
       console.error(err);

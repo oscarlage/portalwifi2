@@ -365,6 +365,13 @@
     document.body.style.overflow = "";
   }
 
+  function normalizeModalState() {
+    if (!campaignModal) return;
+    campaignModal.classList.remove("show");
+    campaignModal.setAttribute("aria-hidden", "true");
+    document.body.style.removeProperty("overflow");
+  }
+
   async function apiFetch(url, options = {}) {
     const response = await fetch(url, {
       headers: {
@@ -884,6 +891,14 @@
     }
   });
 
+  window.addEventListener("pageshow", normalizeModalState);
+  window.addEventListener("pagehide", normalizeModalState);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      normalizeModalState();
+    }
+  });
+
   campaignForm.addEventListener("submit", handleSave);
 
   deleteCampaignBtn.addEventListener("click", async () => {
@@ -916,6 +931,7 @@
   });
 
   (async function init() {
+    normalizeModalState();
     await resolvePagePermissions();
     applyPortalThemeVars();
     bindPreviewInputs();

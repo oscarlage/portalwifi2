@@ -646,12 +646,14 @@
   function closeAllModals() {
     document.querySelectorAll(".modal-backdrop").forEach((modal) => {
       modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
     });
     document.body.style.overflow = "";
   }
 
   function normalizeInitialModalState() {
     closeAllModals();
+    document.body.style.removeProperty("overflow");
   }
 
   function setActiveSection(sectionName) {
@@ -2288,6 +2290,16 @@
 
     window.addEventListener("pageshow", () => {
       normalizeInitialModalState();
+    });
+
+    window.addEventListener("pagehide", () => {
+      normalizeInitialModalState();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        normalizeInitialModalState();
+      }
     });
   }
 

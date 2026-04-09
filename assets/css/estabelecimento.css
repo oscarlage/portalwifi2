@@ -755,6 +755,7 @@ td{
   background: rgba(0,0,0,.45);
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: .2s ease;
   z-index: 90;
 }
@@ -762,6 +763,7 @@ td{
 .help-drawer-backdrop.is-open{
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 .help-drawer{
@@ -1290,10 +1292,12 @@ th{
 .campaigns-page .modal-backdrop{
   display: none;
   padding: 16px;
+  pointer-events: none;
 }
 
 .campaigns-page .modal-backdrop.show{
   display: flex;
+  pointer-events: auto;
 }
 
 .campaigns-page .modal-card{
