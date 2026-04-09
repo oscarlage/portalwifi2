@@ -241,8 +241,8 @@
     const map = {
       user_created: "Usuário criado",
       user_updated: "Usuário atualizado",
-      tenant_created: "Tenant criado",
-      tenant_updated: "Tenant atualizado",
+      tenant_created: "Cliente criado",
+      tenant_updated: "Cliente atualizado",
       platform_login: "Login",
       platform_logout: "Logout",
       access_denied: "Acesso negado",
@@ -254,7 +254,7 @@
   function moduleLabel(module) {
     const map = {
       users: "Usuários",
-      tenants: "Tenants",
+      tenants: "Clientes",
       auth: "Autenticação",
       platform: "Plataforma"
     };
@@ -666,7 +666,7 @@
 
   function openTenantWorkspace(tenantId) {
     if (!tenantId) {
-      alert("Tenant inválido.");
+      alert("Cliente inválido.");
       return;
     }
 
@@ -739,7 +739,7 @@
     const currentFilter = els.userTenantFilter.value;
     const currentCreate = els.userTenantId.value;
 
-    const filterOptions = [`<option value="">Todos tenants</option>`]
+    const filterOptions = [`<option value="">Todos clientes</option>`]
       .concat(
         state.tenants.map((tenant) => (
           `<option value="${escapeHtml(tenant.id)}">${escapeHtml(tenant.name || tenant.slug || tenant.id)}</option>`
@@ -791,7 +791,7 @@
   function openEditTenantModal(tenantId) {
     const tenant = state.tenants.find((t) => String(t.id) === String(tenantId));
     if (!tenant) {
-      alert("Tenant não encontrado.");
+      alert("Cliente não encontrado.");
       return;
     }
 
@@ -1005,7 +1005,7 @@
     if (!rows.length) {
       els.tenantsTableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-row">Nenhum tenant encontrado.</td>
+          <td colspan="7" class="empty-row">Nenhum cliente encontrado.</td>
         </tr>
       `;
       return;
@@ -1171,7 +1171,7 @@
       </tr>
     `).join("") : `
       <tr>
-        <td colspan="7" class="empty-row">Nenhum tenant encontrado para os filtros atuais.</td>
+        <td colspan="7" class="empty-row">Nenhum cliente encontrado para os filtros atuais.</td>
       </tr>
     `;
   }
@@ -1187,8 +1187,8 @@
         ["Sessões ativas", overview.activeSessions],
         ["Autenticações hoje", overview.authenticationsToday],
         ["Alertas abertos", overview.openAlerts],
-        ["Tenants degradados", overview.tenantsDegraded],
-        ["Tenants críticos", overview.tenantsCritical],
+        ["Clientes degradados", overview.tenantsDegraded],
+        ["Clientes críticos", overview.tenantsCritical],
         ["Login success rate", `${overview.loginSuccessRate || 0}%`],
         ["Última checagem", formatDateTime(overview.lastCheckAt)]
       ];
@@ -1205,7 +1205,7 @@
       els.healthOverviewHighlights.innerHTML = `
         <h3>Destaques operacionais</h3>
         <ul class="health-bullets">
-          <li>${overview.tenantsActive} tenant(s) ativos no contexto global.</li>
+          <li>${overview.tenantsActive} cliente(s) ativos no contexto global.</li>
           <li>${overview.incidentsActive} incidente(s) de alta severidade em aberto.</li>
           <li>Tempo médio de sessão: ${overview.averageSessionTime || 0}s.</li>
           <li>Latência média de autenticação: ${overview.averageAuthenticationTime || "n/d"}.</li>
@@ -1371,9 +1371,9 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Erro ao carregar tenants:", error);
+      console.error("Erro ao carregar clientes:", error);
       els.tenantsTableBody.innerHTML = `
-        <tr><td colspan="7" class="empty-row">Erro ao carregar tenants.</td></tr>
+        <tr><td colspan="7" class="empty-row">Erro ao carregar clientes.</td></tr>
       `;
       state.tenants = [];
       renderMetrics();
@@ -1592,7 +1592,7 @@
       target_id: data?.id || null,
       target_label: name,
       result: "success",
-      message: "Tenant criado manualmente pela plataforma.",
+      message: "Cliente criado manualmente pela plataforma.",
       new_data: payload
     });
 
@@ -1601,7 +1601,7 @@
     await refreshAll();
     setActiveSection("tenants");
 
-    alert("Tenant criado com sucesso. Agora cadastre um usuário e vincule-o ao tenant.");
+    alert("Cliente criado com sucesso. Agora cadastre um usuário e vincule-o ao cliente.");
   }
 
   async function updateTenant() {
@@ -1611,7 +1611,7 @@
     const status = (els.editTenantStatus?.value || "active").trim();
 
     if (!tenantId) {
-      alert("Tenant inválido.");
+      alert("Cliente inválido.");
       return;
     }
 
@@ -1666,7 +1666,7 @@
       target_id: tenantId,
       target_label: name,
       result: "success",
-      message: "Tenant atualizado manualmente pela plataforma.",
+      message: "Cliente atualizado manualmente pela plataforma.",
       old_data: oldTenant,
       new_data: newData
     });
@@ -1718,7 +1718,7 @@
     }
 
     if (isTenantRole(userType) && !tenantId) {
-      alert("Usuários de tenant precisam estar vinculados a um tenant.");
+      alert("Usuários de cliente precisam estar vinculados a um cliente.");
       els.userTenantId?.focus();
       return;
     }
@@ -1869,7 +1869,7 @@
     }
 
     if (isTenantRole(userType) && !tenantId) {
-      alert("Usuários de tenant precisam estar vinculados a um tenant.");
+      alert("Usuários de cliente precisam estar vinculados a um cliente.");
       els.editUserTenantId?.focus();
       return;
     }

@@ -11,7 +11,6 @@
   <div class="box">
     <h2>Portal WiFi</h2>
     <p id="status">Verificando autenticação...</p>
-    <pre id="log"></pre>
   </div>
 
   <script>
@@ -23,7 +22,6 @@
       const SUPABASE_URL = "https://kedmyfxtxcfnyftkasfg.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_MrWt1zkvKjRgy0xWnEcVpA_SBJ7PSFO";
       
-      const logBox = document.getElementById("log");
       const statusBox = document.getElementById("status");
 
       function setStatus(text, cls = "") {
@@ -32,9 +30,7 @@
       }
 
       function addLog(obj) {
-        const txt = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-        logBox.textContent += (logBox.textContent ? "\n" : "") + txt;
-        console.log(obj);
+        console.log("[portalwifi-root]", obj);
       }
 
       function clearTenantSession() {

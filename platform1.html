@@ -15,7 +15,7 @@
 <header class="platform-topbar">
   <div class="topbar-left">
     <div class="platform-title">Nexora Command Center</div>
-    <div class="platform-subtitle">Gestão global da plataforma SaaS, tenants e operação corporativa.</div>
+    <div class="platform-subtitle">Gestão global da plataforma SaaS, clientes e operação corporativa.</div>
   </div>
 
   <div class="topbar-right">
@@ -40,7 +40,7 @@
     <nav class="platform-nav">
       <div class="nav-group-label">Gestão da Plataforma</div>
       <button class="nav-link active" data-section="overview">Visão geral</button>
-      <button class="nav-link" data-section="tenants">Tenants</button>
+      <button class="nav-link" data-section="tenants">Clientes</button>
       <button class="nav-link" data-section="users">Identidade &amp; acessos</button>
       <button class="nav-link" data-section="logs">Logs globais</button>
       <button class="nav-link" data-section="settings">Configurações globais</button>
@@ -48,7 +48,7 @@
 
       <div class="nav-group-label">Operações &amp; Saúde</div>
       <button class="nav-link" data-section="health-overview">Visão geral de saúde</button>
-      <button class="nav-link" data-section="tenant-health">Saúde dos tenants</button>
+      <button class="nav-link" data-section="tenant-health">Saúde dos clientes</button>
       <button class="nav-link" data-section="captive-metrics">Métricas do captive portal</button>
       <button class="nav-link" data-section="sessions-auth">Sessões &amp; autenticações</button>
       <button class="nav-link" data-section="radius-health">RADIUS</button>
@@ -60,11 +60,11 @@
       <div class="sidebox-title">Contexto global Nexora</div>
 
       <p class="sidebox-copy">
-        Esta área concentra a operação SaaS global. A gestão do tenant permanece isolada no workspace operacional de cada cliente.
+        Esta área concentra a operação SaaS global. A gestão de cada cliente permanece isolada no workspace operacional correspondente.
       </p>
 
       <button class="btn btn-primary full" id="btnOpenCreateTenant" type="button">
-        Novo tenant
+        Novo cliente
       </button>
 
       <button class="btn btn-light full" id="btnReloadTenants" type="button">
@@ -79,7 +79,7 @@
       <div class="section-head">
         <div>
           <h1>Visão geral</h1>
-          <p>Resumo da operação global da Nexora, separado do workspace operacional dos tenants.</p>
+          <p>Resumo da operação global da Nexora, separado do workspace operacional dos clientes.</p>
         </div>
       </div>
 
@@ -97,17 +97,17 @@
 
       <div class="cards-grid">
         <article class="metric-card">
-          <div class="metric-label">Total de tenants</div>
+          <div class="metric-label">Total de clientes</div>
           <div class="metric-value" id="metricTotalTenants">0</div>
         </article>
 
         <article class="metric-card">
-          <div class="metric-label">Tenants ativos</div>
+          <div class="metric-label">Clientes ativos</div>
           <div class="metric-value" id="metricActiveTenants">0</div>
         </article>
 
         <article class="metric-card">
-          <div class="metric-label">Tenants desabilitados</div>
+          <div class="metric-label">Clientes desabilitados</div>
           <div class="metric-value" id="metricDisabledTenants">0</div>
         </article>
 
@@ -129,7 +129,7 @@
         </article>
 
         <article class="metric-card">
-          <div class="metric-label">Usuários com tenant</div>
+          <div class="metric-label">Usuários com cliente</div>
           <div class="metric-value" id="metricTenantUsers">0</div>
         </article>
 
@@ -143,13 +143,13 @@
     <section class="section" id="section-tenants">
       <div class="section-head">
         <div>
-          <h2>Tenants</h2>
-          <p>Gerencie tenants da plataforma.</p>
+          <h2>Clientes</h2>
+          <p>Gerencie os clientes da plataforma.</p>
         </div>
 
         <div class="section-actions">
           <button class="btn btn-primary" id="btnOpenCreateTenant2" type="button">
-            Novo tenant
+            Novo cliente
           </button>
         </div>
       </div>
@@ -175,7 +175,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Tenant</th>
+                <th>Cliente</th>
                 <th>Slug</th>
                 <th>Status</th>
                 <th>Admin</th>
@@ -198,7 +198,7 @@
       <div class="section-head">
         <div>
           <h2>Identidade &amp; acessos</h2>
-          <p>Separação visual entre usuários globais da Nexora e acessos locais vinculados aos tenants.</p>
+          <p>Separação visual entre usuários globais da Nexora e acessos locais vinculados aos clientes.</p>
         </div>
 
         <div class="section-actions">
@@ -232,18 +232,18 @@
           <select id="userTypeFilter" class="input select">
             <option value="">Todos tipos</option>
             <option value="global">Global</option>
-            <option value="tenant">Tenant</option>
+            <option value="tenant">Cliente</option>
             <option value="platform_admin">Platform admin</option>
             <option value="platform_support">Platform support</option>
             <option value="platform_operations">Platform operations</option>
             <option value="platform_readonly">Platform readonly</option>
-            <option value="tenant_admin">Tenant admin</option>
-            <option value="tenant_viewer">Tenant viewer</option>
-            <option value="tenant_marketing">Tenant marketing</option>
+            <option value="tenant_admin">Cliente admin</option>
+            <option value="tenant_viewer">Cliente viewer</option>
+            <option value="tenant_marketing">Cliente marketing</option>
           </select>
 
           <select id="userTenantFilter" class="input select">
-            <option value="">Todos tenants</option>
+            <option value="">Todos clientes</option>
           </select>
         </div>
 
@@ -282,10 +282,10 @@
           <div class="split-panel">
             <div class="subsection-head">
               <div>
-                <h3>Acessos de tenant</h3>
-                <p>Perfis locais e vínculos operacionais mantidos por tenant.</p>
+                <h3>Acessos de clientes</h3>
+                <p>Perfis locais e vínculos operacionais mantidos por cliente.</p>
               </div>
-              <span class="subsection-badge alt">Contexto do tenant</span>
+              <span class="subsection-badge alt">Contexto do cliente</span>
             </div>
 
             <div class="table-wrap">
@@ -295,7 +295,7 @@
                     <th>Usuário</th>
                     <th>Email</th>
                     <th>Papel local</th>
-                    <th>Tenant(s)</th>
+                    <th>Cliente(s)</th>
                     <th>Status</th>
                     <th>Último acesso</th>
                     <th class="actions-col actions-col-medium">Ações</th>
@@ -303,7 +303,7 @@
                 </thead>
                 <tbody id="tenantAccessTableBody">
                   <tr>
-                    <td colspan="7" class="empty-row">Carregando acessos de tenant...</td>
+                    <td colspan="7" class="empty-row">Carregando acessos de clientes...</td>
                   </tr>
                 </tbody>
               </table>
@@ -333,7 +333,7 @@
           <select id="logModuleFilter" class="input select">
             <option value="">Todos módulos</option>
             <option value="users">Usuários</option>
-            <option value="tenants">Tenants</option>
+            <option value="tenants">Clientes</option>
             <option value="auth">Autenticação</option>
             <option value="platform">Plataforma</option>
           </select>
@@ -349,8 +349,8 @@
             <option value="">Todas ações</option>
             <option value="user_created">Usuário criado</option>
             <option value="user_updated">Usuário atualizado</option>
-            <option value="tenant_created">Tenant criado</option>
-            <option value="tenant_updated">Tenant atualizado</option>
+            <option value="tenant_created">Cliente criado</option>
+            <option value="tenant_updated">Cliente atualizado</option>
             <option value="platform_login">Login</option>
             <option value="platform_logout">Logout</option>
             <option value="access_denied">Acesso negado</option>
@@ -390,7 +390,7 @@
       <div class="section-head">
         <div>
           <h2>Visão geral de saúde</h2>
-          <p>Visão executiva da saúde da plataforma, dos tenants e dos serviços críticos.</p>
+          <p>Visão executiva da saúde da plataforma, dos clientes e dos serviços críticos.</p>
         </div>
       </div>
 
@@ -417,14 +417,14 @@
     <section class="section" id="section-tenant-health">
       <div class="section-head">
         <div>
-          <h2>Saúde dos tenants</h2>
-          <p>Monitoramento operacional por tenant com foco em atividade, risco e continuidade.</p>
+          <h2>Saúde dos clientes</h2>
+          <p>Monitoramento operacional por cliente com foco em atividade, risco e continuidade.</p>
         </div>
       </div>
 
       <div class="panel-card">
         <div class="toolbar">
-          <input type="text" id="tenantHealthSearch" class="input" placeholder="Buscar tenant por nome ou slug">
+          <input type="text" id="tenantHealthSearch" class="input" placeholder="Buscar cliente por nome ou slug">
 
           <select id="tenantHealthStatusFilter" class="input select">
             <option value="">Todos status</option>
@@ -451,7 +451,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Tenant</th>
+                <th>Cliente</th>
                 <th>Status operacional</th>
                 <th>Health score</th>
                 <th>Sessões</th>
@@ -462,7 +462,7 @@
             </thead>
             <tbody id="tenantHealthTableBody">
               <tr>
-                <td colspan="7" class="empty-row">Carregando saúde dos tenants...</td>
+                <td colspan="7" class="empty-row">Carregando saúde dos clientes...</td>
               </tr>
             </tbody>
           </table>
@@ -576,7 +576,7 @@
       <div class="section-head">
         <div>
           <h2>Configurações</h2>
-          <p>Preferências globais da plataforma, separadas das configurações específicas dos tenants.</p>
+          <p>Preferências globais da plataforma, separadas das configurações específicas dos clientes.</p>
         </div>
       </div>
 
@@ -615,7 +615,7 @@
               </label>
 
               <label class="field">
-                <span>Status padrão de novos tenants</span>
+                <span>Status padrão de novos clientes</span>
                 <select id="cfgDefaultTenantStatus" class="input select">
                   <option value="active">Ativo</option>
                   <option value="pending">Pendente</option>
@@ -734,7 +734,7 @@
               <li>Abertura manual de chamados</li>
               <li>Geração automática de tickets por eventos da plataforma</li>
               <li>Classificação por categoria, subcategoria e severidade</li>
-              <li>Notificação para responsáveis do tenant e equipe de suporte</li>
+              <li>Notificação para responsáveis do cliente e equipe de suporte</li>
               <li>Painel operacional de acompanhamento</li>
             </ul>
           </div>
@@ -748,16 +748,16 @@
 <div class="modal-backdrop hidden" id="modalCreateTenant">
   <div class="modal modal-sm">
     <div class="modal-head">
-      <h3>Novo tenant</h3>
+      <h3>Novo cliente</h3>
       <button class="icon-btn" data-close="modalCreateTenant" type="button" aria-label="Fechar modal">×</button>
     </div>
 
     <div class="modal-body">
       <div class="form-section">
-        <h4>Dados do tenant</h4>
+        <h4>Dados do cliente</h4>
 
         <label class="field">
-          <span>Nome do tenant</span>
+          <span>Nome do cliente</span>
           <input type="text" id="tenantName" class="input" placeholder="Ex.: Restaurante Central">
         </label>
 
@@ -783,7 +783,7 @@
       </button>
 
       <button class="btn btn-primary" id="btnCreateTenantConfirm" type="button">
-        Criar tenant
+        Criar cliente
       </button>
     </div>
   </div>
@@ -792,18 +792,18 @@
 <div class="modal-backdrop hidden" id="modalEditTenant">
   <div class="modal modal-sm">
     <div class="modal-head">
-      <h3>Editar tenant</h3>
+      <h3>Editar cliente</h3>
       <button class="icon-btn" data-close="modalEditTenant" type="button" aria-label="Fechar modal">×</button>
     </div>
 
     <div class="modal-body">
       <div class="form-section">
-        <h4>Dados do tenant</h4>
+        <h4>Dados do cliente</h4>
 
         <input type="hidden" id="editTenantId">
 
         <label class="field">
-          <span>Nome do tenant</span>
+          <span>Nome do cliente</span>
           <input type="text" id="editTenantName" class="input" placeholder="Ex.: Restaurante Central">
         </label>
 

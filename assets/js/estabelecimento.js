@@ -5,6 +5,7 @@
   const buttons = Array.from(document.querySelectorAll(".nav-item"));
   const title = document.getElementById("pageTitle");
   const subtitle = document.getElementById("pageSubtitle");
+  const workspaceBrandTitle = document.getElementById("workspaceBrandTitle");
 
   const tenantNameEl = document.getElementById("tenantName");
   const tenantSlugEl = document.getElementById("tenantSlug");
@@ -213,25 +214,28 @@
 
   function updateTenantShell() {
     const tenant = getStoredTenant();
-    const displayName = tenant.name || tenant.slug || "Estabelecimento";
+    const displayName = tenant.name || tenant.slug || "Cliente";
     const displaySub = tenant.slug
-      ? `Tenant ativo • ${tenant.slug}`
+      ? `Cliente ativo • ${tenant.slug}`
       : tenant.id
-        ? `Tenant ativo • ${tenant.id}`
-        : "Nenhum tenant selecionado";
+        ? `Cliente ativo • ${tenant.id}`
+        : "Nenhum cliente selecionado";
 
     if (tenantNameEl) tenantNameEl.textContent = displayName;
     if (tenantSlugEl) tenantSlugEl.textContent = displaySub;
+    if (workspaceBrandTitle) workspaceBrandTitle.textContent = displayName;
     if (tenantNameFooterEl) {
       tenantNameFooterEl.textContent = tenant.name || tenant.slug || tenant.id || "Não selecionado";
     }
+
+    document.title = `Nexora - ${displayName}`;
   }
 
   function ensureTenantSelected() {
     const tenant = getStoredTenant();
 
     if (!tenant.id && !tenant.slug) {
-      alert("Nenhum tenant ativo selecionado. Volte à plataforma e selecione um tenant.");
+      alert("Nenhum cliente ativo selecionado. Volte à plataforma e selecione um cliente.");
       window.location.href = "/platform.html";
       return false;
     }

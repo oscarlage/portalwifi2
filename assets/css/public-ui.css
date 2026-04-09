@@ -58,10 +58,6 @@ main.wrap {
   margin: 0 0 8px;
 }
 
-.debug-heading {
-  margin-top: 14px;
-}
-
 .box pre {
   margin-top: 16px;
   max-height: 320px;

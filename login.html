@@ -44,9 +44,6 @@
         <p><b>Usuário:</b> <span id="userEmail">—</span></p>
         <p><b>User ID:</b> <span id="userId">—</span></p>
         <p><b>Acesso:</b> <span id="access">—</span></p>
-
-        <h2 class="debug-heading">Debug</h2>
-        <pre id="log"></pre>
       </div>
     </div>
   </div>
@@ -63,8 +60,7 @@
       const $ = (id) => document.getElementById(id);
 
       const log = (obj) => {
-        const s = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-        $("log").textContent = ($("log").textContent ? $("log").textContent + "\n" : "") + s;
+        console.log("[portalwifi-login]", obj);
       };
 
       const setMsg = (t, isErr = false) => {

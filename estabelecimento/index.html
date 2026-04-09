@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nexora Tenant Workspace</title>
+  <title>Nexora Cliente Workspace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/estabelecimento.css">
@@ -12,21 +12,21 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div>
-        <div class="brand-title">Tenant Workspace</div>
-        <div class="brand-sub">Gestão operacional isolada do tenant</div>
+        <div class="brand-title" id="workspaceBrandTitle">Cliente</div>
+        <div class="brand-sub">Gestão operacional isolada do cliente</div>
       </div>
 
       <div class="side-tenant-box">
-        <div class="side-tenant-label">Tenant ativo</div>
+        <div class="side-tenant-label">Cliente ativo</div>
         <div class="side-tenant-value" id="tenantName">Carregando...</div>
         <div class="brand-sub" id="tenantSlug">Preparando contexto...</div>
       </div>
 
-      <nav class="side-nav" aria-label="Menu do tenant">
-        <button class="nav-item active" data-page="/estabelecimento/home.html" type="button">Dashboard do tenant</button>
+      <nav class="side-nav" aria-label="Menu do cliente">
+        <button class="nav-item active" data-page="/estabelecimento/home.html" type="button">Dashboard</button>
         <button class="nav-item" data-page="/estabelecimento/clientes.html" type="button">Leads &amp; clientes</button>
         <button class="nav-item" data-page="/estabelecimento/campanhas.html" type="button">Campanhas</button>
-        <button class="nav-item" data-page="/estabelecimento/configuracoes.html" type="button">Configurações do tenant</button>
+        <button class="nav-item" data-page="/estabelecimento/configuracoes.html" type="button">Configurações</button>
         <button class="nav-item" data-page="/estabelecimento/relatorios.html" type="button">Relatórios &amp; métricas</button>
       </nav>
 
@@ -47,12 +47,12 @@
         </div>
         <div class="session-pill">
           <span class="dot"></span>
-          <span>Contexto do tenant</span>
+          <span>Contexto do cliente</span>
         </div>
       </header>
 
       <div class="frame-wrap">
-        <iframe id="contentFrame" title="Conteúdo do tenant"></iframe>
+        <iframe id="contentFrame" title="Conteúdo do cliente"></iframe>
       </div>
     </main>
   </div>
