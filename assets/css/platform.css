@@ -1,17 +1,19 @@
+@import url("/assets/css/theme.css");
+
 :root{
-  --bg:#f5f7fb;
-  --card:#ffffff;
-  --text:#0f172a;
-  --muted:#56637a;
-  --line:rgba(15,23,42,.10);
-  --primary:#5b62f6;
-  --primary-soft:rgba(91,98,246,.10);
-  --danger:#d14343;
-  --danger-soft:#fff1f1;
-  --dark:#111b34;
-  --ok:#20b15a;
-  --radius:18px;
-  --shadow:0 10px 30px rgba(15,23,42,.08);
+  --bg: var(--ds-bg-main);
+  --card: var(--ds-bg-card);
+  --text: var(--ds-text-primary);
+  --muted: var(--ds-text-secondary);
+  --line: var(--ds-border);
+  --primary: var(--ds-color-primary);
+  --primary-soft: var(--ds-color-primary-soft);
+  --danger: var(--ds-color-danger);
+  --danger-soft: var(--ds-color-danger-soft);
+  --dark: var(--ds-text-primary);
+  --ok: var(--ds-color-success);
+  --radius: var(--ds-radius-lg);
+  --shadow: var(--ds-shadow-md);
 }
 
 *{box-sizing:border-box}
@@ -19,7 +21,7 @@ html,body{margin:0;padding:0}
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:Inter,system-ui,sans-serif;
+  font-family:var(--ds-font-sans);
 }
 
 .platform-topbar{
@@ -27,7 +29,7 @@ body{
   justify-content:space-between;
   align-items:flex-start;
   gap:20px;
-  padding:18px 24px 8px;
+  padding:22px 28px 10px;
 }
 
 .platform-title{
@@ -68,14 +70,19 @@ body{
 .platform-shell{
   display:grid;
   grid-template-columns:260px 1fr;
-  gap:20px;
-  padding:14px 24px 24px;
+  gap:22px;
+  padding:16px 28px 28px;
 }
 
 .platform-sidebar{
   display:flex;
   flex-direction:column;
   gap:16px;
+}
+
+.platform-sidebar,
+.platform-main {
+  min-width: 0;
 }
 
 .platform-nav,
@@ -118,7 +125,8 @@ body{
 .nav-link:hover,
 .nav-link.active{
   background:var(--primary-soft);
-  border-color:rgba(91,98,246,.25);
+  border-color:var(--ds-color-primary-soft-strong);
+  color:var(--ds-color-primary-hover);
 }
 
 .platform-sidebox{
@@ -245,8 +253,8 @@ body{
 .context-banner{
   margin-bottom:20px;
   padding:18px;
-  border:1px solid rgba(91,98,246,.18);
-  background:linear-gradient(135deg, rgba(91,98,246,.08), rgba(17,27,52,.02));
+  border:1px solid var(--ds-color-primary-soft-strong);
+  background:linear-gradient(135deg, rgba(79,107,237,.08), rgba(255,255,255,.92));
   border-radius:var(--radius);
   display:flex;
   justify-content:space-between;
@@ -508,7 +516,7 @@ body{
 }
 
 .form-section{
-  background:#fafbff;
+  background:var(--ds-bg-card-alt);
   border:1px solid var(--line);
   border-radius:16px;
   padding:16px;
