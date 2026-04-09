@@ -49,6 +49,10 @@ const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
 };
 
+const CAMPAIGN_MEDIA_BUCKET = "campaign-media";
+const CAMPAIGN_MEDIA_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const CAMPAIGN_MEDIA_MAX_BYTES = 5 * 1024 * 1024;
+
 function json(data: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(data, null, 2), {
     ...init,
@@ -200,6 +204,102 @@ async function supabaseAuthRequest<T>(
   return readSupabaseResponse<T>(response);
 }
 
+async function supabaseStorageRequest<T>(
+  env: Env,
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const { url, serviceRoleKey } = getSupabaseConfig(env);
+  const response = await fetch(`${url}/storage/v1/${path}`, {
+    ...init,
+    headers: createSupabaseHeaders(serviceRoleKey, {
+      ...(init.headers || {}),
+    }),
+  });
+  return readSupabaseResponse<T>(response);
+}
+
+function getSupabaseOrigin(env: Env): string {
+  const { url } = getSupabaseConfig(env);
+  const parsed = new URL(url);
+  return parsed.origin;
+}
+
+function encodeStoragePath(path: string): string {
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+}
+
+function getPublicStorageUrl(env: Env, bucket: string, path: string): string {
+  return `${getSupabaseOrigin(env)}/storage/v1/object/public/${bucket}/${encodeStoragePath(path)}`;
+}
+
+async function ensureStorageBucket(
+  env: Env,
+  bucketId: string,
+  options: { public: boolean; fileSizeLimit?: number; allowedMimeTypes?: string[] },
+): Promise<void> {
+  try {
+    await supabaseStorageRequest(env, `bucket/${encodeURIComponent(bucketId)}`, {
+      method: "GET",
+    });
+    return;
+  } catch (error) {
+    if (!(error instanceof HttpError) || error.status !== 404) {
+      throw error;
+    }
+  }
+
+  await supabaseStorageRequest(env, "bucket", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      id: bucketId,
+      name: bucketId,
+      public: options.public,
+      file_size_limit: options.fileSizeLimit,
+      allowed_mime_types: options.allowedMimeTypes,
+    }),
+  });
+}
+
+async function uploadStorageObject(
+  env: Env,
+  bucketId: string,
+  objectPath: string,
+  file: File,
+): Promise<void> {
+  await supabaseStorageRequest(env, `object/${encodeURIComponent(bucketId)}/${encodeStoragePath(objectPath)}`, {
+    method: "POST",
+    headers: {
+      "content-type": file.type || "application/octet-stream",
+      "cache-control": "3600",
+      "x-upsert": "false",
+    },
+    body: await file.arrayBuffer(),
+  });
+}
+
+async function deleteStorageObjects(env: Env, bucketId: string, objectPaths: string[]): Promise<void> {
+  const uniquePaths = Array.from(new Set(objectPaths.filter(Boolean)));
+  if (!uniquePaths.length) {
+    return;
+  }
+
+  await supabaseStorageRequest(env, `object/${encodeURIComponent(bucketId)}`, {
+    method: "DELETE",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ prefixes: uniquePaths }),
+  });
+}
+
 function normalizePhone(value: unknown): string | null {
   const digits = String(value || "").replace(/\D+/g, "");
   return digits || null;
@@ -312,6 +412,135 @@ function getHourRange(searchParams: URLSearchParams): { from: number; to: number
   }
 
   return { from, to };
+}
+
+function normalizeFileName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase() || "media";
+}
+
+function parseCampaignRenderConfig(value: unknown): JsonRecord {
+  return typeof value === "object" && value !== null ? value as JsonRecord : {};
+}
+
+function getManagedCampaignMediaPath(env: Env, imageUrl: unknown, renderConfig: unknown): string | null {
+  const config = parseCampaignRenderConfig(renderConfig);
+  const configuredPath = normalizeText(config.managed_media_path);
+  if (configuredPath) {
+    return configuredPath;
+  }
+
+  const urlValue = normalizeText(imageUrl);
+  if (!urlValue) {
+    return null;
+  }
+
+  const publicBase = `${getSupabaseOrigin(env)}/storage/v1/object/public/${CAMPAIGN_MEDIA_BUCKET}/`;
+  if (!urlValue.startsWith(publicBase)) {
+    return null;
+  }
+
+  return decodeURIComponent(urlValue.slice(publicBase.length));
+}
+
+function isExpiredCampaign(endsAt: unknown): boolean {
+  const normalized = normalizeText(endsAt);
+  if (!normalized) {
+    return false;
+  }
+
+  const timestamp = Date.parse(normalized);
+  return Number.isFinite(timestamp) && timestamp < Date.now();
+}
+
+async function cleanupExpiredCampaignMedia(tenantId: string, env: Env): Promise<void> {
+  const expiredItems = await supabaseSelect<Array<JsonRecord>>(
+    env,
+    `wifi_campaigns?select=id,image_url,ends_at,render_config&tenant_id=eq.${tenantId}&ends_at=lt.${encodeURIComponent(new Date().toISOString())}&image_url=not.is.null`,
+  );
+
+  for (const item of expiredItems) {
+    const mediaPath = getManagedCampaignMediaPath(env, item.image_url, item.render_config);
+    if (!mediaPath) {
+      continue;
+    }
+
+    await deleteStorageObjects(env, CAMPAIGN_MEDIA_BUCKET, [mediaPath]);
+
+    const nextRenderConfig = {
+      ...parseCampaignRenderConfig(item.render_config),
+      managed_media_path: null,
+    };
+
+    await supabaseMutate<Array<JsonRecord>>(
+      env,
+      `wifi_campaigns?id=eq.${item.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          image_url: null,
+          render_config: nextRenderConfig,
+        }),
+      },
+    );
+  }
+}
+
+async function handleAdminPortalSettings(url: URL, env: Env): Promise<Response> {
+  const tenantId = await findTenantId(env, url.searchParams.get("tenant_id"), url.searchParams.get("tenant_slug"));
+  const items = await supabaseSelect<Array<JsonRecord>>(
+    env,
+    `portal_settings?select=tenant_id,brand_name,social_links&tenant_id=eq.${tenantId}&limit=1`,
+  );
+  return json(items[0] || null);
+}
+
+async function handleCampaignMediaUpload(request: Request, env: Env): Promise<Response> {
+  const formData = await request.formData();
+  const fileEntry = formData.get("file");
+  const tenantId = await findTenantId(
+    env,
+    normalizeText(formData.get("tenant_id")),
+    normalizeText(formData.get("tenant_slug")),
+  );
+
+  if (!(fileEntry instanceof File)) {
+    return json({ ok: false, error: "Arquivo não informado." }, { status: 400 });
+  }
+
+  if (!CAMPAIGN_MEDIA_ALLOWED_TYPES.includes(fileEntry.type)) {
+    return json({ ok: false, error: "Formato de mídia inválido. Use JPG, PNG ou WEBP." }, { status: 400 });
+  }
+
+  if (fileEntry.size > CAMPAIGN_MEDIA_MAX_BYTES) {
+    return json({ ok: false, error: "A mídia excede o limite de 5 MB." }, { status: 400 });
+  }
+
+  await ensureStorageBucket(env, CAMPAIGN_MEDIA_BUCKET, {
+    public: true,
+    fileSizeLimit: CAMPAIGN_MEDIA_MAX_BYTES,
+    allowedMimeTypes: CAMPAIGN_MEDIA_ALLOWED_TYPES,
+  });
+
+  const campaignId = normalizeText(formData.get("campaign_id")) || "draft";
+  const extension = normalizeFileName(fileEntry.name).split(".").pop() || "bin";
+  const objectPath = `tenants/${tenantId}/campaigns/${campaignId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+  await uploadStorageObject(env, CAMPAIGN_MEDIA_BUCKET, objectPath, fileEntry);
+
+  return json({
+    ok: true,
+    path: objectPath,
+    url: getPublicStorageUrl(env, CAMPAIGN_MEDIA_BUCKET, objectPath),
+  }, { status: 201 });
 }
 
 async function findTenantId(env: Env, tenantId?: string | null, tenantSlug?: string | null): Promise<string> {
@@ -803,6 +1032,7 @@ function mapCampaignPayload(body: JsonRecord): JsonRecord {
 async function handleCampaigns(request: Request, url: URL, env: Env): Promise<Response> {
   if (request.method === "GET") {
     const tenantId = await findTenantId(env, url.searchParams.get("tenant_id"), url.searchParams.get("tenant_slug"));
+    await cleanupExpiredCampaignMedia(tenantId, env);
     const items = await supabaseSelect<Array<JsonRecord>>(
       env,
       `wifi_campaigns?select=*&tenant_id=eq.${tenantId}&order=priority.desc,created_at.desc`,
@@ -817,13 +1047,18 @@ async function handleCampaigns(request: Request, url: URL, env: Env): Promise<Re
       return json({ ok: false, error: "campaign id inválido." }, { status: 400 });
     }
 
-    const existing = await supabaseSelect<Array<{ id: string }>>(
+    const existing = await supabaseSelect<Array<JsonRecord>>(
       env,
-      `wifi_campaigns?select=id&id=eq.${campaignId}&limit=1`,
+      `wifi_campaigns?select=id,image_url,render_config&id=eq.${campaignId}&limit=1`,
     );
 
     if (!existing.length) {
       return json({ ok: false, error: "campaign id não encontrado." }, { status: 404 });
+    }
+
+    const mediaPath = getManagedCampaignMediaPath(env, existing[0].image_url, existing[0].render_config);
+    if (mediaPath) {
+      await deleteStorageObjects(env, CAMPAIGN_MEDIA_BUCKET, [mediaPath]);
     }
 
     await supabaseMutate<Array<JsonRecord>>(
@@ -860,6 +1095,15 @@ async function handleCampaigns(request: Request, url: URL, env: Env): Promise<Re
   }
 
   if (request.method === "PUT") {
+    const existing = await supabaseSelect<Array<JsonRecord>>(
+      env,
+      `wifi_campaigns?select=id,image_url,render_config&id=eq.${campaignId}&tenant_id=eq.${tenantId}&limit=1`,
+    );
+
+    if (!existing.length) {
+      return json({ ok: false, error: "campaign id não encontrado." }, { status: 404 });
+    }
+
     const updated = await supabaseMutate<Array<JsonRecord>>(
       env,
       `wifi_campaigns?id=eq.${campaignId}&tenant_id=eq.${tenantId}`,
@@ -871,6 +1115,38 @@ async function handleCampaigns(request: Request, url: URL, env: Env): Promise<Re
         body: JSON.stringify(payload),
       },
     );
+
+    const previousPath = getManagedCampaignMediaPath(env, existing[0].image_url, existing[0].render_config);
+    const nextPath = getManagedCampaignMediaPath(env, updated[0]?.image_url, updated[0]?.render_config);
+    if (previousPath && previousPath !== nextPath) {
+      await deleteStorageObjects(env, CAMPAIGN_MEDIA_BUCKET, [previousPath]);
+    }
+
+    if (nextPath && isExpiredCampaign(updated[0]?.ends_at)) {
+      await deleteStorageObjects(env, CAMPAIGN_MEDIA_BUCKET, [nextPath]);
+
+      const sanitizedRenderConfig = {
+        ...parseCampaignRenderConfig(updated[0]?.render_config),
+        managed_media_path: null,
+      };
+
+      const sanitized = await supabaseMutate<Array<JsonRecord>>(
+        env,
+        `wifi_campaigns?id=eq.${campaignId}&tenant_id=eq.${tenantId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            image_url: null,
+            render_config: sanitizedRenderConfig,
+          }),
+        },
+      );
+      return json(sanitized[0] || null);
+    }
+
     return json(updated[0] || null);
   }
 
@@ -918,6 +1194,14 @@ export default {
 
       if (url.pathname === "/api/admin/campaigns" || url.pathname.startsWith("/api/admin/campaigns/")) {
         return await handleCampaigns(request, url, env);
+      }
+
+      if (url.pathname === "/api/admin/portal-settings" && request.method === "GET") {
+        return await handleAdminPortalSettings(url, env);
+      }
+
+      if (url.pathname === "/api/admin/campaign-media" && request.method === "POST") {
+        return await handleCampaignMediaUpload(request, env);
       }
 
       if (url.pathname === "/api/admin/users/temp-password" && request.method === "POST") {

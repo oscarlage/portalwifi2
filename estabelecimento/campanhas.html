@@ -100,6 +100,13 @@
               <div class="form-group">
                 <label for="campaignImageUrl">Imagem / banner URL</label>
                 <input type="url" id="campaignImageUrl" placeholder="https://...">
+                <div class="inline-actions">
+                  <button type="button" class="btn-secondary" id="openMediaUploadModal">Inserir mídia</button>
+                  <button type="button" class="btn-secondary hidden" id="clearCampaignImageBtn">Remover mídia</button>
+                </div>
+                <div class="input-help input-help-emphasis" id="campaignImageStatus">
+                  Você pode colar uma URL pública ou enviar a mídia pela plataforma. Quando enviada por aqui, a URL será preenchida automaticamente.
+                </div>
                 <div class="input-help">
                   URL pública da imagem que será exibida no portal.<br>
                   <strong>Dimensão ideal:</strong> 1200 x 675 px ou proporção próxima de 16:9.<br>
@@ -134,6 +141,16 @@
               </div>
 
               <div class="form-group">
+                <label for="campaignButtonSource">Vincular botão a</label>
+                <select id="campaignButtonSource">
+                  <option value="manual">URL manual</option>
+                </select>
+                <div class="input-help" id="campaignButtonSourceHelp">
+                  Escolha uma origem já cadastrada em Configurações para preencher automaticamente a URL do botão.
+                </div>
+              </div>
+
+              <div class="form-group">
                 <label for="campaignButtonUrl">URL do botão</label>
                 <input type="url" id="campaignButtonUrl" placeholder="https://...">
                 <div class="input-help">
@@ -143,34 +160,17 @@
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="campaignInstagramUrl">Instagram</label>
-                <input type="url" id="campaignInstagramUrl" placeholder="https://instagram.com/...">
-                <div class="input-help">
-                  Link do Instagram do estabelecimento.<br>
-                  Exemplo: <strong>https://instagram.com/seuperfil</strong>.
+              <div class="form-group full">
+                <label>Redes e canais reaproveitados de Configurações</label>
+                <div class="social-source-summary" id="campaignSocialLinksSummary">
+                  Carregando canais configurados...
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label for="campaignFacebookUrl">Facebook</label>
-                <input type="url" id="campaignFacebookUrl" placeholder="https://facebook.com/...">
                 <div class="input-help">
-                  Link da página do Facebook do estabelecimento.<br>
-                  Use somente se realmente estiver ativa e atualizada.
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="campaignWhatsappUrl">WhatsApp</label>
-                <input type="url" id="campaignWhatsappUrl" placeholder="https://wa.me/...">
-                <div class="input-help">
-                  Link direto para atendimento ou pedidos via WhatsApp.<br>
-                  Exemplo: <strong>https://wa.me/5531999999999</strong>.<br>
-                  Use o número com DDI e DDD, sem espaços nem símbolos.
+                  Instagram, Facebook, WhatsApp e site passam a ser herdados automaticamente das Configurações do portal, evitando divergência entre campanha e identidade do estabelecimento.
                 </div>
               </div>
             </div>
+
           </div>
 
           <div class="section-block">
@@ -312,41 +312,13 @@
 
             <div class="preview-wrap">
               <div class="preview-card">
-                <div class="preview-inner" id="campaignPreview"></div>
-              </div>
-
-              <div class="preview-meta">
-                <h4>Resumo técnico</h4>
-                <div class="meta-list" id="campaignPreviewMeta"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <div>
-            <button type="button" class="btn-danger hidden" id="deleteCampaignBtn">Excluir campanha</button>
-          </div>
-
-          <div class="modal-actions-row">
-            <button type="button" class="btn-secondary" id="cancelCampaignModal">Cancelar</button>
-            <button type="submit" class="btn-primary">Salvar campanha</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-<script>
-  window.PORTAL_SETTINGS = {
-    apiBase: "https://portalwifi-api.oscar-lage.workers.dev",
-    tenantId: "8814c725-ff72-41f2-be86-e9671bcc6c7b",
-    primaryColor: "#0f766e",
-    secondaryColor: "#1e293b",
-    textColor: "#ffffff",
-    buttonColor: "#ffffff",
-    buttonTextColor: "#0f172a"
-  };
+                <label>Redes e canais reaproveitados de Configurações</label>
+                <div class="social-source-summary" id="campaignSocialLinksSummary">
+                  Carregando canais configurados...
+                </div>
+                <div class="input-help">
+                  Instagram, Facebook, WhatsApp e site passam a ser herdados automaticamente das Configurações do portal, evitando divergência entre campanha e identidade do estabelecimento.
+                </div>
 </script>
 
   <script src="/assets/js/campanhas.js"></script>

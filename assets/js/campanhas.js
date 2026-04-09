@@ -32,13 +32,16 @@
   const campaignSubtitle = document.getElementById("campaignSubtitle");
   const campaignMessage = document.getElementById("campaignMessage");
   const campaignImageUrl = document.getElementById("campaignImageUrl");
+  const openMediaUploadModalBtn = document.getElementById("openMediaUploadModal");
+  const clearCampaignImageBtn = document.getElementById("clearCampaignImageBtn");
+  const campaignImageStatus = document.getElementById("campaignImageStatus");
   const campaignCouponCode = document.getElementById("campaignCouponCode");
 
   const campaignButtonLabel = document.getElementById("campaignButtonLabel");
+  const campaignButtonSource = document.getElementById("campaignButtonSource");
+  const campaignButtonSourceHelp = document.getElementById("campaignButtonSourceHelp");
   const campaignButtonUrl = document.getElementById("campaignButtonUrl");
-  const campaignInstagramUrl = document.getElementById("campaignInstagramUrl");
-  const campaignFacebookUrl = document.getElementById("campaignFacebookUrl");
-  const campaignWhatsappUrl = document.getElementById("campaignWhatsappUrl");
+  const campaignSocialLinksSummary = document.getElementById("campaignSocialLinksSummary");
 
   const campaignType = document.getElementById("campaignType");
   const campaignActive = document.getElementById("campaignActive");
@@ -63,8 +66,22 @@
   const campaignPreview = document.getElementById("campaignPreview");
   const campaignPreviewMeta = document.getElementById("campaignPreviewMeta");
 
+  const campaignMediaModal = document.getElementById("campaignMediaModal");
+  const closeCampaignMediaModalBtn = document.getElementById("closeCampaignMediaModal");
+  const cancelCampaignMediaModalBtn = document.getElementById("cancelCampaignMediaModal");
+  const selectCampaignMediaBtn = document.getElementById("selectCampaignMediaBtn");
+  const campaignMediaFileInput = document.getElementById("campaignMediaFile");
+  const campaignMediaFileName = document.getElementById("campaignMediaFileName");
+  const campaignMediaUploadStatus = document.getElementById("campaignMediaUploadStatus");
+  const confirmCampaignMediaUploadBtn = document.getElementById("confirmCampaignMediaUpload");
+
   let campaignsCache = [];
+  let portalSettingsCache = null;
+  let socialLinksCache = [];
+  let currentManagedMediaPath = "";
+  let selectedMediaFile = null;
   let isSaving = false;
+  let isUploadingMedia = false;
   let canManageCurrentTenant = true;
 
   function escapeHtml(str) {
@@ -151,6 +168,150 @@
     );
 
     setReadOnlyMode(!allowed);
+  }
+
+  function getDefaultExtendedRenderConfig() {
+    return {
+      ...getDefaultRenderConfig(),
+      button_source: "manual",
+      managed_media_path: null
+    };
+  }
+
+  function normalizeSocialLinkName(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    const aliases = {
+      instagram: "instagram",
+      facebook: "facebook",
+      whatsapp: "whatsapp",
+      site: "site",
+      website: "site",
+      web: "site"
+    };
+
+    return aliases[normalized] || normalized;
+  }
+
+  function getEnabledSocialLinks() {
+    return socialLinksCache.filter((item) => item.enabled && isValidHttpUrl(item.url));
+  }
+
+  function getSocialLinkByName(name) {
+    return getEnabledSocialLinks().find((item) => normalizeSocialLinkName(item.name) === normalizeSocialLinkName(name)) || null;
+  }
+
+  function inferButtonSource(buttonUrl) {
+    const normalizedUrl = String(buttonUrl || "").trim();
+    if (!normalizedUrl) return "manual";
+
+    const match = getEnabledSocialLinks().find((item) => item.url === normalizedUrl);
+    return match ? normalizeSocialLinkName(match.name) : "manual";
+  }
+
+  function renderSocialLinksSummary() {
+    if (!campaignSocialLinksSummary) return;
+
+    const enabledLinks = getEnabledSocialLinks();
+    if (!enabledLinks.length) {
+      campaignSocialLinksSummary.innerHTML = '<span class="social-source-empty">Nenhum canal ativo encontrado em Configurações. Configure Instagram, Facebook, WhatsApp ou site para reaproveitar aqui.</span>';
+      return;
+    }
+
+    campaignSocialLinksSummary.innerHTML = enabledLinks.map((item) => `
+      <div class="social-source-chip">
+        <strong>${escapeHtml(item.label || item.name)}</strong>
+        <span>${escapeHtml(item.url)}</span>
+      </div>
+    `).join("");
+  }
+
+  function populateButtonSourceOptions(selectedSource = "manual", manualUrl = "") {
+    if (!campaignButtonSource) return;
+
+    const enabledLinks = getEnabledSocialLinks();
+    const options = [{ value: "manual", label: "URL manual" }]
+      .concat(enabledLinks.map((item) => ({
+        value: normalizeSocialLinkName(item.name),
+        label: item.label || item.name
+      })));
+
+    campaignButtonSource.innerHTML = options.map((item) => `
+      <option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>
+    `).join("");
+
+    const allowedValues = new Set(options.map((item) => item.value));
+    const nextValue = allowedValues.has(selectedSource) ? selectedSource : inferButtonSource(manualUrl);
+    campaignButtonSource.value = allowedValues.has(nextValue) ? nextValue : "manual";
+    syncButtonUrlFromSource();
+  }
+
+  function syncButtonUrlFromSource() {
+    if (!campaignButtonSource || !campaignButtonUrl) return;
+
+    const source = campaignButtonSource.value || "manual";
+    const linkedSocial = source === "manual" ? null : getSocialLinkByName(source);
+
+    if (source === "manual") {
+      campaignButtonUrl.readOnly = false;
+      campaignButtonUrl.removeAttribute("aria-readonly");
+      campaignButtonUrl.placeholder = "https://...";
+      if (campaignButtonSourceHelp) {
+        campaignButtonSourceHelp.textContent = getEnabledSocialLinks().length
+          ? "Escolha uma origem já cadastrada em Configurações para preencher automaticamente a URL do botão."
+          : "Nenhum canal ativo encontrado em Configurações. Use URL manual ou cadastre canais na tela de Configurações.";
+      }
+      return;
+    }
+
+    campaignButtonUrl.value = linkedSocial?.url || "";
+    campaignButtonUrl.readOnly = true;
+    campaignButtonUrl.setAttribute("aria-readonly", "true");
+    campaignButtonUrl.placeholder = linkedSocial?.url || "URL herdada das Configurações";
+
+    if (campaignButtonSourceHelp) {
+      campaignButtonSourceHelp.textContent = linkedSocial
+        ? `A URL do botão está sendo herdada de ${linkedSocial.label || linkedSocial.name} nas Configurações do portal.`
+        : "A origem selecionada não possui URL ativa em Configurações.";
+    }
+  }
+
+  function getDerivedSocialUrls() {
+    return {
+      instagram_url: getSocialLinkByName("instagram")?.url || null,
+      facebook_url: getSocialLinkByName("facebook")?.url || null,
+      whatsapp_url: getSocialLinkByName("whatsapp")?.url || null,
+      site_url: getSocialLinkByName("site")?.url || null
+    };
+  }
+
+  async function loadPortalSettings() {
+    if (!TENANT_ID || !API_BASE) {
+      portalSettingsCache = null;
+      socialLinksCache = [];
+      renderSocialLinksSummary();
+      populateButtonSourceOptions();
+      return;
+    }
+
+    try {
+      const data = await apiFetch(`${API_BASE}/api/admin/portal-settings?tenant_id=${encodeURIComponent(TENANT_ID)}`);
+      portalSettingsCache = data || null;
+      socialLinksCache = Array.isArray(data?.social_links)
+        ? data.social_links.map((item) => ({
+            name: normalizeSocialLinkName(item?.name),
+            label: String(item?.label || item?.name || "Canal").trim(),
+            url: String(item?.url || "").trim(),
+            enabled: !!item?.enabled
+          }))
+        : [];
+    } catch (error) {
+      console.warn("Não foi possível carregar os canais configurados do portal:", error);
+      portalSettingsCache = null;
+      socialLinksCache = [];
+    }
+
+    renderSocialLinksSummary();
+    populateButtonSourceOptions(campaignButtonSource?.value || "manual", campaignButtonUrl?.value || "");
   }
 
   function isValidHttpUrl(value) {
@@ -263,7 +424,7 @@
   }
 
   function applyRenderConfigToForm(config) {
-    const cfg = { ...getDefaultRenderConfig(), ...safeJsonParse(config, {}) };
+    const cfg = { ...getDefaultExtendedRenderConfig(), ...safeJsonParse(config, {}) };
 
     cfgShowTitle.checked = !!cfg.show_title;
     cfgShowSubtitle.checked = !!cfg.show_subtitle;
@@ -272,6 +433,11 @@
     cfgShowButton.checked = !!cfg.show_button;
     cfgShowSocials.checked = !!cfg.show_socials;
     cfgShowCoupon.checked = !!cfg.show_coupon;
+
+    if (campaignButtonSource) {
+      const source = typeof cfg.button_source === "string" ? cfg.button_source : "manual";
+      populateButtonSourceOptions(source, campaignButtonUrl?.value || "");
+    }
   }
 
   function getPortalTheme() {
@@ -336,6 +502,7 @@
   function resetForm() {
     campaignForm.reset();
     campaignId.value = "";
+    currentManagedMediaPath = "";
     campaignType.value = "portal";
     campaignActive.value = "true";
     campaignPriority.value = "0";
@@ -347,8 +514,11 @@
     campaignUseCustomColors.checked = false;
 
     applyRenderConfigToForm(getDefaultRenderConfig());
+    populateButtonSourceOptions("manual", "");
     deleteCampaignBtn.classList.add("hidden");
     campaignModalTitle.textContent = "Nova campanha";
+    resetMediaUploadState();
+    updateCampaignImageState();
     renderPreview();
   }
 
@@ -362,6 +532,7 @@
   function closeModal() {
     campaignModal.classList.remove("show");
     campaignModal.setAttribute("aria-hidden", "true");
+    closeMediaModal();
     document.body.style.overflow = "";
   }
 
@@ -369,7 +540,64 @@
     if (!campaignModal) return;
     campaignModal.classList.remove("show");
     campaignModal.setAttribute("aria-hidden", "true");
+    normalizeMediaModalState();
     document.body.style.removeProperty("overflow");
+  }
+
+  function resetMediaUploadState() {
+    selectedMediaFile = null;
+    if (campaignMediaFileInput) {
+      campaignMediaFileInput.value = "";
+    }
+    if (campaignMediaFileName) {
+      campaignMediaFileName.textContent = "Nenhum arquivo selecionado.";
+    }
+    if (campaignMediaUploadStatus) {
+      campaignMediaUploadStatus.textContent = "A URL será criada automaticamente após o envio.";
+    }
+  }
+
+  function updateCampaignImageState() {
+    if (clearCampaignImageBtn) {
+      clearCampaignImageBtn.classList.toggle("hidden", !campaignImageUrl.value.trim());
+    }
+
+    if (!campaignImageStatus) return;
+
+    if (currentManagedMediaPath && campaignImageUrl.value.trim()) {
+      campaignImageStatus.textContent = "Mídia hospedada pela plataforma. Se a campanha vencer, a arte for trocada ou a campanha for removida, o arquivo será descartado automaticamente.";
+      return;
+    }
+
+    if (campaignImageUrl.value.trim()) {
+      campaignImageStatus.textContent = "URL externa informada manualmente. Nesse caso, o arquivo permanece sob responsabilidade do endereço informado.";
+      return;
+    }
+
+    campaignImageStatus.textContent = "Você pode colar uma URL pública ou enviar a mídia pela plataforma. Quando enviada por aqui, a URL será preenchida automaticamente.";
+  }
+
+  function openMediaModal() {
+    if (!campaignMediaModal) return;
+    campaignMediaModal.classList.add("show");
+    campaignMediaModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeMediaModal() {
+    if (!campaignMediaModal) return;
+    campaignMediaModal.classList.remove("show");
+    campaignMediaModal.setAttribute("aria-hidden", "true");
+
+    if (!campaignModal.classList.contains("show")) {
+      document.body.style.overflow = "";
+    }
+  }
+
+  function normalizeMediaModalState() {
+    if (!campaignMediaModal) return;
+    campaignMediaModal.classList.remove("show");
+    campaignMediaModal.setAttribute("aria-hidden", "true");
   }
 
   async function apiFetch(url, options = {}) {
@@ -418,7 +646,7 @@
       button_text_color: item.button_text_color || "",
       use_custom_colors: !!item.bg_color || !!item.text_color || !!item.button_bg_color || !!item.button_text_color,
       render_config: {
-        ...getDefaultRenderConfig(),
+        ...getDefaultExtendedRenderConfig(),
         ...safeJsonParse(item.render_config, {})
       },
       created_at: item.created_at || null,
@@ -500,6 +728,8 @@
   }
 
   function getPayloadFromForm() {
+    const socialUrls = getDerivedSocialUrls();
+
     return {
       tenant_id: TENANT_ID,
       title: campaignTitle.value.trim(),
@@ -508,9 +738,9 @@
       image_url: campaignImageUrl.value.trim() || null,
       button_label: campaignButtonLabel.value.trim() || null,
       button_url: campaignButtonUrl.value.trim() || null,
-      instagram_url: campaignInstagramUrl.value.trim() || null,
-      facebook_url: campaignFacebookUrl.value.trim() || null,
-      whatsapp_url: campaignWhatsappUrl.value.trim() || null,
+      instagram_url: socialUrls.instagram_url,
+      facebook_url: socialUrls.facebook_url,
+      whatsapp_url: socialUrls.whatsapp_url,
       coupon_code: campaignCouponCode.value.trim() || null,
       active: campaignActive.value === "true",
       starts_at: toIsoDateTime(campaignStartsAt.value),
@@ -521,7 +751,11 @@
       text_color: campaignUseCustomColors.checked ? campaignTextColor.value : null,
       button_bg_color: campaignUseCustomColors.checked ? campaignButtonBgColor.value : null,
       button_text_color: campaignUseCustomColors.checked ? campaignButtonTextColor.value : null,
-      render_config: getRenderConfigFromForm()
+      render_config: {
+        ...getRenderConfigFromForm(),
+        button_source: campaignButtonSource?.value || "manual",
+        managed_media_path: currentManagedMediaPath || null
+      }
     };
   }
 
@@ -551,15 +785,15 @@
     }
 
     if (payload.instagram_url && !isValidHttpUrl(payload.instagram_url)) {
-      return "A URL do Instagram é inválida.";
+      return "A URL herdada do Instagram é inválida. Revise o canal em Configurações.";
     }
 
     if (payload.facebook_url && !isValidHttpUrl(payload.facebook_url)) {
-      return "A URL do Facebook é inválida.";
+      return "A URL herdada do Facebook é inválida. Revise o canal em Configurações.";
     }
 
     if (payload.whatsapp_url && !isValidHttpUrl(payload.whatsapp_url)) {
-      return "A URL do WhatsApp é inválida.";
+      return "A URL herdada do WhatsApp é inválida. Revise o canal em Configurações.";
     }
 
     if (payload.bg_color && !isValidHexColor(payload.bg_color)) {
@@ -590,6 +824,10 @@
       return "Para exibir o botão, informe texto e URL do botão.";
     }
 
+    if (payload.render_config.show_button && payload.render_config.button_source !== "manual" && !payload.button_url) {
+      return "A origem selecionada para o botão não possui URL ativa nas Configurações do portal.";
+    }
+
     return null;
   }
 
@@ -613,8 +851,76 @@
     });
   }
 
+  async function uploadCampaignMedia(file) {
+    const formData = new FormData();
+    formData.set("tenant_id", TENANT_ID);
+    formData.set("file", file);
+
+    if (campaignId.value) {
+      formData.set("campaign_id", campaignId.value);
+    }
+
+    if (campaignEndsAt.value) {
+      formData.set("campaign_ends_at", toIsoDateTime(campaignEndsAt.value) || "");
+    }
+
+    const response = await fetch(`${API_BASE}/api/admin/campaign-media`, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `Erro HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async function handleCampaignMediaUpload() {
+    if (isUploadingMedia) return;
+
+    if (!canManageCurrentTenant) {
+      alert("Seu perfil possui acesso somente leitura para campanhas deste tenant.");
+      return;
+    }
+
+    if (!API_BASE || !TENANT_ID) {
+      alert("Não foi possível enviar a mídia porque a configuração da campanha está incompleta.");
+      return;
+    }
+
+    if (!(selectedMediaFile instanceof File)) {
+      alert("Selecione um arquivo de imagem antes de enviar.");
+      return;
+    }
+
+    try {
+      isUploadingMedia = true;
+      if (campaignMediaUploadStatus) {
+        campaignMediaUploadStatus.textContent = "Enviando mídia...";
+      }
+
+      const result = await uploadCampaignMedia(selectedMediaFile);
+      campaignImageUrl.value = String(result?.url || "").trim();
+      currentManagedMediaPath = String(result?.path || "").trim();
+      updateCampaignImageState();
+      renderPreview();
+      closeMediaModal();
+      resetMediaUploadState();
+    } catch (error) {
+      console.error("Erro ao enviar mídia da campanha:", error);
+      if (campaignMediaUploadStatus) {
+        campaignMediaUploadStatus.textContent = error.message || "Não foi possível enviar a mídia.";
+      }
+    } finally {
+      isUploadingMedia = false;
+    }
+  }
+
   function fillForm(item) {
     campaignId.value = item.id || "";
+    currentManagedMediaPath = item.render_config?.managed_media_path || "";
     campaignTitle.value = item.title || "";
     campaignSubtitle.value = item.subtitle || "";
     campaignMessage.value = item.message || "";
@@ -623,9 +929,6 @@
 
     campaignButtonLabel.value = item.button_label || "";
     campaignButtonUrl.value = item.button_url || "";
-    campaignInstagramUrl.value = item.instagram_url || "";
-    campaignFacebookUrl.value = item.facebook_url || "";
-    campaignWhatsappUrl.value = item.whatsapp_url || "";
 
     campaignType.value = item.campaign_type || "portal";
     campaignActive.value = item.active ? "true" : "false";
@@ -639,14 +942,21 @@
     campaignButtonTextColor.value = isValidHexColor(item.button_text_color) ? item.button_text_color : "#0f172a";
     campaignUseCustomColors.checked = !!item.use_custom_colors;
 
-    applyRenderConfigToForm(item.render_config || getDefaultRenderConfig());
+    applyRenderConfigToForm(item.render_config || getDefaultExtendedRenderConfig());
+    populateButtonSourceOptions(
+      item.render_config?.button_source || inferButtonSource(item.button_url),
+      item.button_url || ""
+    );
 
     deleteCampaignBtn.classList.remove("hidden");
     campaignModalTitle.textContent = "Editar campanha";
+    updateCampaignImageState();
     renderPreview();
   }
 
   function getFormState() {
+    const socialUrls = getDerivedSocialUrls();
+
     return {
       title: campaignTitle.value.trim(),
       subtitle: campaignSubtitle.value.trim(),
@@ -655,9 +965,9 @@
       coupon_code: campaignCouponCode.value.trim(),
       button_label: campaignButtonLabel.value.trim(),
       button_url: campaignButtonUrl.value.trim(),
-      instagram_url: campaignInstagramUrl.value.trim(),
-      facebook_url: campaignFacebookUrl.value.trim(),
-      whatsapp_url: campaignWhatsappUrl.value.trim(),
+      instagram_url: socialUrls.instagram_url || "",
+      facebook_url: socialUrls.facebook_url || "",
+      whatsapp_url: socialUrls.whatsapp_url || "",
       active: campaignActive.value === "true",
       starts_at: toIsoDateTime(campaignStartsAt.value),
       ends_at: toIsoDateTime(campaignEndsAt.value),
@@ -668,7 +978,11 @@
       button_bg_color: campaignUseCustomColors.checked ? campaignButtonBgColor.value : "",
       button_text_color: campaignUseCustomColors.checked ? campaignButtonTextColor.value : "",
       use_custom_colors: campaignUseCustomColors.checked,
-      render_config: getRenderConfigFromForm()
+      render_config: {
+        ...getRenderConfigFromForm(),
+        button_source: campaignButtonSource?.value || "manual",
+        managed_media_path: currentManagedMediaPath || null
+      }
     };
   }
 
@@ -842,10 +1156,8 @@
       campaignImageUrl,
       campaignCouponCode,
       campaignButtonLabel,
+      campaignButtonSource,
       campaignButtonUrl,
-      campaignInstagramUrl,
-      campaignFacebookUrl,
-      campaignWhatsappUrl,
       campaignType,
       campaignActive,
       campaignStartsAt,
@@ -868,6 +1180,18 @@
       el.addEventListener("input", renderPreview);
       el.addEventListener("change", renderPreview);
     });
+
+    campaignImageUrl?.addEventListener("input", () => {
+      if (!campaignImageUrl.value.trim()) {
+        currentManagedMediaPath = "";
+      }
+      updateCampaignImageState();
+    });
+
+    campaignButtonSource?.addEventListener("change", () => {
+      syncButtonUrlFromSource();
+      renderPreview();
+    });
   }
 
   openCampaignModalBtn.addEventListener("click", () => {
@@ -876,8 +1200,39 @@
     openModal(false);
   });
 
+  openMediaUploadModalBtn?.addEventListener("click", () => {
+    if (!canManageCurrentTenant) return;
+    resetMediaUploadState();
+    openMediaModal();
+  });
+
+  clearCampaignImageBtn?.addEventListener("click", () => {
+    campaignImageUrl.value = "";
+    currentManagedMediaPath = "";
+    updateCampaignImageState();
+    renderPreview();
+  });
+
   closeCampaignModalBtn.addEventListener("click", closeModal);
   cancelCampaignModalBtn.addEventListener("click", closeModal);
+  closeCampaignMediaModalBtn?.addEventListener("click", closeMediaModal);
+  cancelCampaignMediaModalBtn?.addEventListener("click", closeMediaModal);
+  selectCampaignMediaBtn?.addEventListener("click", () => campaignMediaFileInput?.click());
+  confirmCampaignMediaUploadBtn?.addEventListener("click", handleCampaignMediaUpload);
+
+  campaignMediaFileInput?.addEventListener("change", () => {
+    selectedMediaFile = campaignMediaFileInput.files?.[0] || null;
+    if (campaignMediaFileName) {
+      campaignMediaFileName.textContent = selectedMediaFile
+        ? `${selectedMediaFile.name} • ${Math.max(1, Math.round(selectedMediaFile.size / 1024))} KB`
+        : "Nenhum arquivo selecionado.";
+    }
+    if (campaignMediaUploadStatus) {
+      campaignMediaUploadStatus.textContent = selectedMediaFile
+        ? "Arquivo pronto para envio. A URL será preenchida no formulário ao concluir."
+        : "A URL será criada automaticamente após o envio.";
+    }
+  });
 
   campaignModal.addEventListener("click", (event) => {
     if (event.target === campaignModal) {
@@ -885,7 +1240,18 @@
     }
   });
 
+  campaignMediaModal?.addEventListener("click", (event) => {
+    if (event.target === campaignMediaModal) {
+      closeMediaModal();
+    }
+  });
+
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && campaignMediaModal?.classList.contains("show")) {
+      closeMediaModal();
+      return;
+    }
+
     if (event.key === "Escape" && campaignModal.classList.contains("show")) {
       closeModal();
     }
@@ -934,8 +1300,10 @@
     normalizeModalState();
     await resolvePagePermissions();
     applyPortalThemeVars();
+    await loadPortalSettings();
     bindPreviewInputs();
     resetForm();
+    updateCampaignImageState();
     await loadCampaigns();
   })();
 })();
