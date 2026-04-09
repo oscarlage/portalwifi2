@@ -291,13 +291,18 @@ async function deleteStorageObjects(env: Env, bucketId: string, objectPaths: str
     return;
   }
 
-  await supabaseStorageRequest(env, `object/${encodeURIComponent(bucketId)}`, {
-    method: "DELETE",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ prefixes: uniquePaths }),
-  });
+  for (const objectPath of uniquePaths) {
+    try {
+      await supabaseStorageRequest(env, `object/${encodeURIComponent(bucketId)}/${encodeStoragePath(objectPath)}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 404) {
+        continue;
+      }
+      throw error;
+    }
+  }
 }
 
 function normalizePhone(value: unknown): string | null {
